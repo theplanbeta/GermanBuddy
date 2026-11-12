@@ -392,14 +392,13 @@ input[type='range'] {
 }
 
 @media (max-width: 560px) {
+  /* Phone: voice gets a full row so its name is readable; tempo and download share the next. */
   .settings {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr auto;
   }
-  .download {
+  .voice-field {
     grid-column: 1 / -1;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    grid-row: 1;
   }
   textarea,
   .reading {

@@ -45,10 +45,12 @@ npm run preview  # serves dist/ at http://localhost:4173 to try the finished sit
 - The site must be served over **https** (or from localhost). On a plain
   `http://` address browsers refuse to save the model, so it downloads again on
   every visit.
-- For full speed the host should send these two headers (the dev and preview
-  servers already do). Without them it still works, using one CPU core:
-  `Cross-Origin-Opener-Policy: same-origin` and
-  `Cross-Origin-Embedder-Policy: require-corp`.
+- The host should send these two headers (the dev and preview servers already
+  do): `Cross-Origin-Opener-Policy: same-origin` and
+  `Cross-Origin-Embedder-Policy: require-corp`. They let the voice use several
+  CPU cores. Without them it still works but on one core, which measured about
+  2.5 times slower (slower than real time, so playback stutters). Some free
+  hosts, such as GitHub Pages, cannot send these headers.
 
 ## Privacy
 
