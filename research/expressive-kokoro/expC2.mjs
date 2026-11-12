@@ -1,0 +1,10 @@
+import { runVariants } from "./lib.mjs";
+const AF = ["af_alloy","af_aoede","af_bella","af_jessica","af_kore","af_nova","af_river","af_sarah","af_sky","af_heart"];
+const MEAN = { mix: AF.map(v => [v, 1 / AF.length]) };
+const S = "Relax, everyone! It was just my cat.";
+const V = [{ name: "d00_heart", style: "af_heart" }];
+for (const k of [0.5, 1.0, 1.5]) V.push({ name: `d1_antiwhisper_timbre_${k}`, style: { base: "af_heart", add: [[MEAN, "af_nicole", k]], half: "timbre" } });
+for (const w of [0.3, 0.5, 0.7]) V.push({ name: `d2_pros_santa_${w}`, style: { timbre: "af_heart", prosody: { mix: [["af_heart", 1 - w], ["am_santa", w]] } } });
+for (const w of [0.5, 1.0]) V.push({ name: `d2_pros_sarah_${w}`, style: { timbre: "af_heart", prosody: { mix: [["af_heart", 1 - w], ["af_sarah", w]] } } });
+for (const k of [0.5, 1.0]) V.push({ name: `d3_excite_dir_${k}`, style: { base: "af_heart", add: [["am_santa", "am_michael", k]], half: "prosody" } });
+await runVariants("work/C2", V.map(v => ({ ...v, text: S })));

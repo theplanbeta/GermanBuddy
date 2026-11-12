@@ -1,0 +1,48 @@
+// Builds the short A/B clips in out/clips from the full renders and experiment files.
+import fs from "node:fs";
+import { writeWav, concat, silence } from "./lib.mjs";
+const rd = (f) => { const b = fs.readFileSync(f); const n = (b.length - 44) / 2; const a = new Float32Array(n); for (let i = 0; i < n; i++) a[i] = b.readInt16LE(44 + i * 2) / 32768; return a; };
+const plan = (f) => { const p = JSON.parse(fs.readFileSync(f, "utf8")); return p.chunks ?? p; };
+const R = { base: ["out/A_baseline_app_today.wav", "out/A_baseline_app_today.pieces.json"], rec: ["out/B_all_recommended.wav", "work/B_all.json"] };
+for (const a of ["no-pauses", "no-styles", "no-speed", "no-dsp", "no-foreign", "tremolo"]) R[a] = [`work/abl/${a}.wav`, `work/abl/${a}.json`];
+const cache = {};
+function cut(key, from, to) { // chunk indices inclusive; includes pauses between, not after the last
+  const [w, p] = R[key]; cache[w] ??= rd(w); const c = plan(p);
+  const s = Math.round(c[from].start * 24000), e = Math.round((c[to].start + c[to].dur) * 24000);
+  return cache[w].slice(s, e);
+}
+const file = (f) => rd(f);
+const seq = (...xs) => concat(xs.flatMap((x, i) => (i ? [silence(0.9), x] : [x])));
+const D = "out/clips"; fs.rmSync(D, { recursive: true, force: true }); fs.mkdirSync(D, { recursive: true });
+const W = (n, a) => writeWav(`${D}/${n}.wav`, concat([silence(0.15), a, silence(0.3)]));
+W("01_sentence_gaps__A_app_today", cut("base", 16, 19));
+W("01_sentence_gaps__B_one_call_model_pauses", file("work/A/beat_grouped.wav"));
+W("01_sentence_gaps__C_recommended_trim_plus_designed_pauses", cut("rec", 18, 21));
+W("02_opening_split__A_app_today", cut("base", 0, 1));
+W("02_opening_split__B_whole_sentence", cut("rec", 0, 0));
+W("03_long_sentence_split__A_app_today", cut("base", 8, 9));
+W("03_long_sentence_split__B_whole_sentence", cut("rec", 9, 9));
+W("04_wait_what__A_app_today", cut("base", 2, 3));
+W("04_wait_what__B_one_call_no_split", file("work/A/wait_whole.wav"));
+W("04_wait_what__C_recommended", cut("rec", 1, 3));
+W("04_wait_what__D_recommended_plus_tremolo", cut("tremolo", 1, 3));
+W("05_whisper__A_app_today", cut("base", 5, 6));
+W("05_whisper__B_german_phonemes_only", cut("no-styles", 5, 7));
+W("05_whisper__C_recommended_german_plus_whisper_vector", cut("rec", 5, 7));
+W("05b_whisper_strength_ladder_0_0.5_1.0_1.5_2.0", seq(...["c00_heart", "c3_whisper_timbre_0.5", "c3_whisper_timbre_1", "c3_whisper_timbre_1.5", "c3_whisper_timbre_2"].map((n) => file(`work/C/${n}.wav`))));
+W("06_foreign_words__A_english_rules", concat([cut("no-foreign", 0, 0), silence(0.6), cut("no-foreign", 8, 8), silence(0.6), cut("no-foreign", 15, 17)]));
+W("06_foreign_words__B_german_spanish_phonemes", concat([cut("rec", 0, 0), silence(0.6), cut("rec", 8, 8), silence(0.6), cut("rec", 15, 17)]));
+W("07_slow_consider_this__A_speed_1", cut("no-speed", 10, 13));
+W("07_slow_consider_this__B_speed_0.85", cut("rec", 10, 13));
+W("08_shout__A_app_today", cut("base", 13, 15));
+W("08_shout__B_gain_and_eq_only", cut("no-styles", 14, 17));
+W("08_shout__C_style_vectors_only", cut("no-dsp", 14, 17));
+W("08_shout__D_recommended_both", cut("rec", 14, 17));
+W("09_laugh_sigh__A_app_today", cut("base", 20, 22));
+W("09_laugh_sigh__B_recommended", cut("rec", 22, 26));
+W("10_punctuation_pause_plain_ellipsis_dots_comma_dash_period", seq(...["p1_plain", "p2_ellipsis", "p3_dots", "p4_comma", "p5_dash", "p7_period"].map((n) => file(`work/B/${n}.wav`))));
+W("11_caps_and_stress_marks_NEGATIVE_lower_CAPS_stress_combo", seq(file("work/B/c1_lower.wav"), file("work/B/c2_caps_word.wav"), file("work/D/s0_base.wav"), file("work/D/s6_combo.wav")));
+W("12_animated_prosody_heart_vs_santa_prosody_vs_pitch_direction", seq(file("work/C2/d00_heart.wav"), file("work/C2/d2_pros_santa_0.5.wav"), file("work/C2/d3_excite_dir_0.5.wav")));
+W("13_length_row_pace_index20_true_index300", seq(file("work/C/c4_index_20.wav"), file("work/C/c00_heart.wav"), file("work/C/c4_index_300.wav")));
+W("14_misaki_symbols_NEUTRAL_espeak_vs_misaki", seq(file("work/T/t3_espeak.wav"), file("work/T/t3_misaki.wav")));
+console.log(fs.readdirSync(D).join("\n"));
