@@ -84,7 +84,7 @@ function hideMessage() {
 const supported = typeof Worker !== 'undefined' && typeof WebAssembly !== 'undefined' && typeof Audio !== 'undefined';
 if (!supported) {
   ui.engineStatus.textContent = 'This browser is not supported';
-  showMessage('Sorry, this browser can’t run Listen. Please open it in a recent version of Chrome, Edge, Firefox or Safari.');
+  showMessage('Sorry, this browser can’t run Hearshot. Please open it in a recent version of Chrome, Edge, Firefox or Safari.');
   for (const b of [ui.play, ui.prev, ui.next, ui.stop]) b.disabled = true;
   throw new Error('Unsupported browser');
 }
@@ -140,7 +140,7 @@ async function checkModel({ notice, switching = false } = {}) {
     const size = SIZE_MB[plan.dtype];
     ui.modelText.textContent = switching
       ? `${modeName(plan.device)} needs its own one-time download of about ${size} MB. The other mode stays saved on this device.`
-      : `Listen reads aloud with a voice model that runs on your own device. It needs a one-time download of about ${size} MB, then it works instantly.`;
+      : `Hearshot reads aloud with a voice model that runs on your own device. It needs a one-time download of about ${size} MB, then it works instantly.`;
     if (typeof caches === 'undefined') {
       ui.modelText.textContent += ' Note: this page isn’t on a secure (https) address, so the download can’t be saved and will be needed again next time.';
     }
@@ -222,7 +222,7 @@ engine.onFallback = (reason) => {
   const what = reason === 'start' ? 'couldn’t start' : 'produced faulty audio';
   restartModel({
     switching: true,
-    notice: `Graphics mode ${what} on this device, so Listen switched to standard mode. You can try graphics mode again under Settings.`,
+    notice: `Graphics mode ${what} on this device, so Hearshot switched to standard mode. You can try graphics mode again under Settings.`,
   });
 };
 
@@ -235,19 +235,24 @@ function updateWordCount() {
   ui.wordCount.textContent = words ? `${words.toLocaleString()} word${words === 1 ? '' : 's'}` : '';
 }
 
-function showReading() {
+/** Hands the text box's text to the reader (if it changed). False if it has no words. */
+function loadText() {
   const text = ui.text.value;
-  if (text !== loadedText) {
-    // A long first sentence is split so the voice can start sooner.
-    const sentences = splitOpening(splitText(text));
-    if (!sentences.length) return false;
-    renderReading(sentences);
-    reader.load(sentences);
-    loadedText = text;
-    if (navigator.mediaSession) {
-      navigator.mediaSession.metadata = new MediaMetadata({ title: sentences[0].text.slice(0, 80), artist: 'Listen' });
-    }
+  if (text === loadedText) return true;
+  // A long first sentence is split so the voice can start sooner.
+  const sentences = splitOpening(splitText(text));
+  if (!sentences.length) return false;
+  renderReading(sentences);
+  reader.load(sentences);
+  loadedText = text;
+  if (navigator.mediaSession) {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: sentences[0].text.slice(0, 80), artist: 'Hearshot' });
   }
+  return true;
+}
+
+function showReading() {
+  if (!loadText()) return false;
   ui.text.hidden = true;
   ui.reading.hidden = false;
   ui.editButton.hidden = false;
@@ -279,7 +284,15 @@ function showEditor() {
   ui.text.focus();
 }
 
-ui.text.addEventListener('input', updateWordCount);
+// Start preparing as soon as the typing or pasting pauses, so that Play
+// usually finds the first sentences ready. (Nothing is downloaded by this:
+// the engine waits until the voice model has been allowed and loaded.)
+let typingTimer = null;
+ui.text.addEventListener('input', () => {
+  updateWordCount();
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(() => ui.text.value.trim() && loadText(), 600);
+});
 ui.editButton.addEventListener('click', showEditor);
 ui.clearButton.addEventListener('click', () => {
   reader.load([]);
@@ -394,7 +407,7 @@ ui.download.addEventListener('click', () => {
   const speed = fileSpeed() ? ` (${fileSpeed()}x speed)` : '';
   const link = document.createElement('a');
   link.href = URL.createObjectURL(wav);
-  link.download = `Listen - ${name}${speed}.wav`;
+  link.download = `Hearshot - ${name}${speed}.wav`;
   document.body.append(link);
   link.click();
   link.remove();

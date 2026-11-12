@@ -48,6 +48,7 @@ export function createKokoroEngine({ mode = 'auto' } = {}) {
   let ready = deferred(); // settles when the model has loaded
   let progressListener = () => {};
   let strikes = 0;
+  let waiting = 0; // generate() calls waiting for the model to load
 
   function startWorker() {
     worker?.terminate();
@@ -83,6 +84,9 @@ export function createKokoroEngine({ mode = 'auto' } = {}) {
         engine.device = data.device;
         loadWaiter?.resolve({ device: data.device, dtype: data.dtype });
         ready.resolve();
+        // The very first request pays a one-off setup cost (about 0.9 s on a
+        // 4-core laptop). If nobody is waiting yet, pay it now.
+        if (!waiting) worker.postMessage({ type: 'warmup' });
         break;
       case 'audio': {
         const job = pending.get(data.id);
@@ -158,7 +162,12 @@ export function createKokoroEngine({ mode = 'auto' } = {}) {
 
     async generate(text, voice, speed = 1) {
       for (;;) {
-        await ready.promise;
+        waiting++;
+        try {
+          await ready.promise;
+        } finally {
+          waiting--;
+        }
         const onGpu = engine.device === 'webgpu';
         let result;
         let problem;

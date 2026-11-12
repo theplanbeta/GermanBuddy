@@ -3,6 +3,7 @@
 // Messages in:   { type: 'probe', mode }            mode: 'auto' | 'webgpu' | 'wasm'
 //                { type: 'load', mode }
 //                { type: 'generate', id, text, voice, speed }
+//                { type: 'warmup' }   pays the one-off cost of the first request early
 // Messages out:  { type: 'probe', device, dtype, cached, webgpu }
 //                { type: 'progress', loaded, total }
 //                { type: 'ready', device, dtype }
@@ -71,9 +72,6 @@ async function load(mode) {
     // A failure here is reported to the page (with gpu: true for WebGPU),
     // which decides whether to fall back to the standard engine.
     tts = await KokoroTTS.from_pretrained(MODEL_ID, { device, dtype, progress_callback: progressReporter() });
-    // The very first request pays a one-off setup cost (about 0.9 s on a
-    // 4-core laptop). Pay it now, before anyone is waiting for a sentence.
-    queue = queue.then(() => tts.generate('Hi.', { voice: 'af_heart' })).catch(() => {});
   }
   postMessage({ type: 'ready', device: plan.device, dtype: plan.dtype });
 }
@@ -97,6 +95,7 @@ self.addEventListener('message', ({ data }) => {
       if (data.type === 'probe') postMessage({ type: 'probe', ...(await choosePlan(data.mode)) });
       else if (data.type === 'load') await load(data.mode);
       else if (data.type === 'generate') await generate(data);
+      else if (data.type === 'warmup') await tts.generate('Hi.', { voice: 'af_heart' }).catch(() => {});
     } catch (error) {
       const gpu = plan?.device === 'webgpu';
       postMessage({ type: 'error', id: data.id, phase: data.type, gpu, message: String(error?.message || error) });

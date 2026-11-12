@@ -2,19 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <title>Listen</title>
+    <title>Hearshot</title>
     <!-- Lets the voice use several CPU cores on hosts that cannot send the
          cross-origin isolation headers themselves (for example GitHub Pages). -->
     <script src="coi-serviceworker.js"></script>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f6f5e'/%3E%3Cpath d='M10 12v8M14 9v14M18 12v8M22 14v4' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E" />
-    <script type="module" crossorigin src="./assets/index-RtHd4dBo.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-CWvY9OZo.css">
+    <script type="module" crossorigin src="./assets/index-ze0Wpbn7.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CZTNEmND.css">
   </head>
   <body>
     <header class="top">
-      <h1 class="brand">Listen</h1>
+      <h1 class="brand">Hearshot</h1>
       <p id="engine-status" class="engine-status">Checking this browser…</p>
     </header>
 
@@ -41,6 +41,25 @@
           <button id="clear-button" class="button" type="button">Clear</button>
         </div>
       </section>
+
+      <details class="prefs">
+        <summary>Settings</summary>
+        <div class="field">
+          <label for="mode">Voice engine</label>
+          <select id="mode">
+            <option value="auto">Automatic</option>
+            <option value="webgpu">Graphics chip (WebGPU)</option>
+            <option value="wasm">Standard (WebAssembly)</option>
+          </select>
+        </div>
+        <p id="mode-help" class="muted small">
+          Automatic uses the graphics chip when this browser offers it, otherwise the standard engine.
+          Each needs its own one-time download (about 326 MB for the graphics chip, 177 MB for standard);
+          both stay saved, so you can switch back and forth to compare.
+        </p>
+      </details>
+
+      <footer class="foot">Voices: Kokoro (open source, Apache 2.0)</footer>
     </main>
 
     <section class="player" aria-label="Player">
@@ -56,23 +75,29 @@
           </div>
         </div>
 
-        <div class="transport">
-          <button id="prev-button" class="round" type="button" aria-label="Previous sentence" title="Previous sentence (←)">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14M19 5 9 12l10 7z" /></svg>
-          </button>
-          <button id="play-button" class="round big" type="button" aria-label="Play" title="Play / pause (space)">
-            <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
-            <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
-          </button>
-          <button id="next-button" class="round" type="button" aria-label="Next sentence" title="Next sentence (→)">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 5v14M5 5l10 7-10 7z" /></svg>
-          </button>
-          <button id="stop-button" class="round" type="button" aria-label="Stop" title="Stop">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5" /></svg>
+        <div class="controls">
+          <div class="transport">
+            <button id="prev-button" class="round" type="button" aria-label="Previous sentence" title="Previous sentence (←)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14M19 5 9 12l10 7z" /></svg>
+            </button>
+            <button id="play-button" class="round big" type="button" aria-label="Play" title="Play / pause (space)">
+              <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+              <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
+            </button>
+            <button id="next-button" class="round" type="button" aria-label="Next sentence" title="Next sentence (→)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 5v14M5 5l10 7-10 7z" /></svg>
+            </button>
+            <button id="stop-button" class="round" type="button" aria-label="Stop" title="Stop">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5" /></svg>
+            </button>
+          </div>
+          <!-- Phones only: shows and hides the row below to keep the player small. -->
+          <button id="more-button" class="button more" type="button" aria-expanded="false" aria-controls="settings">
+            <span class="visually-hidden">Voice and speed: </span><span id="more-text">Heart · 1.00×</span>
           </button>
         </div>
 
-        <div class="settings">
+        <div id="settings" class="settings">
           <div class="field">
             <label for="tempo">Tempo <output id="tempo-value" for="tempo">1.00×</output></label>
             <input id="tempo" type="range" min="0.5" max="2.5" step="0.05" value="1" />
@@ -88,8 +113,6 @@
         </div>
       </div>
     </section>
-
-    <footer class="foot">Voices: Kokoro (open source, Apache 2.0)</footer>
 
   </body>
 </html>
