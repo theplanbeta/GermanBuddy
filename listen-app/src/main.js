@@ -89,7 +89,7 @@ if (!supported) {
   throw new Error('Unsupported browser');
 }
 
-const MODES = ['auto', 'webgpu', 'wasm'];
+const MODES = ['auto', 'webgpu', 'webgpu-fp16', 'wasm'];
 const savedMode = settings.get('mode', 'auto');
 const engine = createKokoroEngine({ mode: MODES.includes(savedMode) ? savedMode : 'auto' });
 const reader = new Reader(engine);
@@ -100,10 +100,11 @@ if (new URLSearchParams(location.search).has('debug')) window.listen = { reader,
 let plan = null; // { device, dtype, cached, webgpu }
 let modelStarted = false;
 let modelRun = 0; // ignores answers from an engine that has since been restarted
-const SIZE_MB = { uint8: 177, fp32: 326 }; // model download size per engine mode
+const SIZE_MB = { uint8: 177, fp32: 326, fp16: 163 }; // model download size per engine mode
 
-function modeName(device) {
-  return device === 'webgpu' ? 'Graphics mode (WebGPU)' : 'Standard mode (WebAssembly)';
+function modeName(device, dtype = engine.dtype ?? plan?.dtype) {
+  if (device !== 'webgpu') return 'Standard mode (WebAssembly)';
+  return dtype === 'fp16' ? 'Graphics mode (WebGPU, smaller model)' : 'Graphics mode (WebGPU)';
 }
 
 /** "Graphics mode (WebGPU) · preparing 1.4× faster than playback" */
@@ -130,17 +131,24 @@ async function checkModel({ notice, switching = false } = {}) {
   }
   if (run !== modelRun) return;
   // Only offer the graphics chip where this browser has one.
-  ui.mode.querySelector('[value="webgpu"]').hidden = !plan.webgpu;
-  ui.mode.querySelector('[value="webgpu"]').disabled = !plan.webgpu;
-  if (!plan.webgpu && ui.mode.value === 'webgpu') ui.mode.value = 'auto';
+  for (const option of ui.mode.querySelectorAll('[value^="webgpu"]')) {
+    option.hidden = !plan.webgpu;
+    option.disabled = !plan.webgpu;
+  }
+  if (!plan.webgpu && ui.mode.value.startsWith('webgpu')) ui.mode.value = 'auto';
   updateStatus();
   if (plan.cached) {
     startModel();
   } else {
     const size = SIZE_MB[plan.dtype];
-    ui.modelText.textContent = switching
-      ? `${modeName(plan.device)} needs its own one-time download of about ${size} MB. The other mode stays saved on this device.`
-      : `Hearshot reads aloud with a voice model that runs on your own device. It needs a one-time download of about ${size} MB, then it works instantly.`;
+    if (switching) {
+      ui.modelText.textContent = `${modeName(plan.device, plan.dtype)} needs its own one-time download of about ${size} MB. The other mode stays saved on this device.`;
+    } else if (plan.previous) {
+      // Someone who used an earlier version: the voice model has been replaced.
+      ui.modelText.textContent = `Hearshot’s voice has been improved: sentences now flow into each other more naturally. The new voice model is a one-time download of about ${size} MB; the old one is then removed to free the space.`;
+    } else {
+      ui.modelText.textContent = `Hearshot reads aloud with a voice model that runs on your own device. It needs a one-time download of about ${size} MB, then it works instantly.`;
+    }
     if (typeof caches === 'undefined') {
       ui.modelText.textContent += ' Note: this page isn’t on a secure (https) address, so the download can’t be saved and will be needed again next time.';
     }
@@ -474,7 +482,20 @@ reader.addEventListener('sentence', () => {
 reader.addEventListener('generated', () => {
   updateProgress();
   updateStatus();
+  if (reader.stats.length) removePreviousModel();
 });
+
+// The model of earlier versions has been replaced by one that also reports
+// when each sentence starts. Once the new one works, free the old one's space.
+let previousRemoved = false;
+async function removePreviousModel() {
+  if (previousRemoved) return;
+  previousRemoved = true;
+  const freed = await engine.removePreviousModel();
+  if (freed > 0 && ui.message.hidden) {
+    showMessage(`Removed the previous voice model (${Math.round(freed / 1e6)} MB) to free space on this device.`, { info: true });
+  }
+}
 reader.addEventListener('time', updateProgress);
 reader.addEventListener('slow', () => {
   showMessage('This device prepares audio more slowly than it plays. Pause for a moment to let it get ahead, or lower the tempo.', { info: true });

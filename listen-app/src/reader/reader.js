@@ -1,16 +1,22 @@
 // The Reader turns a list of sentences into continuous speech.
 //
-// - It asks the voice engine for one sentence at a time, starting with the one
-//   being listened to and working forward, so playback can start as soon as
-//   the first sentence is ready. It keeps going until the whole document is
-//   done, which is what makes the download possible.
-// - It plays each finished sentence through one <audio> element. The browser
-//   changes tempo there without changing pitch, so the tempo slider is instant.
-// - Each prepared sentence remembers the voice and speed it was made with.
-//   Changing the voice (or a big tempo change, see schedule.js) never stops
-//   the sound: what is already prepared keeps playing, the sentences after the
-//   current one are re-made in the background, and the new voice takes over
-//   at the first sentence that is ready in it.
+// - It asks the voice engine for one model call at a time. A call covers
+//   several neighbouring sentences of a paragraph (see flow/plan.js for the
+//   rules), which makes the reading flow like one connected thought. The
+//   result is one "clip" with the exact start of every sentence in it
+//   (flow/assemble.js).
+// - Work starts with the sentence being listened to and goes forward, so
+//   playback can start as soon as the first (small) call is ready. It keeps
+//   going until the whole document is done, which makes the download possible.
+// - Clips are played through one <audio> element. The browser changes tempo
+//   there without changing pitch, so the tempo slider is instant. Which
+//   sentence is being heard is worked out from the playback position, many
+//   times a second, for the highlight.
+// - Each clip remembers the voice and speed it was made with. Changing the
+//   voice (or a big tempo change, see schedule.js) never stops the sound:
+//   what is already prepared keeps playing, the text from the next sentence
+//   on is re-made in small calls first, and at the first sentence boundary
+//   where the new voice is ready the player switches clips.
 //
 // Any "source" (pasted text today; files, photos, web pages later) just calls
 // reader.load(sentences).
@@ -22,42 +28,54 @@
 //   'time'       playback position moved (reader.position, 0..1)
 //   'slow'       playback ran dry and this device prepares more slowly than it plays
 //   'error'      event.detail = { error, fatal }
-import { makeClip, wavBlob, silentWav, SENTENCE_PAUSE, PARAGRAPH_PAUSE, CLAUSE_PAUSE } from './audio.js';
-import { bakedSpeedFor, speedFactor, isFresh, nextToGenerate, readyAhead, prepRatio } from './schedule.js';
+import { toInt16, wavBlob, silentWav } from './audio.js';
+import { bakedSpeedFor, speedFactor, prepRatio, msPerToken } from './schedule.js';
+import { chooseStart, planCall, sizeRule, freshAhead, takeoverStart, firstWords, MAX_SENTENCES } from '../flow/plan.js';
+import { assembleCall, designedPause, sentenceAt } from '../flow/assemble.js';
 
 const SPEED_SETTLE_MS = 1000; // wait for the tempo slider to rest before re-preparing at a new speed
 const REFILL_SECONDS = 5; // after running dry mid-reading, gather this much before carrying on
+const RATE = 24000;
 
 export class Reader extends EventTarget {
   constructor(engine) {
     super();
     this.engine = engine;
     this.sentences = [];
-    this.clips = []; // per sentence: { pcm: Int16Array, voice, speed, seconds } or null
+    // segments[i] = { clip, k }: sentence i is sentence number k of that clip.
+    // A clip is { pcm: Int16Array, offsets, first, last, voice, speed }, where
+    // sentence k of the clip runs from offsets[k] to offsets[k + 1] (samples,
+    // including the pause after it).
+    this.segments = [];
     this.current = 0;
     this.state = 'idle';
     this.voice = 'af_heart';
     this.tempo = 1;
     this.speed = 1; // the speed new clips are made at (follows the tempo, see schedule.js)
+    this.sizing = 'adaptive'; // or 'ramp' (fixed 1, 2, 4, full calls; for tests)
     this.failedCount = 0;
-    this.sampleRate = 24000;
-    this.stats = []; // { index, chars, ms, seconds, speed } per generated sentence
+    this.stats = []; // per model call: { tokens, ms, seconds, speed }
+    this.calls = []; // per model call, for tests and curiosity: what was planned and how it went
+    this.phonemes = new Map(); // 'a' | 'b' -> per sentence { ph, head, n, headN }
+    this.single = new Set(); // sentences that must be made on their own (a group could not be cut apart)
+    this.ordinal = 0; // model calls since the text was loaded
     this.epoch = 0; // bumps when new text is loaded
     this.busy = false;
     this.halted = false; // the engine could not load; wait for retry()
-    this.loadedIndex = -1; // which sentence the <audio> element holds
-    this.heardVoice = null; // the voice of the clip in the <audio> element
+    this.loaded = null; // the clip in the <audio> element
     this.refilling = false; // ran dry mid-reading: wait for a little lead before carrying on
     this.slowNoticed = false;
     this.speedTimer = null;
+    this.frame = null;
     this.url = null;
     this.unlocked = false;
     this.silentUrl = null;
 
     this.audio = new Audio();
     this.audio.preload = 'auto';
-    this.audio.addEventListener('ended', () => this.#advance());
-    this.audio.addEventListener('timeupdate', () => this.#emit('time'));
+    this.audio.addEventListener('ended', () => this.#clipEnded());
+    // Backup for when animation frames stop (background tab, locked screen).
+    this.audio.addEventListener('timeupdate', () => this.#tick());
   }
 
   // ---- loading -----------------------------------------------------------
@@ -66,7 +84,11 @@ export class Reader extends EventTarget {
     this.stop();
     this.sentences = sentences;
     this.epoch++;
-    this.clips = new Array(sentences.length).fill(null);
+    this.segments = new Array(sentences.length).fill(null);
+    this.phonemes.clear();
+    this.single.clear();
+    this.calls = [];
+    this.ordinal = 0;
     this.failedCount = 0;
     this.slowNoticed = false;
     this.#emit('generated');
@@ -95,7 +117,7 @@ export class Reader extends EventTarget {
       this.#emit('generated');
       this.#pump();
     };
-    if (this.clips.some(Boolean)) this.speedTimer = setTimeout(settle, SPEED_SETTLE_MS);
+    if (this.segments.some(Boolean)) this.speedTimer = setTimeout(settle, SPEED_SETTLE_MS);
     else settle(); // nothing prepared yet: nothing to throw away
   }
 
@@ -112,11 +134,11 @@ export class Reader extends EventTarget {
     this.#unlock();
     if (this.state === 'playing' || this.state === 'waiting') return;
     this.refilling = false;
-    if (this.state === 'paused' && this.loadedIndex === this.current && !this.audio.ended) {
+    if (this.state === 'paused' && this.#holdsCurrent() && !this.audio.ended) {
       this.#setState('playing');
       this.audio.play().catch((e) => this.#playFailed(e));
     } else {
-      this.#startClip(this.current);
+      this.#startAt(this.current);
     }
   }
 
@@ -133,8 +155,7 @@ export class Reader extends EventTarget {
 
   stop() {
     this.audio.pause();
-    this.loadedIndex = -1;
-    this.heardVoice = null;
+    this.loaded = null;
     this.current = 0;
     this.refilling = false;
     this.#setState('idle');
@@ -154,13 +175,13 @@ export class Reader extends EventTarget {
   jumpTo(index, { play = false } = {}) {
     if (!this.sentences.length) return;
     this.current = Math.max(0, Math.min(index, this.sentences.length - 1));
-    this.loadedIndex = -1;
     this.refilling = false;
     this.#emit('sentence');
     if (play) this.#unlock();
-    if (play || this.state === 'playing' || this.state === 'waiting') this.#startClip(this.current);
+    if (play || this.state === 'playing' || this.state === 'waiting') this.#startAt(this.current);
     else {
       this.audio.pause();
+      this.loaded = null;
       this.#emit('time');
       this.#pump();
     }
@@ -168,10 +189,16 @@ export class Reader extends EventTarget {
 
   // ---- results -----------------------------------------------------------
 
+  /** True when sentence i is prepared in the current voice and speed. */
+  isFresh(i) {
+    const clip = this.segments[i]?.clip;
+    return Boolean(clip) && clip.voice === this.voice && clip.speed === this.speed;
+  }
+
   /** How many sentences are prepared in the current voice and speed. */
   get readyCount() {
     let n = 0;
-    for (const clip of this.clips) if (isFresh(clip, this.voice, this.speed)) n++;
+    for (let i = 0; i < this.sentences.length; i++) if (this.isFresh(i)) n++;
     return n;
   }
 
@@ -182,7 +209,7 @@ export class Reader extends EventTarget {
 
   /** True while the old voice is still heard after a voice change. */
   get switching() {
-    return this.state !== 'idle' && this.heardVoice !== null && this.heardVoice !== this.voice;
+    return this.state !== 'idle' && this.loaded !== null && this.loaded.voice !== this.voice;
   }
 
   /** Preparation speed compared with playback (above 1 keeps ahead), or null. */
@@ -194,46 +221,111 @@ export class Reader extends EventTarget {
   get position() {
     const n = this.sentences.length;
     if (!n) return 0;
-    const a = this.audio;
-    const within = this.loadedIndex === this.current && a.duration ? a.currentTime / a.duration : 0;
+    let within = 0;
+    if (this.#holdsCurrent()) {
+      const { start, end } = this.#span(this.loaded, this.current);
+      within = Math.min(1, Math.max(0, (this.audio.currentTime * RATE - start) / (end - start)));
+    }
     return (this.current + within) / n;
   }
 
   /** The whole reading as one WAV file (one voice, one speed), or null if not finished. */
   toWav() {
-    return this.complete ? wavBlob(this.clips.map((c) => c.pcm), this.sampleRate) : null;
+    if (!this.complete) return null;
+    const parts = this.segments.map(({ clip, k }) => clip.pcm.subarray(clip.offsets[k], clip.offsets[k + 1]));
+    return wavBlob(parts, RATE);
   }
 
-  // ---- internals ---------------------------------------------------------
+  // ---- playback internals --------------------------------------------------
 
-  #startClip(index) {
+  // Where sentence i lies inside a clip (samples).
+  #span(clip, i) {
+    const k = i - clip.first;
+    return { start: clip.offsets[k], end: clip.offsets[k + 1] };
+  }
+
+  #holdsCurrent() {
+    const clip = this.loaded;
+    return Boolean(clip) && this.current >= clip.first && this.current <= clip.last;
+  }
+
+  // Seconds of listening a prepared sentence gives at the current tempo.
+  #seconds(i) {
+    const seg = this.segments[i];
+    if (!seg) return null;
+    const { start, end } = this.#span(seg.clip, i);
+    return ((end - start) / RATE) * speedFactor(seg.clip.speed) / this.tempo;
+  }
+
+  #startAt(index) {
     this.current = index;
-    const clip = this.clips[index];
-    if (!clip) {
+    const seg = this.segments[index];
+    if (!seg) {
       // Silence the previous sentence, but let the "unlock" sound finish.
       if (this.audio.src !== this.silentUrl) this.audio.pause();
+      this.loaded = null;
       this.#setState('waiting');
       this.#pump();
       return;
     }
-    if (this.url) URL.revokeObjectURL(this.url);
-    this.url = URL.createObjectURL(wavBlob([clip.pcm], this.sampleRate));
     const a = this.audio;
-    a.src = this.url;
-    a.preservesPitch = a.webkitPreservesPitch = a.mozPreservesPitch = true;
-    this.loadedIndex = index;
-    this.heardVoice = clip.voice;
+    if (this.loaded !== seg.clip) {
+      if (this.url) URL.revokeObjectURL(this.url);
+      this.url = URL.createObjectURL(wavBlob([seg.clip.pcm], RATE));
+      a.src = this.url;
+      a.preservesPitch = a.webkitPreservesPitch = a.mozPreservesPitch = true;
+      this.loaded = seg.clip;
+    }
+    a.currentTime = this.#span(seg.clip, index).start / RATE;
     this.#applyRate();
     this.#setState('playing');
     a.play().catch((e) => this.#playFailed(e));
+    this.#emit('time');
     this.#pump();
+  }
+
+  // Follows the playback position: moves the highlight, and switches to a
+  // newer clip (new voice or speed) at the first sentence boundary where one
+  // is ready.
+  #tick() {
+    const clip = this.loaded;
+    if (!clip || (this.state !== 'playing' && this.state !== 'paused')) return;
+    const index = clip.first + sentenceAt(clip.offsets, this.audio.currentTime * RATE);
+    if (index !== this.current && this.state === 'playing') {
+      this.current = index;
+      this.#emit('sentence');
+      if (this.segments[index] && this.segments[index].clip !== clip) {
+        this.#startAt(index);
+        return;
+      }
+    }
+    this.#emit('time');
+  }
+
+  #loop = () => {
+    this.frame = null;
+    if (this.state !== 'playing') return;
+    this.#tick();
+    this.frame = requestAnimationFrame(this.#loop);
+  };
+
+  #clipEnded() {
+    if (this.state !== 'playing' || !this.loaded) return;
+    const next = this.loaded.last + 1;
+    if (next < this.sentences.length) {
+      this.current = next;
+      this.#emit('sentence');
+      if (!this.segments[next]) this.#ranDry();
+      this.#startAt(next);
+    } else {
+      this.stop(); // finished: back to the start, ready to play again
+    }
   }
 
   // A clip made at a faster speed is played correspondingly slower, so the
   // listener always hears the chosen tempo.
   #applyRate() {
-    const clip = this.clips[this.loadedIndex];
-    const rate = this.tempo / speedFactor(clip ? clip.speed : 1);
+    const rate = this.tempo / speedFactor(this.loaded ? this.loaded.speed : 1);
     this.audio.defaultPlaybackRate = rate; // survives changing the clip
     this.audio.playbackRate = rate;
   }
@@ -244,20 +336,8 @@ export class Reader extends EventTarget {
     if (error?.name !== 'NotAllowedError') this.#emit('error', { error, fatal: false });
   }
 
-  #advance() {
-    if (this.state !== 'playing') return;
-    if (this.current < this.sentences.length - 1) {
-      this.current++;
-      this.#emit('sentence');
-      if (!this.clips[this.current]) this.#ranDry();
-      this.#startClip(this.current);
-    } else {
-      this.stop(); // finished: back to the start, ready to play again
-    }
-  }
-
   // Playback caught up with preparation. If this device is simply slower than
-  // playback, it would now stop at every sentence; instead wait until a few
+  // playback, it would now stop at every call; instead wait until a few
   // seconds are ready before carrying on, and tell the listener once.
   #ranDry() {
     const ratio = this.prepRatio;
@@ -269,6 +349,15 @@ export class Reader extends EventTarget {
     }
   }
 
+  // Seconds ready to play without a gap from the current sentence (any voice),
+  // and whether that reaches the end.
+  #readyAhead() {
+    let seconds = 0;
+    let i = this.current;
+    for (; i < this.sentences.length && this.segments[i]; i++) seconds += this.#seconds(i);
+    return { seconds, toEnd: i === this.sentences.length };
+  }
+
   #unlock() {
     if (this.unlocked) return;
     this.unlocked = true;
@@ -277,76 +366,177 @@ export class Reader extends EventTarget {
     this.audio.play().catch(() => {});
   }
 
-  /** The sentence whose clip is in the player and not finished, or -1. */
-  #inPlayer() {
+  // ---- preparation ---------------------------------------------------------
+
+  /** The sentence heard right now from an out-of-date clip (it keeps playing), or -1. */
+  #heardStale() {
     const active = this.state === 'playing' || this.state === 'paused';
-    return active && this.loadedIndex === this.current ? this.current : -1;
+    return active && this.#holdsCurrent() && !this.isFresh(this.current) ? this.current : -1;
   }
 
-  #pauseAfter(index) {
-    const sentence = this.sentences[index];
-    if (sentence.para !== this.sentences[index + 1]?.para) return PARAGRAPH_PAUSE;
-    return sentence.joined ? CLAUSE_PAUSE : SENTENCE_PAUSE;
+  // Makes sure the phonemes of the sentences a call starting at `start` may use are known.
+  async #ensurePhonemes(lang, start) {
+    if (!this.phonemes.has(lang)) this.phonemes.set(lang, new Array(this.sentences.length).fill(null));
+    const known = this.phonemes.get(lang);
+    const wanted = [];
+    for (let i = start; i < Math.min(this.sentences.length, start + MAX_SENTENCES + 2); i++) if (!known[i]) wanted.push(i);
+    if (!wanted.length) return;
+    const texts = wanted.map((i) => this.sentences[i].text);
+    const heads = wanted.map((i) => firstWords(this.sentences[i].text));
+    let out;
+    try {
+      out = await this.engine.phonemize([...texts, ...heads], lang);
+    } catch (error) {
+      if (error.phase !== 'generate') throw error;
+      out = []; // unreadable: these sentences are skipped with a short silence
+    }
+    wanted.forEach((i, j) => {
+      const ph = out[j] ?? '';
+      const head = out[j + wanted.length] ?? '';
+      known[i] = { ph, head, n: [...ph].length, headN: [...head].length };
+    });
   }
 
   async #pump() {
-    if (this.busy || this.halted) return;
-    const index = nextToGenerate(this.clips, this.current, this.voice, this.speed, this.#inPlayer());
-    if (index < 0) return;
+    if (this.busy || this.halted || !this.sentences.length) return;
     this.busy = true;
-    const { epoch, voice, speed } = this;
-    const sentence = this.sentences[index];
-    let result;
-    let error;
+    let again = false;
     try {
-      result = await this.engine.generate(sentence.text, voice, speed);
-    } catch (e) {
-      error = e;
+      again = await this.#prepareNext();
+    } catch (error) {
+      again = this.#failed(error);
     }
     this.busy = false;
+    if (again) this.#pump();
+  }
 
-    if (epoch !== this.epoch) return this.#pump(); // new text was loaded meanwhile
-    if (error?.phase === 'cancelled') return this.#pump(); // engine restarted: ask again
-    if (error && error.phase !== 'generate') {
-      // The model itself is unavailable; nothing else will work until it loads.
-      this.halted = true;
-      if (this.state === 'waiting') this.#setState('paused');
-      this.#emit('error', { error, fatal: true });
-      return;
+  // Plans and makes one call. Returns true when there may be more to do.
+  async #prepareNext() {
+    const { epoch, voice, speed, sentences } = this;
+    const n = sentences.length;
+    const fresh = sentences.map((_, i) => this.isFresh(i));
+    const stale = this.#heardStale();
+    let start = chooseStart(fresh, this.current, stale);
+    if (start < 0) return false;
+    const lang = voice[0] === 'b' ? 'b' : 'a';
+    await this.#ensurePhonemes(lang, start);
+    if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true; // changed meanwhile: plan again
+    const phonemes = this.phonemes.get(lang);
+    const speedPerToken = msPerToken(this.stats);
+
+    // After a voice or speed change: take over where the new audio can be ready in time.
+    if (stale >= 0 && start === stale + 1 && start + 1 < n && !fresh[start + 1] && speedPerToken) {
+      const alone = planCall({ sentences, phonemes, fresh, start, rule: { maxSentences: 1, maxMs: Infinity }, single: this.single });
+      const { end } = this.#span(this.loaded, stale);
+      const remaining = ((end / RATE - this.audio.currentTime) * speedFactor(this.loaded.speed)) / this.tempo;
+      start = takeoverStart({ start, current: stale, remaining, predictMs: alone.tokens * speedPerToken });
+      if (start !== stale + 1) await this.#ensurePhonemes(lang, start);
+      if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true;
     }
-    // Keep the result unless the sentence meanwhile got a clip in the current
-    // voice and speed. A result in a voice that was since changed is still
-    // worth keeping: it is playable until its replacement is ready.
-    if (!isFresh(this.clips[index], this.voice, this.speed)) {
-      // Pauses are shortened for faster clips so they sound right when played slower.
-      const pause = this.#pauseAfter(index) / speedFactor(speed);
-      let samples = new Float32Array(0);
-      if (error) {
-        // One sentence failed: leave a short silence and carry on with the rest.
-        this.failedCount++;
-        this.#emit('error', { error, fatal: false, index });
-      } else {
-        samples = result.samples;
-        this.sampleRate = result.sampleRate;
-        this.stats.push({ index, chars: sentence.text.length, ms: result.ms, seconds: samples.length / result.sampleRate + pause, speed });
+
+    // How large this call may be (see flow/plan.js).
+    let elapsed = 0;
+    if (this.#holdsCurrent() && fresh[this.current]) {
+      const { start: s } = this.#span(this.loaded, this.current);
+      elapsed = ((this.audio.currentTime - s / RATE) * speedFactor(this.loaded.speed)) / this.tempo;
+    }
+    const seconds = sentences.map((_, i) => this.#seconds(i));
+    const budgetSeconds = freshAhead({ fresh, seconds, current: this.current, elapsed, start });
+    const rule = sizeRule({ ordinal: this.ordinal, budgetSeconds, msPerToken: speedPerToken, sizing: this.sizing });
+    const call = planCall({ sentences, phonemes, fresh, start, rule, msPerToken: speedPerToken || 0, single: this.single });
+
+    const indices = [];
+    for (let i = call.first; i <= call.last; i++) indices.push(i);
+    if (indices.some((i) => !phonemes[i].n)) return this.#giveUp(indices, new Error('Nothing to read in this sentence.'));
+    const members = indices.map((i) => phonemes[i].ph);
+    if (call.lookahead >= 0) members.push(phonemes[call.lookahead].head);
+    const text = indices.map((i) => sentences[i].text).join(' ');
+
+    let result;
+    try {
+      result = await this.engine.render({ phonemes: members.join(' '), voice, speed, row: call.row, text });
+    } catch (error) {
+      if (error.phase !== 'generate') throw error;
+      // A group failed: make its sentences one by one; a lone sentence is skipped.
+      if (indices.length > 1 || call.lookahead >= 0) {
+        for (const i of indices) this.single.add(i);
+        return true;
       }
-      const pcm = makeClip(samples, this.sampleRate, pause);
-      this.clips[index] = { pcm, voice, speed, seconds: pcm.length / this.sampleRate };
+      return this.#giveUp(indices, error);
+    }
+    if (epoch !== this.epoch) return true; // new text was loaded meanwhile
+    this.ordinal++;
+
+    const endsParagraph = (i) => i === n - 1 || sentences[i + 1].para !== sentences[i].para;
+    // Pauses are shortened for faster clips so they sound right when played slower.
+    const pauses = indices.map((i) => designedPause(sentences[i], endsParagraph(i)) / speedFactor(speed));
+    const joinedInside = indices.map((i) => i < call.last && Boolean(sentences[i].joined));
+    const built = assembleCall({
+      audio: result.samples,
+      durations: result.durations,
+      members,
+      lookahead: call.lookahead >= 0,
+      pauses,
+      joinedInside,
+      fadeIn: call.first === 0 ? 0.008 : 0.002,
+      seed: call.first + 1,
+    });
+    this.calls.push({ ...call, voice, speed, ms: result.ms, method: built?.method ?? 'failed' });
+    if (!built) {
+      // The sentences could not be told apart: make them one by one instead.
+      for (const i of indices) this.single.add(i);
+      return true;
+    }
+    const clip = { pcm: toInt16(built.samples), offsets: built.offsets, first: call.first, last: call.last, voice, speed };
+    this.stats.push({ tokens: result.tokens, ms: result.ms, seconds: built.samples.length / RATE, speed });
+    this.#store(clip);
+    return true;
+  }
+
+  // Files a finished clip. A clip in a voice or speed that was changed
+  // meanwhile only fills gaps (it is playable until its replacement is ready);
+  // otherwise it replaces what was there.
+  #store(clip) {
+    const current = clip.voice === this.voice && clip.speed === this.speed;
+    for (let i = clip.first; i <= clip.last; i++) {
+      if (current || !this.segments[i]) this.segments[i] = { clip, k: i - clip.first };
     }
     this.#emit('generated');
-    if (this.state === 'waiting' && this.clips[this.current]) {
-      const ahead = readyAhead(this.clips, this.current, this.tempo);
+    if (this.state === 'waiting' && this.segments[this.current]) {
+      const ahead = this.#readyAhead();
       if (!this.refilling || ahead.toEnd || ahead.seconds >= REFILL_SECONDS) {
         this.refilling = false;
-        this.#startClip(this.current);
+        this.#startAt(this.current);
       }
     }
-    this.#pump();
+  }
+
+  // One sentence could not be read: leave a short silence and carry on.
+  #giveUp(indices, error) {
+    for (const i of indices) {
+      const pcm = new Int16Array(Math.round(0.3 * RATE));
+      this.#store({ pcm, offsets: [0, pcm.length], first: i, last: i, voice: this.voice, speed: this.speed });
+      this.failedCount++;
+      this.#emit('error', { error, fatal: false, index: i });
+    }
+    return true;
+  }
+
+  #failed(error) {
+    if (error?.phase === 'cancelled') return true; // engine restarted: ask again
+    // The model itself is unavailable; nothing else will work until it loads.
+    this.halted = true;
+    if (this.state === 'waiting') this.#setState('paused');
+    this.#emit('error', { error, fatal: true });
+    return false;
   }
 
   #setState(state) {
     if (state === this.state) return;
     this.state = state;
+    if (state === 'playing' && !this.frame && typeof requestAnimationFrame === 'function') {
+      this.frame = requestAnimationFrame(this.#loop);
+    }
     this.#emit('state');
   }
 

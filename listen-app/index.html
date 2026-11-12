@@ -47,13 +47,15 @@
           <select id="mode">
             <option value="auto">Automatic</option>
             <option value="webgpu">Graphics chip (WebGPU)</option>
+            <option value="webgpu-fp16">Graphics chip, smaller model (fp16, experimental)</option>
             <option value="wasm">Standard (WebAssembly)</option>
           </select>
         </div>
         <p id="mode-help" class="muted small">
           Automatic uses the graphics chip when this browser offers it, otherwise the standard engine.
-          Each needs its own one-time download (about 326 MB for the graphics chip, 177 MB for standard);
-          both stay saved, so you can switch back and forth to compare.
+          Each needs its own one-time download (about 326 MB for the graphics chip, 163 MB for its smaller
+          experimental model, 177 MB for standard); all stay saved, so you can switch back and forth to compare.
+          If the graphics chip produces faulty audio, Hearshot switches to standard by itself.
         </p>
       </details>
 

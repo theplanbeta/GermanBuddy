@@ -111,8 +111,3 @@ export async function textToPhonemes(text, lang = 'a') {
 export function keepKnown(phonemes, vocabulary) {
   return [...phonemes].filter((ch) => vocabulary.has(ch)).join('');
 }
-
-/** The first two words of a sentence, without trailing punctuation (the "look-ahead"). */
-export function firstWords(text, count = 2) {
-  return text.split(/\s+/).slice(0, count).join(' ').replace(/[,.;:!?]$/, '');
-}

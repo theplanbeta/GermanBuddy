@@ -1,16 +1,19 @@
-// Splits plain text into short pieces ("sentences") that the voice model can
-// read one at a time. Each piece is { text, para }, where `para` is the number
-// of the paragraph it belongs to (used for slightly longer pauses and for
-// laying the text out on screen).
+// Splits plain text into short pieces ("sentences") for the voice model and
+// the highlight. Each piece is { text, para, joined? }, where `para` is the
+// number of the paragraph it belongs to (sentences of one paragraph are read
+// together, see flow/plan.js) and `joined: true` means the next piece
+// continues the same sentence (an over-long sentence was split).
 //
 // Guiding rule: when unsure, do NOT split. Joining two sentences only makes one
 // piece a little longer; splitting in the wrong place ("Mr. | Smith") makes the
 // voice pause and change intonation mid-sentence, which sounds much worse.
 
-// Kokoro reads at most ~510 phoneme tokens per piece and silently cuts off the
-// rest. Ordinary English is ~1 phoneme per character, but numbers expand a lot
-// ("$1,250,000" -> "one million two hundred fifty thousand dollars"), so keep
-// pieces well under that.
+// Kokoro reads at most ~510 phoneme tokens per call and silently cuts off the
+// rest; the app groups pieces into calls of up to 480. Ordinary English is ~1
+// phoneme per character, but numbers expand a lot ("$1,250,000" -> "one
+// million two hundred fifty thousand dollars"), so keep pieces well under
+// that. Pieces of one sentence are normally made in the same call, so the
+// split cannot be heard; it only matters where a call has to end.
 export const MAX_LENGTH = 200;
 
 // Words that are followed by a period but almost never end a sentence.
@@ -48,11 +51,12 @@ export function splitText(text, { maxLength = MAX_LENGTH } = {}) {
   for (const block of toParagraphs(text)) {
     let added = false;
     for (const sentence of splitSentences(block)) {
-      for (const piece of splitLong(sentence, maxLength)) {
-        if (!HAS_WORDS.test(piece)) continue; // skip "***", "—" and similar
-        out.push({ text: piece, para });
+      const pieces = splitLong(sentence, maxLength).filter((p) => HAS_WORDS.test(p)); // skip "***", "—" and similar
+      pieces.forEach((piece, k) => {
+        // `joined`: the next piece continues the same sentence
+        out.push(k < pieces.length - 1 ? { text: piece, para, joined: true } : { text: piece, para });
         added = true;
-      }
+      });
     }
     if (added) para++;
   }

@@ -1,14 +1,7 @@
-// Small, pure rules the Reader follows. Kept apart from the Reader so they can
-// be tested without a browser.
+// Small, pure rules about speed that the Reader follows. Kept apart from the
+// Reader so they can be tested without a browser. (Which sentences go into
+// the next model call is decided in flow/plan.js.)
 //
-// A "clip" is one prepared sentence: { pcm, voice, speed, seconds }.
-//   voice    the voice it was made in
-//   speed    the speed it was made at (Kokoro's own `speed` option)
-//   seconds  its length as stored, including the pause after it
-// A clip is "fresh" when it matches the current voice and speed. Clips that
-// are not fresh ("stale") can still be played, so a voice or tempo change
-// never causes silence; they are replaced in the background.
-
 // Making the voice speak faster at generation time produces less audio, and
 // generation time is proportional to the amount of audio, so a fast tempo
 // prepares faster. Kokoro's `speed` is not exact: measured over 15 sentences,
@@ -36,41 +29,10 @@ export function bakedSpeedFor(tempo) {
   return best;
 }
 
-export function isFresh(clip, voice, speed) {
-  return Boolean(clip) && clip.voice === voice && clip.speed === speed;
-}
-
 /**
- * Which sentence to prepare next, or -1 when everything is fresh.
- * Works forward from the current sentence, then wraps round to the start.
- * `playing` is the sentence whose clip is in the player right now (or -1):
- * its old clip keeps playing, so redoing it waits until last.
- */
-export function nextToGenerate(clips, current, voice, speed, playing = -1) {
-  const n = clips.length;
-  for (let k = 0; k < n; k++) {
-    const i = (current + k) % n;
-    if (i === playing && clips[i]) continue;
-    if (!isFresh(clips[i], voice, speed)) return i;
-  }
-  return playing >= 0 && !isFresh(clips[playing], voice, speed) ? playing : -1;
-}
-
-/**
- * How many seconds of listening are ready without a gap, starting at `from`
- * (fresh or stale clips both count), and whether that reaches the end.
- */
-export function readyAhead(clips, from, tempo) {
-  let seconds = 0;
-  let i = from;
-  for (; i < clips.length && clips[i]; i++) seconds += (clips[i].seconds * speedFactor(clips[i].speed)) / tempo;
-  return { seconds, toEnd: i === clips.length };
-}
-
-/**
- * How fast sentences are being prepared compared with how fast they are
- * played, from recent generations ({ seconds, ms, speed }). Above 1 means it
- * keeps ahead. Returns null until there are at least two measurements.
+ * How fast audio is being prepared compared with how fast it is played,
+ * from recent model calls ({ seconds, ms, speed }). Above 1 means it keeps
+ * ahead. Returns null until there are at least two measurements.
  */
 export function prepRatio(stats, tempo, window = 8) {
   const recent = stats.slice(-window);
@@ -78,4 +40,15 @@ export function prepRatio(stats, tempo, window = 8) {
   const listening = recent.reduce((n, s) => n + (s.seconds * speedFactor(s.speed)) / tempo, 0);
   const working = recent.reduce((n, s) => n + s.ms / 1000, 0);
   return working > 0 ? listening / working : null;
+}
+
+/**
+ * Measured preparation time per phoneme sent to the model (ms), from recent
+ * calls ({ tokens, ms }), or null before the first call. Used to predict how
+ * long a planned call will take.
+ */
+export function msPerToken(stats, window = 6) {
+  const recent = stats.slice(-window);
+  const tokens = recent.reduce((n, s) => n + s.tokens, 0);
+  return tokens > 0 ? recent.reduce((n, s) => n + s.ms, 0) / tokens : null;
 }

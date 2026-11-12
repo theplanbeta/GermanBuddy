@@ -1,17 +1,22 @@
 // The voice engine as seen by the rest of the app. Any future engine (for
 // example a server-hosted voice) only needs to offer the same things:
 //
-//   probe()                       -> Promise<{ device, dtype, cached, webgpu }>
-//   load(onProgress)              -> Promise<{ device, dtype }>   (safe to call again)
-//   generate(text, voice, speed)  -> Promise<{ samples: Float32Array, sampleRate, ms }>
-//   prefetchVoice(voice)          -> starts fetching a voice's small data file (optional)
+//   probe()                    -> Promise<{ device, dtype, cached, webgpu, previous }>
+//   load(onProgress)           -> Promise<{ device, dtype }>   (safe to call again)
+//   phonemize(texts, voice)    -> Promise<string[]>   one phoneme string per text
+//   render({ phonemes, voice, speed, row, text })
+//                              -> Promise<{ samples: Float32Array, durations, tokens, sampleRate, ms }>
+//                                 one model call; `durations` = per-token timings or null
+//   prefetchVoice(voice)       -> starts fetching a voice's small data file (optional)
+//   removePreviousModel()      -> deletes the model files of earlier versions; resolves to the bytes freed
 //
-// generate() waits until load() has been called and has finished; it never
-// starts the model download by itself (the page asks the listener first).
+// phonemize() and render() wait until load() has been called and has
+// finished; they never start the model download by themselves (the page asks
+// the listener first).
 //
 // Kokoro-specific extras:
-//   mode / setMode(mode)   'auto' | 'webgpu' | 'wasm'. setMode restarts the
-//                          engine; the page then calls probe() and load() again.
+//   mode / setMode(mode)   'auto' | 'webgpu' | 'webgpu-fp16' | 'wasm'. setMode restarts
+//                          the engine; the page then calls probe() and load() again.
 //   device                 'webgpu' | 'wasm' once loaded
 //   onFallback(reason)     called when the graphics chip (WebGPU) failed or kept
 //                          producing broken audio and the engine switched itself
@@ -22,7 +27,8 @@
 // restarted while the request waited; simply ask again).
 import { checkAudio } from './check-audio.js';
 
-const MODEL_ID = 'onnx-community/Kokoro-82M-v1.0-ONNX';
+const PREVIOUS_MODEL = '/onnx-community/Kokoro-82M-v1.0-ONNX/'; // files of earlier Hearshot versions
+const VOICE_URL = (voice) => `https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/voices/${voice}.bin`;
 const GPU_STRIKES = 3; // broken results in a row before giving up on WebGPU
 
 function deferred() {
@@ -48,7 +54,7 @@ export function createKokoroEngine({ mode = 'auto' } = {}) {
   let ready = deferred(); // settles when the model has loaded
   let progressListener = () => {};
   let strikes = 0;
-  let waiting = 0; // generate() calls waiting for the model to load
+  let waiting = 0; // requests waiting for the model to load
 
   function startWorker() {
     worker?.terminate();
@@ -72,6 +78,12 @@ export function createKokoroEngine({ mode = 'auto' } = {}) {
     });
   }
 
+  function settle(id, value) {
+    const job = pending.get(id);
+    pending.delete(id);
+    job?.resolve(value);
+  }
+
   function onMessage({ data }) {
     switch (data.type) {
       case 'probe':
@@ -82,19 +94,20 @@ export function createKokoroEngine({ mode = 'auto' } = {}) {
         break;
       case 'ready':
         engine.device = data.device;
+        engine.dtype = data.dtype;
         loadWaiter?.resolve({ device: data.device, dtype: data.dtype });
         ready.resolve();
         // The very first request pays a one-off setup cost (about 0.9 s on a
         // 4-core laptop). If nobody is waiting yet, pay it now.
         if (!waiting) worker.postMessage({ type: 'warmup' });
         break;
-      case 'audio': {
-        const job = pending.get(data.id);
-        pending.delete(data.id);
-        engine.sampleRate = data.sampleRate;
-        job?.resolve({ samples: data.samples, sampleRate: data.sampleRate, ms: data.ms });
+      case 'phonemes':
+        settle(data.id, data.phonemes);
         break;
-      }
+      case 'audio':
+        engine.sampleRate = data.sampleRate;
+        settle(data.id, data);
+        break;
       case 'error': {
         const error = failure(data.message, data.phase);
         if (data.phase === 'load' && data.gpu) {
@@ -120,11 +133,18 @@ export function createKokoroEngine({ mode = 'auto' } = {}) {
     engine.onFallback?.(reason);
   }
 
-  function run(text, voice, speed) {
+  // Sends a request to the worker once the model is ready.
+  async function ask(message) {
+    waiting++;
+    try {
+      await ready.promise;
+    } finally {
+      waiting--;
+    }
     return new Promise((resolve, reject) => {
       const id = nextId++;
       pending.set(id, { resolve, reject });
-      worker.postMessage({ type: 'generate', id, text, voice, speed });
+      worker.postMessage({ ...message, id });
     });
   }
 
@@ -132,6 +152,7 @@ export function createKokoroEngine({ mode = 'auto' } = {}) {
     sampleRate: 24000,
     mode,
     device: null,
+    dtype: null,
     onFallback: null,
     check: checkAudio, // replaceable in tests to imitate a misbehaving graphics chip
 
@@ -160,8 +181,14 @@ export function createKokoroEngine({ mode = 'auto' } = {}) {
       startWorker();
     },
 
-    async generate(text, voice, speed = 1) {
+    /** Phoneme strings for texts, in American ('a…' voices) or British ('b…') English. */
+    phonemize(texts, voice) {
+      return ask({ type: 'phonemize', texts, lang: voice[0] === 'b' ? 'b' : 'a' });
+    },
+
+    async render({ phonemes, voice, speed = 1, row, text = '' }) {
       for (;;) {
+        // Wait for the model first, so the device checked below is the one used.
         waiting++;
         try {
           await ready.promise;
@@ -172,7 +199,7 @@ export function createKokoroEngine({ mode = 'auto' } = {}) {
         let result;
         let problem;
         try {
-          result = await run(text, voice, speed);
+          result = await ask({ type: 'render', phonemes, voice, speed, row });
           problem = engine.check(result.samples, result.sampleRate, text, speed);
         } catch (error) {
           if (!onGpu || error.phase === 'cancelled') throw error;
@@ -189,18 +216,40 @@ export function createKokoroEngine({ mode = 'auto' } = {}) {
       }
     },
 
-    /** Starts downloading a voice's data file (~0.5 MB) into the cache kokoro-js reads from. */
+    /** Starts downloading a voice's data file (~0.5 MB) into the cache the worker reads from. */
     async prefetchVoice(voice) {
-      // Same address and cache name that kokoro-js uses, so the engine finds it there.
-      const url = `https://huggingface.co/${MODEL_ID}/resolve/main/voices/${voice}.bin`;
+      const url = VOICE_URL(voice);
       try {
         const cache = await caches.open('kokoro-voices');
         if (await cache.match(url)) return;
         const response = await fetch(url);
         if (response.ok) await cache.put(url, new Response(await response.arrayBuffer(), { headers: response.headers }));
       } catch {
-        /* no cache or offline: the engine fetches it itself when needed */
+        /* no cache or offline: the worker fetches it itself when needed */
       }
+    },
+
+    /**
+     * Deletes the files of the model earlier Hearshot versions used (it has
+     * been replaced by the timestamped one). Only touches that model's files
+     * in the model cache; voices are kept. Resolves to the bytes freed (0 if
+     * there was nothing to remove).
+     */
+    async removePreviousModel() {
+      let freed = 0;
+      try {
+        const cache = await caches.open('transformers-cache');
+        for (const request of await cache.keys()) {
+          if (!new URL(request.url).pathname.startsWith(PREVIOUS_MODEL)) continue;
+          const response = await cache.match(request);
+          const size = Number(response?.headers.get('content-length'));
+          if (Number.isFinite(size) && size > 0) freed += size;
+          await cache.delete(request);
+        }
+      } catch {
+        /* no cache: nothing to free */
+      }
+      return freed;
     },
   };
 
