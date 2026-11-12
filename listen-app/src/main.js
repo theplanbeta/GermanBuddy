@@ -103,7 +103,8 @@ const engine = createKokoroEngine({
   threads: debug ? Number(params.get('threads')) || null : null,
   slowdown: debug ? Number(params.get('slowdown')) || 1 : 1,
 });
-const reader = new Reader(engine);
+// ?gpucap=N: phonemes per model call on the graphics chip (default 180), to try on a phone.
+const reader = new Reader(engine, { gpuCap: Number(params.get('gpucap')) || undefined });
 if (debug) window.listen = { reader, engine };
 
 // ---- voice model: one-time download ----------------------------------------
@@ -129,6 +130,12 @@ function updateStatus() {
     if (ratio >= 1.05) text = `${modeName(device)} · preparing ${r}× faster than playback`;
     else if (ratio > 0.95) text = `${modeName(device)} · preparing about as fast as playback`;
     else text = `${modeName(device)} · preparing ${r}× (slower than playback)`;
+  }
+  // With ?debug: the size of the last model call, so it can be reported from a phone.
+  const last = debug ? reader.calls.at(-1) : null;
+  if (last) {
+    const cap = engine.device === 'webgpu' ? `, cap ${reader.gpuCap}` : '';
+    text += ` · last call ${last.last - last.first + 1} sentence(s), ${last.tokens} phonemes, ${(last.ms / 1000).toFixed(1)} s${cap}`;
   }
   ui.engineStatus.textContent = text;
 }

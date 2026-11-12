@@ -85,10 +85,11 @@ export function sizeRule({ ordinal, budgetSeconds, measured, sizing = 'adaptive'
  *                 earlier group could not be cut apart)
  *   plain         an "urgent" call: this sentence alone, no look-ahead, own row
  *   listenPerToken  measured listening seconds per phoneme (enables the growth floor)
+ *   maxPhonemes   cap on the call's length (default 480; smaller on the graphics chip, see reader.js)
  * Returns { first, last, lookahead (sentence index or -1), tokens, row, plain }.
  * `tokens` counts the phonemes actually sent, look-ahead included.
  */
-export function planCall({ sentences, phonemes, fresh, start, rule, predict = () => 0, single = new Set(), plain = false, listenPerToken = 0 }) {
+export function planCall({ sentences, phonemes, fresh, start, rule, predict = () => 0, single = new Set(), plain = false, listenPerToken = 0, maxPhonemes = MAX_PHONEMES }) {
   if (plain) {
     const n = phonemes[start].n;
     return { first: start, last: start, lookahead: -1, tokens: n, row: Math.min(LAST_ROW, n), plain: true };
@@ -103,7 +104,7 @@ export function planCall({ sentences, phonemes, fresh, start, rule, predict = ()
   };
   const fits = (last) => {
     const n = callLength(phonemes, start, last);
-    return last - start + 1 <= MAX_SENTENCES && n <= MAX_PHONEMES;
+    return last - start + 1 <= MAX_SENTENCES && n <= Math.min(maxPhonemes, MAX_PHONEMES);
   };
   const canExtend = (last) => {
     const next = last + 1;
@@ -128,21 +129,22 @@ export function planCall({ sentences, phonemes, fresh, start, rule, predict = ()
  * The growth floor: the smallest group from `start` (extending while
  * `canExtend(last)`) whose listening time is at least GROWTH times its
  * expected preparation time, or, if none gets there (a slow device), the
- * group that comes closest, i.e. wastes least time on the per-call cost.
+ * smallest group that comes within 3% of the most efficient one (larger
+ * groups waste less time on the per-call cost, but make longer waits).
  *   cost(last)    expected preparation time (ms) of the call start..last
  *   listen(last)  its listening time (s)
  */
 export function growthLast({ start, canExtend, cost, listen }) {
-  let last = start;
-  let best = start;
-  let bestRatio = 0;
-  for (;;) {
+  const ratios = [];
+  for (let last = start; ; last++) {
     const ratio = listen(last) / (cost(last) / 1000);
     if (ratio >= GROWTH) return last;
-    if (ratio > bestRatio * 1.02) [best, bestRatio] = [last, ratio];
-    if (!canExtend(last)) return best;
-    last++;
+    ratios.push(ratio);
+    if (!canExtend(last)) break;
   }
+  // None gets there: the smallest group within 3% of the best one.
+  const best = Math.max(...ratios);
+  return start + ratios.findIndex((r) => r >= 0.97 * best);
 }
 
 /**

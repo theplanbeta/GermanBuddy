@@ -1,7 +1,7 @@
 // Speed rules: tempo -> generation speed, preparation speed measurements.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bakedSpeedFor, speedFactor, prepRatio, predictMs } from '../src/reader/schedule.js';
+import { bakedSpeedFor, speedFactor, prepRatio, predictMs, listenPerToken } from '../src/reader/schedule.js';
 
 test('tempo maps to a few generation speeds; small changes never re-prepare', () => {
   for (const t of [0.5, 0.8, 1, 1.2, 1.4]) assert.equal(bakedSpeedFor(t), 1, `tempo ${t}`);
@@ -46,4 +46,11 @@ test('predictMs: a fixed cost per call plus a cost per phoneme', () => {
   // only recent calls count
   const old = Array.from({ length: 10 }, () => ({ tokens: 100, ms: 99999 }));
   assert.equal(predictMs([...old, ...Array(8).fill({ tokens: 50, ms: 1000 })], 100), 2000);
+});
+
+test('listenPerToken: listening seconds per phoneme kept, at normal speed', () => {
+  assert.equal(listenPerToken([]), 0);
+  assert.equal(listenPerToken([{ kept: 100, seconds: 7, speed: 1 }, { kept: 300, seconds: 21, speed: 1 }]), 0.07);
+  // a clip made at speed 2 is 1.88 times shorter for the same phonemes
+  assert.ok(Math.abs(listenPerToken([{ kept: 100, seconds: 7 / 1.88, speed: 2 }]) - 0.07) < 1e-9);
 });

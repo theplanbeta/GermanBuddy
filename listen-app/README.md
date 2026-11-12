@@ -13,11 +13,16 @@ server or an account.
   thought instead of a string of separate announcements. The pause after each
   sentence is set on purpose: a little longer after longer sentences, varied
   slightly, and longer between paragraphs.
-- Preparation starts as soon as you stop typing or pasting. The first sentence
-  is prepared on its own so the voice can start quickly (a long first sentence
-  is split at an early comma); after that the pieces grow as large as this
-  device can prepare before the audio already waiting runs out. Long texts
-  keep playing while the rest is prepared.
+- Preparation starts as soon as you stop typing or pasting. When you press
+  Play and nothing is ready yet, the first sentence is made on its own in the
+  quickest way (as earlier versions did), so the voice starts just as fast; it
+  is re-made in full quality in the background for the download and for
+  listening again. (A long first sentence is split at an early comma.) After
+  that the pieces grow as large as this device can prepare before the audio
+  already waiting runs out, and never smaller than a group that prepares
+  clearly faster than it plays: every piece costs a fixed amount of work
+  (about 1.3 s on a 4-core laptop), so a slow device does better with fewer,
+  larger pieces. Long texts keep playing while the rest is prepared.
 - 28 English voices (American and British, female and male). Default: Heart.
   Changing the voice never interrupts the reading: the sentence you are
   hearing finishes, and the new voice takes over at the next sentence that
@@ -80,6 +85,11 @@ npm run build    # makes a finished site in dist/
 npm run preview  # serves dist/ at http://localhost:4173 to try the finished site
 ```
 
+For testing, `?debug` adds the size of the last prepared piece to the status
+line and exposes the reader and engine to the browser console; `&threads=2`
+(fewer processor cores) or `&slowdown=1.5` (every piece takes 1.5 times as
+long) imitate a slower device, and `&dtype=fp32` forces a model file.
+
 ## Putting it online
 
 **Vercel (the main host, hearshot.app).** Import the repository in Vercel and
@@ -101,6 +111,11 @@ Any other static host works too, with two things to know:
   (`public/coi-serviceworker.js`, MIT licensed) that achieves the same thing;
   it reloads the page once on the very first visit.
 
+**Preview builds beside the main one.** Build with
+`VITE_KEEP_OLD_MODEL=1 npm run build` to stop the preview from deleting the
+voice model files of earlier versions, so a main version on the same site
+that still uses them does not have to download them again.
+
 **GitHub Pages (previous host, being retired).** `npm run build:pages` writes
 the finished site into the `docs/` folder at the top of the repository, which
 GitHub Pages can serve ("Deploy from a branch", `/docs` folder).
@@ -118,13 +133,23 @@ Everything else, including the speech engine itself, is served by the app.
   than it is spoken at normal tempo (about 1.5 times at 2× tempo). On slower
   devices playback may pause ("preparing…") while generation catches up;
   preparation continues while paused, so pausing for a moment builds a lead.
-- **The flow is best on faster devices.** How many sentences are prepared
-  together depends on how far ahead preparation is. A device that only just
-  keeps up prepares one sentence at a time while you listen (still with the
-  improved sentence endings and pauses); a faster device, or pausing for a
-  moment, lets the pieces grow to whole paragraphs. A piece of a paragraph
-  takes longer to prepare than a single sentence, so the very first sentence
-  is always prepared alone.
+- **Shorter silences mean less time to prepare.** The new way of reading
+  keeps the pauses between sentences to their designed length (0.3 to 0.55 s;
+  earlier versions left about 0.9 s), so the same text is read about 13%
+  faster. The work to prepare it is the same as before, so on a device that
+  only just keeps up, there is a little less slack. On a slow device the first
+  one or two sentences may be made in the quick plain way to keep the first
+  wait short.
+- **Graphics chip: shorter pieces.** On the graphics chip one piece occupies
+  the chip until it is done, which can make the phone's own animations (for
+  example the app switcher) stutter. So pieces there are at most about 180
+  sound symbols (2 or 3 sentences, roughly 12 s of speech), shorter while the
+  page is hidden and just after it comes back, with a short break between
+  pieces. To try other sizes on a phone, add `?gpucap=120` (or another
+  number) to the address.
+- **In the background**, phones freeze a hidden page after about a minute
+  unless sound is playing, so preparation only continues while it plays. When
+  the page comes back, Hearshot carries on by itself.
 - **Graphics-chip mode (WebGPU) is untested on real devices**, including the
   smaller fp16 model. It has only been built, not measured: our test browser
   has no graphics chip. On phones it may well be slower than standard mode;

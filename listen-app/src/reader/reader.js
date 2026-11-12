@@ -34,13 +34,25 @@ import { chooseStart, planCall, sizeRule, freshAhead, takeoverStart, firstWords,
 import { assembleCall, designedPause, sentenceAt } from '../flow/assemble.js';
 
 const SPEED_SETTLE_MS = 1000; // wait for the tempo slider to rest before re-preparing at a new speed
+// On the graphics chip (WebGPU) one model call occupies the chip until it is
+// done, and the phone's own animations (for example the app switcher) stutter
+// meanwhile. So calls there are kept shorter: about 180 phonemes is 2 or 3
+// sentences, roughly 12 s of speech, about 7 s of work at 1.6x real time.
+// While the page is hidden, and for a few seconds after it comes back, calls
+// are shorter still. The look-ahead keeps the joins between calls natural.
+export const GPU_CAP = 180;
+const GPU_CAP_HIDDEN = 100;
+const GPU_REST_MS = 100; // a short break between calls on the graphics chip
+const VISIBLE_SETTLE_MS = 5000;
 const REFILL_SECONDS = 5; // after running dry mid-reading, gather this much before carrying on
 const RATE = 24000;
 
 export class Reader extends EventTarget {
-  constructor(engine) {
+  constructor(engine, { gpuCap = GPU_CAP } = {}) {
     super();
     this.engine = engine;
+    this.gpuCap = gpuCap; // phonemes per call on the graphics chip (adjustable with ?gpucap=N)
+    this.shownAt = 0; // when the page last became visible
     this.sentences = [];
     // segments[i] = { clip, k }: sentence i is sentence number k of that clip.
     // A clip is { pcm: Int16Array, offsets, first, last, voice, speed }, where
@@ -77,6 +89,16 @@ export class Reader extends EventTarget {
     this.audio.addEventListener('ended', () => this.#clipEnded());
     // Backup for when animation frames stop (background tab, locked screen).
     this.audio.addEventListener('timeupdate', () => this.#tick());
+    // On phones a hidden page is frozen after a while unless sound is playing.
+    // When it comes back, carry on preparing (and playing, if it was).
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) return;
+        this.shownAt = performance.now();
+        this.#pump();
+        if (this.state === 'waiting' && this.segments[this.current]) this.#startAt(this.current);
+      });
+    }
   }
 
   // ---- loading -----------------------------------------------------------
@@ -409,6 +431,15 @@ export class Reader extends EventTarget {
     });
   }
 
+  // Longest call allowed now (phonemes): shorter on the graphics chip, and
+  // shorter still while the page is hidden or has only just come back.
+  #maxPhonemes() {
+    if (this.engine.device !== 'webgpu') return Infinity;
+    const hidden = typeof document !== 'undefined' && document.hidden;
+    const justBack = performance.now() - this.shownAt < VISIBLE_SETTLE_MS;
+    return hidden || justBack ? Math.min(this.gpuCap, GPU_CAP_HIDDEN) : this.gpuCap;
+  }
+
   async #pump() {
     if (this.busy || this.halted || !this.sentences.length) return;
     this.busy = true;
@@ -419,7 +450,9 @@ export class Reader extends EventTarget {
       again = this.#failed(error);
     }
     this.busy = false;
-    if (again) this.#pump();
+    // On the graphics chip, leave it free for a moment between calls.
+    if (again && this.engine.device === 'webgpu') setTimeout(() => this.#pump(), GPU_REST_MS);
+    else if (again) this.#pump();
   }
 
   // Plans and makes one call. Returns true when there may be more to do.
@@ -479,7 +512,14 @@ export class Reader extends EventTarget {
       await this.#ensurePhonemes(lang, start); // the call may grow: know its neighbours
       if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true;
     }
-    const call = planCall({ sentences, phonemes, fresh, start, rule, predict, single: this.single, plain: urgent, listenPerToken: listenPerToken(this.stats) / this.tempo });
+    const options = { sentences, phonemes, fresh, start, rule, predict, single: this.single, listenPerToken: listenPerToken(this.stats) / this.tempo, maxPhonemes: this.#maxPhonemes() };
+    let call = planCall({ ...options, plain: urgent });
+    // Early in a reading, if the full-quality call cannot be ready before the
+    // listener needs it, a wait is coming anyway: keep it short with a plain call.
+    const listening = this.state === 'playing' || this.state === 'waiting';
+    if (!call.plain && !upgrade && listening && this.ordinal < 2 && measured && predict(call.tokens) > budgetSeconds * 1000) {
+      call = planCall({ ...options, plain: true });
+    }
 
     const indices = [];
     for (let i = call.first; i <= call.last; i++) indices.push(i);

@@ -1,7 +1,7 @@
 // Which sentences go into each model call (the "D4" rules, see src/flow/plan.js).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planCall, chooseStart, sizeRule, freshAhead, takeoverStart, callLength, firstWords, MAX_SENTENCES } from '../src/flow/plan.js';
+import { planCall, chooseStart, sizeRule, freshAhead, takeoverStart, callLength, firstWords, growthLast, MAX_SENTENCES, GROWTH } from '../src/flow/plan.js';
 
 // n sentences with given paragraph numbers and phoneme counts
 function doc(paras, n = 100, headN = 8) {
@@ -178,4 +178,35 @@ test('look-ahead text is the first two words without trailing punctuation', () =
   assert.equal(firstWords('Drains that were sized for the storms.'), 'Drains that');
   assert.equal(firstWords('Then five.'), 'Then five');
   assert.equal(firstWords('But together, they buy time.'), 'But together');
+});
+
+test('urgent calls are plain: the sentence alone, no look-ahead, its own row', () => {
+  const d = doc([0, 0, 0]);
+  const call = planCall({ ...d, start: 0, rule: FULL, plain: true });
+  assert.deepEqual([call.first, call.last, call.lookahead, call.row, call.tokens, call.plain], [0, 0, -1, 100, 100, true]);
+});
+
+test('calls can be capped in length (shorter calls on the graphics chip)', () => {
+  const d = doc(Array(6).fill(0), 60);
+  const call = planCall({ ...d, start: 0, rule: FULL, maxPhonemes: 180 }); // 60 + 61 = 121; + 61 = 182 > 180
+  assert.deepEqual([call.first, call.last, call.lookahead], [0, 1, 2]); // the look-ahead is kept
+  const alone = planCall({ ...doc([0, 0], 300), start: 0, rule: FULL, maxPhonemes: 180 });
+  assert.equal(alone.last, 0); // a sentence longer than the cap is still made
+});
+
+test('growth floor: the smallest group that prepares clearly faster than it plays', () => {
+  // 1.3 s per call + 60 ms per phoneme; 0.07 s of listening per phoneme
+  const cost = (n) => 1300 + 60 * n;
+  const canExtend = (last) => last < 9;
+  const at = (n) => ({ start: 0, canExtend, cost: (l) => cost(n * (l + 1)), listen: (l) => 0.07 * n * (l + 1) });
+  // 100-phoneme sentences: 1 -> 7 s / 7.3 s (0.96); 2 -> 1.05; 3 -> 1.09; 4 -> 1.107; 5 -> 1.118 ... 10 -> 1.142;
+  // none reaches 1.15, so the smallest group within 3% of the best (1.142 * 0.97 = 1.108): 5 sentences
+  assert.equal(growthLast(at(100)), 4);
+  // a fast device: one sentence is already enough
+  assert.equal(growthLast({ ...at(100), cost: (l) => 10 * 100 * (l + 1) }), 0);
+  assert.ok(GROWTH > 1);
+  // with a budget-limited rule the floor still applies
+  const d = doc(Array(8).fill(0), 100);
+  const call = planCall({ ...d, start: 0, rule: { maxSentences: 12, maxMs: 0 }, predict: (t) => 1300 + 60 * t, listenPerToken: 0.07 });
+  assert.ok(call.last >= 2);
 });
