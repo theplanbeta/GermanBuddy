@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Listen</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f6f5e'/%3E%3Cpath d='M10 12v8M14 9v14M18 12v8M22 14v4' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <header class="top">
+      <h1 class="brand">Listen</h1>
+      <p id="engine-status" class="engine-status">Checking this browser…</p>
+    </header>
+
+    <main class="page">
+      <section id="model-card" class="card notice" hidden aria-live="polite">
+        <p id="model-text"></p>
+        <div id="model-progress-wrap" class="model-progress" hidden>
+          <progress id="model-progress" max="100" value="0" aria-labelledby="model-text"></progress>
+        </div>
+        <button id="model-button" class="button primary" type="button" hidden>Download voice model</button>
+      </section>
+
+      <p id="message" class="message" role="status" hidden></p>
+
+      <section class="card doc" aria-label="Text">
+        <div class="doc-head">
+          <label id="text-label" for="text">Text to read</label>
+          <span id="word-count" class="muted"></span>
+        </div>
+        <textarea id="text" spellcheck="false" placeholder="Paste or type anything here, then press Play."></textarea>
+        <div id="reading" class="reading" hidden aria-labelledby="text-label"></div>
+        <div class="doc-actions">
+          <button id="edit-button" class="button" type="button" hidden>Edit text</button>
+          <button id="clear-button" class="button" type="button">Clear</button>
+        </div>
+      </section>
+    </main>
+
+    <section class="player" aria-label="Player">
+      <div class="player-inner">
+        <div class="progress">
+          <div id="progress-bar" class="bar" role="progressbar" aria-label="Reading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <span id="bar-ready" class="bar-ready"></span>
+            <span id="bar-played" class="bar-played"></span>
+          </div>
+          <div class="progress-text">
+            <span id="position-text">Nothing to read yet</span>
+            <span id="prepared-text" class="muted"></span>
+          </div>
+        </div>
+
+        <div class="transport">
+          <button id="prev-button" class="round" type="button" aria-label="Previous sentence" title="Previous sentence (←)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14M19 5 9 12l10 7z" /></svg>
+          </button>
+          <button id="play-button" class="round big" type="button" aria-label="Play" title="Play / pause (space)">
+            <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
+          </button>
+          <button id="next-button" class="round" type="button" aria-label="Next sentence" title="Next sentence (→)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 5v14M5 5l10 7-10 7z" /></svg>
+          </button>
+          <button id="stop-button" class="round" type="button" aria-label="Stop" title="Stop">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5" /></svg>
+          </button>
+        </div>
+
+        <div class="settings">
+          <div class="field">
+            <label for="tempo">Tempo <output id="tempo-value" for="tempo">1.00×</output></label>
+            <input id="tempo" type="range" min="0.5" max="2.5" step="0.05" value="1" />
+          </div>
+          <div class="field">
+            <label for="voice">Voice</label>
+            <select id="voice"></select>
+          </div>
+          <div class="field download">
+            <button id="download-button" class="button" type="button" disabled>Download audio</button>
+            <span id="download-text" class="muted small"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">Voices: Kokoro (open source, Apache 2.0)</footer>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
