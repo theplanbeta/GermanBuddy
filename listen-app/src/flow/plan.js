@@ -11,6 +11,15 @@
 //    audio already waiting ahead of the listener runs out, judged from this
 //    device's measured preparation speed; never less than one sentence.
 //    (A fixed ramp of 1, 2, 4, then full calls is kept for testing.)
+//    But never smaller than a group that prepares clearly faster than it
+//    plays: every call has a fixed cost (about 1.3 s on a 4-core laptop), so
+//    on a device that only just keeps up, one sentence at a time would fall
+//    further and further behind (see `growthLast`).
+// Exception, "urgent" calls: while the listener waits for the very first
+// sound (after Play or a jump), the sentence is made alone and plainly (no
+// look-ahead, own row), exactly as earlier versions did, because that is the
+// quickest way to start. It is re-made in full quality later, in the
+// background (for the download and for listening again).
 // 4. A call that ends inside a paragraph also gets the first two words of the
 //    next sentence (thrown away afterwards), so its last sentence ends like a
 //    sentence that continues, and the voice row is chosen as if the whole next
@@ -25,6 +34,7 @@ export const TOKEN_LIMIT = 510; // the model reads at most 510 phonemes per call
 export const LAST_ROW = 509; // the voice file has rows 0..509
 export const RAMP = [1, 2, 4];
 const SAFETY = 0.8; // plan to finish with 20% of the waiting audio to spare
+export const GROWTH = 1.15; // a call should prepare at least this much faster than it plays
 
 /** The look-ahead text: the first two words of a sentence, without trailing punctuation. */
 export function firstWords(text, count = 2) {
@@ -73,10 +83,16 @@ export function sizeRule({ ordinal, budgetSeconds, measured, sizing = 'adaptive'
  *   predict(tokens) expected preparation time of a call (ms)
  *   single        a Set of sentences that must be made on their own (an
  *                 earlier group could not be cut apart)
- * Returns { first, last, lookahead (sentence index or -1), tokens, row }.
+ *   plain         an "urgent" call: this sentence alone, no look-ahead, own row
+ *   listenPerToken  measured listening seconds per phoneme (enables the growth floor)
+ * Returns { first, last, lookahead (sentence index or -1), tokens, row, plain }.
  * `tokens` counts the phonemes actually sent, look-ahead included.
  */
-export function planCall({ sentences, phonemes, fresh, start, rule, predict = () => 0, single = new Set() }) {
+export function planCall({ sentences, phonemes, fresh, start, rule, predict = () => 0, single = new Set(), plain = false, listenPerToken = 0 }) {
+  if (plain) {
+    const n = phonemes[start].n;
+    return { first: start, last: start, lookahead: -1, tokens: n, row: Math.min(LAST_ROW, n), plain: true };
+  }
   const sameParagraph = (i) => i < sentences.length && sentences[i].para === sentences[i - 1].para;
   const withLookahead = (last) => {
     const next = last + 1;
@@ -96,12 +112,37 @@ export function planCall({ sentences, phonemes, fresh, start, rule, predict = ()
   let last = start;
   // Grow while the size rule allows it.
   while (canExtend(last) && last + 1 - start + 1 <= rule.maxSentences && predict(withLookahead(last + 1).tokens) <= rule.maxMs) last++;
+  // ... but at least as large as the growth floor.
+  if (listenPerToken > 0 && rule.maxMs !== Infinity) {
+    last = Math.max(last, growthLast({ start, canExtend, cost: (l) => predict(withLookahead(l).tokens), listen: (l) => callLength(phonemes, start, l) * listenPerToken }));
+  }
   // Do not stop between two pieces of one sentence when it still fits (only the
   // very smallest calls, such as the first one, may split there).
   while (rule.maxSentences > 1 && sentences[last].joined && canExtend(last)) last++;
   const { n, look, tokens } = withLookahead(last);
   const row = Math.min(LAST_ROW, look >= 0 ? n + 1 + phonemes[look].n : n);
   return { first: start, last, lookahead: look, tokens, row };
+}
+
+/**
+ * The growth floor: the smallest group from `start` (extending while
+ * `canExtend(last)`) whose listening time is at least GROWTH times its
+ * expected preparation time, or, if none gets there (a slow device), the
+ * group that comes closest, i.e. wastes least time on the per-call cost.
+ *   cost(last)    expected preparation time (ms) of the call start..last
+ *   listen(last)  its listening time (s)
+ */
+export function growthLast({ start, canExtend, cost, listen }) {
+  let last = start;
+  let best = start;
+  let bestRatio = 0;
+  for (;;) {
+    const ratio = listen(last) / (cost(last) / 1000);
+    if (ratio >= GROWTH) return last;
+    if (ratio > bestRatio * 1.02) [best, bestRatio] = [last, ratio];
+    if (!canExtend(last)) return best;
+    last++;
+  }
 }
 
 /**

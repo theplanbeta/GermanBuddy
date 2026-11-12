@@ -43,6 +43,18 @@ export function prepRatio(stats, tempo, window = 8) {
 }
 
 /**
+ * Listening seconds per phoneme kept (pauses included), from recent calls
+ * ({ kept, seconds, speed }), at tempo 1 and normal speed. Used to judge how
+ * much faster than it plays a planned call would be prepared. 0 before the
+ * first call.
+ */
+export function listenPerToken(stats, window = 8) {
+  const recent = stats.slice(-window).filter((s) => s.kept > 0);
+  const kept = recent.reduce((n, s) => n + s.kept, 0);
+  return kept ? recent.reduce((n, s) => n + s.seconds * speedFactor(s.speed), 0) / kept : 0;
+}
+
+/**
  * Predicts how long a model call of `tokens` phonemes will take (ms), from
  * recent calls ({ tokens, ms }). Every call has a fixed cost (measured about
  * 1 s on a 4-core laptop) plus a cost per phoneme, so a straight line is
