@@ -50,7 +50,16 @@ npm run preview  # serves dist/ at http://localhost:4173 to try the finished sit
   `Cross-Origin-Embedder-Policy: require-corp`. They let the voice use several
   CPU cores. Without them it still works but on one core, which measured about
   2.5 times slower (slower than real time, so playback stutters). Some free
-  hosts, such as GitHub Pages, cannot send these headers.
+  hosts, such as GitHub Pages, cannot send these headers. For those, the page
+  loads a small helper (`public/coi-serviceworker.js`, MIT licensed) that
+  achieves the same thing; it reloads the page once on the very first visit.
+
+### GitHub Pages
+
+`npm run build:pages` writes the finished site into the `docs/` folder at the
+top of the repository. In the repository's Settings → Pages, choose "Deploy
+from a branch", pick the branch and the `/docs` folder. Re-run the command and
+commit `docs/` whenever the app changes.
 
 ## Privacy
 
