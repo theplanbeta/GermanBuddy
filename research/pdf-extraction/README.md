@@ -75,3 +75,46 @@ to all pages, "start reading from here". Store rules per document, not text.
 Phone speed and memory on long books; scanned pages with OCR; tables,
 equations, footnotes, drop caps and sidebars (no samples); any layout model in
 a browser; licences of the layout models (from memory).
+
+## Follow-up: open-source projects to build on (2026-11-12)
+
+Tested on desktop Node only; nothing below has run in a browser or on a phone.
+
+**Base extractor to adopt: `@llamaindex/liteparse-wasm` 2.18.0** (Apache-2.0,
+Rust + pdfium, 2.7 MB gzipped). Use `outputFormat: 'json'` with
+`extractBlocks: true` and read `page.blocks` (ordered blocks with a kind and a
+bounding box). Do not use `page.text` or `page.textItems`: they put columns
+side by side. Its `isComplex()` flags scanned and garbled pages (the
+`vector-text` reason alone is a false positive for OCR).
+
+What it gave on the samples: correct column order on the two-column paper,
+running header, page number and footer removed on a three-column Federal
+Register document, numbered headings, charts typed as tables.
+
+Gaps to fill ourselves:
+- footnote and caption typing; citation and URL stripping; reference section
+- dictionary-aware de-hyphenation (it wrongly fuses real compounds)
+- cross-page paragraph joins (OpenReader-WebUI's `stitch.ts`, MIT, is liftable)
+- a position-and-font header rule as a safety net: cluster text in the top and
+  bottom 9% of the page by (rounded y, font, size) and flag clusters on 50%+
+  of pages. This beat the plain text-repetition rule, which missed running
+  heads whose chapter title changes.
+- false headings (chart labels, author lines)
+- the block model, skip toggles and preview UI
+
+OCR: tesseract.js 7 through LiteParse's `ocrEngine.recognize` hook (untested).
+
+Optional later: PP-DocLayoutV3 (130 MB model, about 0.7 s per page on desktop
+CPU) for footnote, caption and figure typing; OpenReader-WebUI's
+`mergeTextWithRegions` shows how to combine it with text items.
+
+Not adopted: pdf2md (poor headings, no block types), docling.rs-wasm (no
+header removal without large models, but also converts DOCX/EPUB/HTML),
+pdf-oxide-wasm (scrambled title), MuPDF.js (AGPL), kreuzberg wasm (91 MB),
+pdfminer via Pyodide, opendataloader-pdf (needs Java).
+
+Other formats: foliate-js (EPUB, MIT), mammoth (DOCX, BSD-2-Clause),
+@mozilla/readability (web articles, Apache-2.0).
+
+Correction to the first round: TAMReview.pdf has a garbled text layer on most
+pages, so it is not a usable prose sample.
