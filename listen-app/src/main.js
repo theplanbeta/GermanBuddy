@@ -91,9 +91,12 @@ if (!supported) {
 
 const MODES = ['auto', 'webgpu', 'webgpu-fp16', 'wasm'];
 const savedMode = settings.get('mode', 'auto');
-const engine = createKokoroEngine({ mode: MODES.includes(savedMode) ? savedMode : 'auto' });
+// ?debug exposes the reader and engine for tests; ?debug&dtype=fp32 also forces a model file.
+const params = new URLSearchParams(location.search);
+const debug = params.has('debug');
+const engine = createKokoroEngine({ mode: MODES.includes(savedMode) ? savedMode : 'auto', dtype: debug ? params.get('dtype') : null });
 const reader = new Reader(engine);
-if (new URLSearchParams(location.search).has('debug')) window.listen = { reader, engine };
+if (debug) window.listen = { reader, engine };
 
 // ---- voice model: one-time download ----------------------------------------
 

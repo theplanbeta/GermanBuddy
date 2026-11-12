@@ -44,7 +44,8 @@ function failure(message, phase) {
   return error;
 }
 
-export function createKokoroEngine({ mode = 'auto' } = {}) {
+// `dtype` forces a model file (tests only, e.g. 'fp32' on the standard engine).
+export function createKokoroEngine({ mode = 'auto', dtype = null } = {}) {
   let worker = null;
   const pending = new Map(); // id -> { resolve, reject }
   let nextId = 1;
@@ -159,7 +160,7 @@ export function createKokoroEngine({ mode = 'auto' } = {}) {
     probe() {
       return new Promise((resolve, reject) => {
         probeWaiter = { resolve, reject };
-        worker.postMessage({ type: 'probe', mode: engine.mode });
+        worker.postMessage({ type: 'probe', mode: engine.mode, dtype });
       });
     },
 
@@ -168,7 +169,7 @@ export function createKokoroEngine({ mode = 'auto' } = {}) {
       if (!loading) {
         loading = new Promise((resolve, reject) => {
           loadWaiter = { resolve, reject };
-          worker.postMessage({ type: 'load', mode: engine.mode });
+          worker.postMessage({ type: 'load', mode: engine.mode, dtype });
         });
         loading.catch(() => (loading = null)); // allow "Try again"
       }

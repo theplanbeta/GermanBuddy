@@ -1,7 +1,7 @@
 // Runs the Kokoro voice model in a background thread so the page never freezes.
 //
-// Messages in:   { type: 'probe', mode }   mode: 'auto' | 'webgpu' | 'webgpu-fp16' | 'wasm'
-//                { type: 'load', mode }
+// Messages in:   { type: 'probe', mode, dtype? }   mode: 'auto' | 'webgpu' | 'webgpu-fp16' | 'wasm'
+//                { type: 'load', mode, dtype? }  dtype: only for tests (?debug&dtype=fp32)
 //                { type: 'phonemize', id, texts, lang }        lang: 'a' (American) | 'b' (British)
 //                { type: 'render', id, phonemes, voice, speed, row }
 //                { type: 'warmup' }   pays the one-off cost of the first request early
@@ -49,7 +49,7 @@ const voices = new Map(); // voice name -> Float32Array of 510 rows x 256 number
 // the "uint8" file: 2.5x faster than "q8" for a 177 MB instead of 92 MB
 // download. ("fp16" on the CPU produced silent, broken audio for some
 // sentences with the previous export.)
-async function choosePlan(mode = 'auto') {
+async function choosePlan(mode = 'auto', forced = null) {
   if (plan) return plan;
   let webgpu = false;
   try {
@@ -58,7 +58,7 @@ async function choosePlan(mode = 'auto') {
     /* no WebGPU */
   }
   const device = webgpu && mode !== 'wasm' ? 'webgpu' : 'wasm';
-  const dtype = device === 'wasm' ? 'uint8' : mode === 'webgpu-fp16' ? 'fp16' : 'fp32';
+  const dtype = forced || (device === 'wasm' ? 'uint8' : mode === 'webgpu-fp16' ? 'fp16' : 'fp32');
   plan = { device, dtype, cached: await isCached(MODEL_ID, dtype), webgpu, previous: await hasPrevious() };
   return plan;
 }
@@ -87,9 +87,9 @@ function progressReporter() {
   };
 }
 
-async function load(mode) {
+async function load(mode, forced) {
   if (!tts) {
-    const { device, dtype } = await choosePlan(mode);
+    const { device, dtype } = await choosePlan(mode, forced);
     // A failure here is reported to the page (with gpu: true for WebGPU),
     // which decides whether to fall back to the standard engine.
     tts = await KokoroTTS.from_pretrained(MODEL_ID, { device, dtype, progress_callback: progressReporter() });
@@ -160,8 +160,8 @@ self.addEventListener('message', ({ data }) => {
   if (!data || typeof data.type !== 'string') return;
   queue = queue.then(async () => {
     try {
-      if (data.type === 'probe') postMessage({ type: 'probe', ...(await choosePlan(data.mode)) });
-      else if (data.type === 'load') await load(data.mode);
+      if (data.type === 'probe') postMessage({ type: 'probe', ...(await choosePlan(data.mode, data.dtype)) });
+      else if (data.type === 'load') await load(data.mode, data.dtype);
       else if (data.type === 'phonemize') await phonemizeAll(data);
       else if (data.type === 'render') await render(data);
       else if (data.type === 'warmup') await warmup().catch(() => {});
