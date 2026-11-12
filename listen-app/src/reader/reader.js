@@ -374,12 +374,13 @@ export class Reader extends EventTarget {
     return active && this.#holdsCurrent() && !this.isFresh(this.current) ? this.current : -1;
   }
 
-  // Makes sure the phonemes of the sentences a call starting at `start` may use are known.
-  async #ensurePhonemes(lang, start) {
+  // Makes sure the phonemes of `count` sentences from `start` on are known
+  // (a call may use up to 12 sentences plus the one after it).
+  async #ensurePhonemes(lang, start, count = MAX_SENTENCES + 2) {
     if (!this.phonemes.has(lang)) this.phonemes.set(lang, new Array(this.sentences.length).fill(null));
     const known = this.phonemes.get(lang);
     const wanted = [];
-    for (let i = start; i < Math.min(this.sentences.length, start + MAX_SENTENCES + 2); i++) if (!known[i]) wanted.push(i);
+    for (let i = start; i < Math.min(this.sentences.length, start + count); i++) if (!known[i]) wanted.push(i);
     if (!wanted.length) return;
     const texts = wanted.map((i) => this.sentences[i].text);
     const heads = wanted.map((i) => firstWords(this.sentences[i].text));
@@ -419,7 +420,9 @@ export class Reader extends EventTarget {
     let start = chooseStart(fresh, this.current, stale);
     if (start < 0) return false;
     const lang = voice[0] === 'b' ? 'b' : 'a';
-    await this.#ensurePhonemes(lang, start);
+    // Only this sentence and the next are needed for a one-sentence call
+    // (phonemes for 28 texts take about half a second, which would delay the first audio).
+    await this.#ensurePhonemes(lang, start, 2);
     if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true; // changed meanwhile: plan again
     const phonemes = this.phonemes.get(lang);
     const measured = this.stats.length > 0;
@@ -434,11 +437,13 @@ export class Reader extends EventTarget {
         if (!phonemes[k]?.n) return Infinity;
         return predict(planCall({ sentences, phonemes, fresh, start: k, rule: { maxSentences: 1, maxMs: Infinity }, single: this.single }).tokens);
       };
+      await this.#ensurePhonemes(lang, start);
+      if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true;
       const { end } = this.#span(old, this.current);
       const remaining = Math.max(0, ((end / RATE - this.audio.currentTime) * speedFactor(old.speed)) / this.tempo);
       // (only sentences whose phonemes are known count: up to 13 past `start`)
-      start = takeoverStart({ start, current: this.current, remaining, seconds, predictMs: alone });
-      await this.#ensurePhonemes(lang, start);
+      start = takeoverStart({ start, current: this.current, remaining, seconds, predictMs: alone, fresh });
+      await this.#ensurePhonemes(lang, start, 2);
       if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true;
     }
 
@@ -450,6 +455,10 @@ export class Reader extends EventTarget {
     }
     const budgetSeconds = freshAhead({ fresh, seconds, current: this.current, elapsed, start });
     const rule = sizeRule({ ordinal: this.ordinal, budgetSeconds, measured, sizing: this.sizing });
+    if (rule.maxSentences > 1 && rule.maxMs > 0) {
+      await this.#ensurePhonemes(lang, start); // the call may grow: know its neighbours
+      if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true;
+    }
     const call = planCall({ sentences, phonemes, fresh, start, rule, predict, single: this.single });
 
     const indices = [];

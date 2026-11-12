@@ -149,6 +149,7 @@ async function render({ id, phonemes, voice, speed = 1, row }) {
 }
 
 async function warmup() {
+  await textToPhonemes('Hi.', 'a'); // starts the phonemiser (about 0.3 s the first time)
   const pack = await voicePack('af_heart');
   const { input_ids } = tts.tokenizer('hˈaɪ.', { truncation: true });
   await tts.model({ input_ids, style: new Tensor('float32', pack.slice(1280, 1536), [1, 256]), speed: new Tensor('float32', [1], [1]) });

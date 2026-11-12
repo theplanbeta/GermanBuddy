@@ -165,6 +165,9 @@ test('takeover starts at the first sentence the new voice can be ready for', () 
   assert.equal(takeoverStart({ start: 4, current: 3, remaining: 1, seconds, predictMs: takes(1500) }), 5);
   // a slow device (8 s per sentence): sentence 6 is reached in 1 + 3 + 3 = 7 s, sentence 7 in 10 s
   assert.equal(takeoverStart({ start: 4, current: 3, remaining: 1, seconds, predictMs: takes(8000) }), 7);
+  // a sentence already made in the new voice is skipped, never redone
+  const fresh = [false, false, false, false, false, true, false, false];
+  assert.equal(takeoverStart({ start: 4, current: 3, remaining: 1, seconds, predictMs: takes(1500), fresh }), 6);
   // nothing fits before the end: unchanged
   assert.equal(takeoverStart({ start: 4, current: 3, remaining: 0, seconds, predictMs: takes(99999) }), 4);
   // a sentence with nothing to play yet: the listener will wait there, so start there at the latest
