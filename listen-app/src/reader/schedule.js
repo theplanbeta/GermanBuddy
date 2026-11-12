@@ -77,3 +77,19 @@ export function predictMs(stats, tokens, window = 8) {
   const fixed = 0.25 * my;
   return fixed + ((my - fixed) / mx) * tokens;
 }
+
+// Before any call has been measured (on this visit or an earlier one), a
+// call is assumed to take this long. Measured: the first one-sentence call
+// (about 80 phonemes) took 3.9 s on a 4-core laptop; this allows a little
+// more, for slower devices. Only the waiting ring uses it, never the planning.
+const GUESS_FIXED_MS = 2500;
+const GUESS_MS_PER_TOKEN = 25;
+
+/**
+ * Expected time (ms) of a model call of `tokens` phonemes, for the waiting
+ * ring: from this visit's calls, else from an earlier visit's (`prior`, same
+ * shape as stats), else a cautious guess.
+ */
+export function expectedCallMs(stats, tokens, prior = []) {
+  return predictMs(stats, tokens) ?? predictMs(prior, tokens) ?? GUESS_FIXED_MS + GUESS_MS_PER_TOKEN * tokens;
+}

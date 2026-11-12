@@ -73,6 +73,8 @@
             <span id="position-text">Nothing to read yet</span>
             <span id="prepared-text" class="muted"></span>
           </div>
+          <!-- For screen readers: says once that the voice is being prepared (not a stream of numbers). -->
+          <span id="wait-status" class="visually-hidden" role="status"></span>
         </div>
 
         <div class="controls">
@@ -80,9 +82,14 @@
             <button id="prev-button" class="round" type="button" aria-label="Previous sentence" title="Previous sentence (←)">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14M19 5 9 12l10 7z" /></svg>
             </button>
-            <button id="play-button" class="round big" type="button" aria-label="Play" title="Play / pause (space)">
+            <button id="play-button" class="round big" type="button" aria-label="Play" title="Play (space)">
               <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
               <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
+              <!-- Fills while waiting for the sound to start (src/ui/ring.js). -->
+              <svg id="wait-ring" class="wait-ring" viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="wait-track" cx="50" cy="50" r="47.5" />
+                <circle class="wait-fill" cx="50" cy="50" r="47.5" pathLength="100" />
+              </svg>
             </button>
             <button id="next-button" class="round" type="button" aria-label="Next sentence" title="Next sentence (→)">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 5v14M5 5l10 7-10 7z" /></svg>

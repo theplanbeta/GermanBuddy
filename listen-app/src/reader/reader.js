@@ -27,9 +27,14 @@
 //   'generated'  preparation progressed (reader.readyCount, reader.prepRatio)
 //   'time'       playback position moved (reader.position, 0..1)
 //   'slow'       playback ran dry and this device prepares more slowly than it plays
+//   'call'       a model call started: event.detail = reader.inFlight
 //   'error'      event.detail = { error, fatal }
+//
+// For the page's waiting ring the reader also reports (read only; none of it
+// changes what is prepared when): reader.inFlight, the model call under way,
+// and reader.waitMs(), about how long until the current sentence can be heard.
 import { toInt16, wavBlob, silentWav } from './audio.js';
-import { bakedSpeedFor, speedFactor, prepRatio, predictMs, listenPerToken } from './schedule.js';
+import { bakedSpeedFor, speedFactor, prepRatio, predictMs, listenPerToken, expectedCallMs } from './schedule.js';
 import { chooseStart, planCall, sizeRule, freshAhead, takeoverStart, firstWords, callLength, MAX_SENTENCES } from '../flow/plan.js';
 import { assembleCall, plainClip, designedPause, sentenceAt } from '../flow/assemble.js';
 
@@ -46,8 +51,15 @@ const GPU_REST_MS = 100; // a short break between calls on the graphics chip
 const VISIBLE_SETTLE_MS = 5000;
 const REFILL_SECONDS = 5; // after running dry mid-reading, gather this much before carrying on
 const RATE = 24000;
+// For the waiting ring only: finding a sentence's phonemes before its call
+// (a few tenths of a second), and listening seconds per character of text
+// before anything has been measured.
+const PHONEMIZE_GUESS_MS = 300;
+const SECONDS_PER_CHAR_GUESS = 0.065;
 
 export class Reader extends EventTarget {
+  #modelAbsentAt = -Infinity; // last time waitMs() saw the voice model not loaded
+
   constructor(engine, { gpuCap = GPU_CAP } = {}) {
     super();
     this.engine = engine;
@@ -68,6 +80,10 @@ export class Reader extends EventTarget {
     this.failedCount = 0;
     this.stats = []; // per model call: { tokens, ms, seconds, speed }
     this.calls = []; // per model call, for tests and curiosity: what was planned and how it went
+    // Reporting for the waiting ring (never used for planning):
+    this.inFlight = null; // the model call under way: { first, last, tokens, expectedMs, startedAt }
+    this.prior = []; // { tokens, ms } of calls on an earlier visit, until this visit has measured one
+    this.overheads = []; // recent time per call beyond the model's own (queue, transfer, cutting), ms
     this.phonemes = new Map(); // 'a' | 'b' -> per sentence { ph, head, n, headN }
     this.single = new Set(); // sentences that must be made on their own (a group could not be cut apart)
     this.ordinal = 0; // model calls since the text was loaded
@@ -261,6 +277,60 @@ export class Reader extends EventTarget {
     return (this.current + within) / n;
   }
 
+  /**
+   * About how long (ms) until the current sentence can be heard, for the
+   * waiting ring: what is left of the model call under way, plus a call for
+   * the current sentence if that one does not cover it, plus (after running
+   * dry mid-reading) the time to gather a few seconds of lead. Does not
+   * include loading the voice model. 0 when it should be ready now (or is
+   * overdue). Only reports; changes nothing.
+   */
+  waitMs(now = performance.now()) {
+    const n = this.sentences.length;
+    const i = this.current;
+    if (!n) return 0;
+    let end = i; // the first sentence from the current one on that is not ready
+    while (end < n && this.segments[end]) end++;
+    // A call asked for while the voice model is still loading only really
+    // starts once it has loaded.
+    if (!this.engine.device) this.#modelAbsentAt = now;
+    let ms = 0;
+    const call = this.inFlight;
+    if (call) {
+      const started = Math.max(call.startedAt, this.#modelAbsentAt);
+      ms = Math.max(0, started + call.expectedMs - now);
+      if (call.first <= end && end <= call.last) end = call.last + 1;
+    }
+    if (end === i) {
+      // Nothing for the current sentence is being made yet: it is made on its own next.
+      const known = this.phonemes.get(this.voice[0] === 'b' ? 'b' : 'a')?.[i];
+      const tokens = known?.n || this.sentences[i].text.length;
+      ms += (known ? 0 : PHONEMIZE_GUESS_MS) + this.#expectMs(tokens);
+      end = i + 1;
+    }
+    if (this.refilling && end < n) {
+      let lead = 0;
+      for (let k = i; k < end; k++) lead += this.#seconds(k) ?? this.#guessSeconds(k);
+      const ratio = Math.max(0.2, this.prepRatio ?? 1);
+      if (lead < REFILL_SECONDS) ms += ((REFILL_SECONDS - lead) * 1000) / ratio;
+    }
+    return ms;
+  }
+
+  // Expected wall-clock time of a model call (for the waiting ring).
+  #expectMs(tokens) {
+    const overhead = this.overheads.length ? Math.min(...this.overheads) : 0;
+    return expectedCallMs(this.stats, tokens, this.prior) + overhead;
+  }
+
+  // Listening seconds a sentence that is not prepared yet will give, roughly.
+  #guessSeconds(i) {
+    const known = this.phonemes.get(this.voice[0] === 'b' ? 'b' : 'a')?.[i];
+    const perToken = listenPerToken(this.stats);
+    if (known?.n && perToken) return (known.n * perToken) / this.tempo;
+    return (this.sentences[i].text.length * SECONDS_PER_CHAR_GUESS) / this.tempo;
+  }
+
   /** The whole reading as one WAV file (one voice, one speed), or null if not finished. */
   toWav() {
     if (!this.complete) return null;
@@ -449,6 +519,7 @@ export class Reader extends EventTarget {
     } catch (error) {
       again = this.#failed(error);
     }
+    this.inFlight = null;
     this.busy = false;
     // On the graphics chip, leave it free for a moment between calls.
     if (again && this.engine.device === 'webgpu') setTimeout(() => this.#pump(), GPU_REST_MS);
@@ -541,6 +612,9 @@ export class Reader extends EventTarget {
     const text = indices.map((i) => sentences[i].text).join(' ');
 
     let result;
+    const startedAt = performance.now();
+    this.inFlight = { first: call.first, last: call.last, tokens: call.tokens, expectedMs: this.#expectMs(call.tokens), startedAt };
+    this.#emit('call', this.inFlight);
     try {
       result = await this.engine.render({ phonemes: members.join(' '), voice, speed, row: call.row, text });
     } catch (error) {
@@ -578,6 +652,7 @@ export class Reader extends EventTarget {
     const clip = { pcm: toInt16(built.samples), offsets: built.offsets, first: call.first, last: call.last, voice, speed, plain: Boolean(call.plain) };
     const kept = callLength(phonemes, call.first, call.last);
     this.stats.push({ tokens: result.tokens, kept, ms: result.ms, seconds: built.samples.length / RATE, speed });
+    this.overheads = [...this.overheads.slice(-3), Math.max(0, performance.now() - startedAt - result.ms)];
     this.#store(clip);
     return true;
   }

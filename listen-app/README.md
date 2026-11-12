@@ -34,6 +34,15 @@ server or an account.
   Changes apply instantly, even mid-sentence. At fast tempos (about 1.5× and
   above) the voice is also prepared at a faster speed in the background, which
   needs less work, so fast listening keeps up on slower devices.
+- While you wait for the voice to start (after Play, after jumping to a
+  sentence that is not ready, or when playback has to catch up), a ring
+  around the Play button fills as an estimate of the wait, from how fast this
+  device made speech so far (remembered from earlier visits). It is about 90%
+  full when the sound is expected; if it takes longer it keeps creeping and
+  says "Still preparing…". While the voice model itself starts, an arc
+  circles instead. Quick repeated taps on Play count as one tap, so they
+  cannot flip between play and pause; a tap after a short break cancels the
+  wait. Pasted text is prepared at once (typed text after a 0.6 s pause).
 - Play / pause, stop, previous / next sentence. The sentence being read is
   highlighted, following the sound exactly (the voice model reports when each
   sentence starts); click any sentence to jump there.
@@ -201,8 +210,10 @@ Everything else, including the speech engine itself, is served by the app.
 | `src/engine/kokoro.worker.js` | Runs the Kokoro model in a background thread. |
 | `src/engine/phonemes.js` | Turns text into the sound symbols the model reads (a copy of kokoro-js's own rules). |
 | `src/engine/check-audio.js` | Spots broken model output (silent, not-a-number, absurd length). |
+| `src/ui/wait.js` | How the waiting ring moves (never backwards, never full before the sound) and the rule for repeated taps. |
+| `src/ui/ring.js` | Draws the waiting ring around the Play button. |
 | `src/voices.js` | The list of voices and their plain-English names. |
-| `tests/` | Tests for the splitter, the call planning and cutting, the speed rules and the broken-audio check. |
+| `tests/` | Tests for the splitter, the call planning and cutting, the speed rules, the broken-audio check and the waiting ring. |
 | `vercel.json` | Build settings and headers for Vercel. |
 
 Planned additions slot in without touching the reader: new **sources** (PDF or

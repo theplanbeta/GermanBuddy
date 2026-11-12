@@ -5,6 +5,8 @@ import { createKokoroEngine } from './engine/kokoro-engine.js';
 import { Reader } from './reader/reader.js';
 import { speedFactor } from './reader/schedule.js';
 import { VOICE_GROUPS, ALL_VOICES, DEFAULT_VOICE, voiceLabel, voiceName } from './voices.js';
+import { createWaitRing } from './ui/ring.js';
+import { isRepeatTap } from './ui/wait.js';
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -27,6 +29,8 @@ const ui = {
   preparedText: $('prepared-text'),
   prev: $('prev-button'),
   play: $('play-button'),
+  waitRing: $('wait-ring'),
+  waitStatus: $('wait-status'),
   next: $('next-button'),
   stop: $('stop-button'),
   more: $('more-button'),
@@ -107,6 +111,58 @@ const engine = createKokoroEngine({
 const reader = new Reader(engine, { gpuCap: Number(params.get('gpucap')) || undefined });
 if (debug) window.listen = { reader, engine };
 
+// ---- waiting for the sound: the ring around Play -----------------------------
+
+const WAIT_TEXT = {
+  preparing: 'Preparing the voice…',
+  late: 'Still preparing…',
+  loading: 'Getting the voice ready…',
+  downloading: 'Downloading the voice…',
+};
+const MODEL_START_MS = 2000; // after the download, starting the model (a guess, only for the ring)
+const ANNOUNCE_AFTER_MS = 1000; // screen readers hear about a wait only if it lasts
+let download = null; // { loaded, total, at, loaded0, t0 } while the voice model downloads
+
+/** How long the listener still waits ({ ms: null } when it cannot be told), and why. */
+function waitEstimate(now) {
+  const calls = reader.waitMs(now);
+  if (engine.device) return { ms: calls, phase: 'preparing' };
+  const d = download;
+  const rate = d ? (d.loaded - d.loaded0) / (d.at - d.t0) : 0; // bytes per ms
+  if (d && d.at - d.t0 > 1000 && rate > 0) {
+    const downloaded = d.at + (d.total - d.loaded) / rate; // when the download should end
+    return { ms: Math.max(0, downloaded + MODEL_START_MS - now) + calls, phase: 'downloading' };
+  }
+  return { ms: null, phase: d ? 'downloading' : 'loading' };
+}
+
+let announceTimer = null;
+function onWaitPhase(phase) {
+  clearTimeout(announceTimer);
+  if (phase === 'off') ui.waitStatus.textContent = '';
+  else announceTimer = setTimeout(() => (ui.waitStatus.textContent = WAIT_TEXT[phase]), ANNOUNCE_AFTER_MS);
+  updateProgress();
+}
+
+const ring = createWaitRing(ui.waitRing, { estimate: waitEstimate, onPhase: onWaitPhase });
+
+// How fast this device made speech on an earlier visit, so the ring's first
+// estimate is right on later visits too. (Not kept from test runs that
+// imitate a slower device.)
+const priorKey = (p) => `calls.${p.device}.${p.dtype}`;
+function loadPrior() {
+  try {
+    reader.prior = plan ? JSON.parse(settings.get(priorKey(plan), '[]')) : [];
+  } catch {
+    reader.prior = [];
+  }
+}
+function savePrior() {
+  if (!engine.device || !reader.stats.length || params.has('slowdown') || params.has('threads')) return;
+  const calls = reader.stats.slice(-8).map(({ tokens, ms }) => ({ tokens, ms: Math.round(ms) }));
+  settings.set(priorKey({ device: engine.device, dtype: engine.dtype }), JSON.stringify(calls));
+}
+
 // ---- voice model: one-time download ----------------------------------------
 
 let plan = null; // { device, dtype, cached, webgpu }
@@ -148,6 +204,7 @@ async function checkModel({ notice, switching = false } = {}) {
     plan = { device: 'wasm', dtype: 'uint8', cached: false, webgpu: false };
   }
   if (run !== modelRun) return;
+  loadPrior();
   // Only offer the graphics chip where this browser has one.
   for (const option of ui.mode.querySelectorAll('[value^="webgpu"]')) {
     option.hidden = !plan.webgpu;
@@ -187,8 +244,13 @@ function startModel() {
   ui.modelProgressWrap.hidden = false;
   ui.modelCard.hidden = false;
   ui.modelText.textContent = cached ? 'Getting the voice ready…' : 'Downloading voice model, one time only: 0%';
+  download = null;
   engine
     .load((loaded, total) => {
+      if (!cached) {
+        const at = performance.now();
+        download = download ? { ...download, loaded, total, at } : { loaded, total, at, loaded0: loaded, t0: at };
+      }
       const pct = Math.floor((loaded / total) * 100);
       ui.modelProgress.value = pct;
       if (!cached) {
@@ -198,6 +260,7 @@ function startModel() {
     })
     .then(() => {
       if (run !== modelRun) return;
+      download = null;
       ui.modelCard.hidden = true;
       updateStatus();
     })
@@ -212,6 +275,7 @@ function restartModel(options) {
   modelRun++;
   modelStarted = false;
   reader.stats.length = 0; // speed readings from the other mode no longer apply
+  reader.overheads.length = 0;
   ui.modelCard.hidden = true;
   ui.engineStatus.textContent = 'Starting the voice…';
   checkModel(options);
@@ -313,11 +377,15 @@ function showEditor() {
 // Start preparing as soon as the typing or pasting pauses, so that Play
 // usually finds the first sentences ready. (Nothing is downloaded by this:
 // the engine waits until the voice model has been allowed and loaded.)
+// Pasted (or dropped) text is complete, so it is prepared at once; typing
+// waits for a pause of 0.6 s.
 let typingTimer = null;
-ui.text.addEventListener('input', () => {
+const prepareText = () => ui.text.value.trim() && loadText();
+ui.text.addEventListener('input', (event) => {
   updateWordCount();
   clearTimeout(typingTimer);
-  typingTimer = setTimeout(() => ui.text.value.trim() && loadText(), 600);
+  if (event.inputType === 'insertFromPaste' || event.inputType === 'insertFromDrop') prepareText();
+  else typingTimer = setTimeout(prepareText, 600);
 });
 ui.editButton.addEventListener('click', showEditor);
 ui.clearButton.addEventListener('click', () => {
@@ -353,7 +421,19 @@ function play() {
   reader.play();
 }
 
-ui.play.addEventListener('click', () => (reader.state === 'playing' || reader.state === 'waiting' ? reader.pause() : play()));
+// Play / pause. Taps that follow each other quickly (an impatient listener
+// tapping again while the voice is being prepared) count as one, so they can
+// not flip between playing and paused; a tap after a short break still
+// pauses, or cancels the wait. The space bar follows the same rule.
+let lastTap = -Infinity;
+ui.play.addEventListener('click', () => {
+  const now = performance.now();
+  const repeat = isRepeatTap(now, lastTap);
+  lastTap = now;
+  if (repeat) return;
+  if (reader.state === 'playing' || reader.state === 'waiting') reader.pause();
+  else play();
+});
 ui.prev.addEventListener('click', () => reader.previous());
 ui.next.addEventListener('click', () => reader.next());
 ui.stop.addEventListener('click', () => reader.stop());
@@ -363,7 +443,7 @@ document.addEventListener('keydown', (event) => {
   if (['TEXTAREA', 'INPUT', 'SELECT'].includes(tag) || event.altKey || event.ctrlKey || event.metaKey) return;
   if (event.key === ' ' && tag !== 'BUTTON' && tag !== 'SUMMARY') {
     event.preventDefault();
-    ui.play.click();
+    if (!event.repeat) ui.play.click(); // holding the key down is not several taps
   } else if (event.key === 'ArrowLeft') reader.previous();
   else if (event.key === 'ArrowRight') reader.next();
 });
@@ -470,10 +550,8 @@ function updateProgress() {
     ui.positionText.textContent = 'Nothing to read yet';
     ui.preparedText.textContent = '';
   } else {
-    let note = '';
-    if (reader.state === 'waiting') note = ' · preparing…';
-    else if (reader.switching) note = ` · switching to ${voiceName(reader.voice)}…`;
-    ui.positionText.textContent = `Sentence ${reader.current + 1} of ${n}${note}`;
+    const note = reader.switching ? ` · switching to ${voiceName(reader.voice)}…` : '';
+    ui.positionText.textContent = reader.state === 'waiting' ? WAIT_TEXT[ring.phase] ?? WAIT_TEXT.preparing : `Sentence ${reader.current + 1} of ${n}${note}`;
     ui.preparedText.textContent = reader.complete ? 'All prepared' : `Prepared ${ready} of ${n}`;
   }
   const complete = reader.complete;
@@ -485,8 +563,13 @@ function updateProgress() {
 
 function updateState() {
   const active = reader.state === 'playing' || reader.state === 'waiting';
+  const waiting = reader.state === 'waiting';
+  if (waiting) ring.start();
+  else ring.stop({ heard: reader.state === 'playing' });
   ui.play.classList.toggle('is-playing', active);
-  ui.play.setAttribute('aria-label', active ? 'Pause' : 'Play');
+  const label = waiting ? 'Cancel' : active ? 'Pause' : 'Play';
+  ui.play.setAttribute('aria-label', label);
+  ui.play.title = `${label} (space)`;
   if (navigator.mediaSession) navigator.mediaSession.playbackState = active ? 'playing' : 'paused';
   updateHighlight();
   updateProgress();
@@ -500,6 +583,7 @@ reader.addEventListener('sentence', () => {
 reader.addEventListener('generated', () => {
   updateProgress();
   updateStatus();
+  savePrior();
   if (reader.stats.length) removePreviousModel();
 });
 
