@@ -1,0 +1,3 @@
+install+first isolated load incl. 21.6 MB wasm precache:  436 ms
+OFFLINE reload isolated: true
+OFFLINE WebAssembly.compileStreaming(ORT wasm via SW wrapper): {"ok":true,"imports":82,"ms":165}

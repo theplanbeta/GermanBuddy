@@ -1,0 +1,10 @@
+const {chromium}=require('playwright'),http=require('http'),fs=require('fs'),path=require('path');
+const mime={'.html':'text/html','.js':'text/javascript','.wasm':'application/wasm'};const dir=path.join(__dirname,'dist3');
+const s=http.createServer((q,r)=>{let u=q.url.split('?')[0];if(u.endsWith('/'))u+='index.html';const f=path.join(dir,u);if(!fs.existsSync(f)){r.writeHead(404);return r.end()}r.writeHead(200,{'Content-Type':mime[path.extname(f)]||'text/plain','Cache-Control':'no-cache'});fs.createReadStream(f).pipe(r)});
+s.listen(8140,async()=>{const b=await chromium.launch();const p=await (await b.newContext()).newPage();p.on('pageerror',e=>console.log('E',e.message));
+ const t0=Date.now();await p.goto('http://localhost:8140/');await p.waitForFunction(()=>window.__state&&window.__state.worker,null,{timeout:60000});console.log('install+first isolated load incl. 21.6 MB wasm precache: ',Date.now()-t0,'ms');
+ s.close();
+ await p.reload();await p.waitForFunction(()=>window.__state&&window.__state.worker);
+ console.log('OFFLINE reload isolated:',await p.evaluate(()=>crossOriginIsolated));
+ console.log('OFFLINE WebAssembly.compileStreaming(ORT wasm via SW wrapper):',JSON.stringify(await p.evaluate(async()=>{const t=performance.now();const m=await WebAssembly.compileStreaming(fetch('./engine.wasm'));return {ok:true,imports:WebAssembly.Module.imports(m).length,ms:Math.round(performance.now()-t)}}).catch(e=>String(e))));
+ await b.close();process.exit(0)});

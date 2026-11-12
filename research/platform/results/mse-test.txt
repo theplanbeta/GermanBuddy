@@ -1,0 +1,16 @@
+webm-opus {"supported":true,"results":{"segments+offset":{"ranges":[[0,360.02]]},"sequence":{"ranges":[[0,360.24]]}}}
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+page.evaluate: TypeError: Failed to set the 'mode' property on 'SourceBuffer': The mode value provided (segments) is invalid for a byte stream format that uses generated timestamps.
+    at eval (eval at evaluate (:311:30), <anonymous>:10:46)
+    at async <anonymous>:337:30
+    at /tmp/claude-0/-home-user-GermanBuddy/8b38b8f8-6ee7-5354-9f59-cae11fab3d16/scratchpad/platformspike/audio/mse-test.js:7:19 {
+  log: []
+}
+
+Node.js v22.23.4
+mp3 {"supported":true,"results":{"sequence":{"ranges":[[0,360.576]]}}}
+fmp4-aac {"supported":true,"results":{"segments+offset":{"ranges":[[0,360.037]]},"sequence":{"ranges":[[0,360.96]]}}}
+MediaRecorder webm/opus 8 s of audio: {"audioSec":8,"wallSec":8,"bytes":32724}

@@ -1,0 +1,1 @@
+self.onmessage=e=>{const sab=e.data;const a=new Int32Array(sab);Atomics.add(a,0,1);postMessage({iso:self.crossOriginIsolated,sab:typeof SharedArrayBuffer!=='undefined',v:'v2'})}

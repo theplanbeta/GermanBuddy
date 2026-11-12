@@ -1,0 +1,14 @@
+1a FIRST document response had COOP/COEP headers     no
+1b after auto-reload                                 {"iso":true,"ctl":true,"worker":{"iso":true,"sab":true,"v":"v1"},"sab":1,"sharedWasm":"ok","caches":["shell-v1"]}
+1c cross-origin CORS fetch (like Hugging Face)       cors-fetch 200 2027
+1d cross-origin <img> no-cors, no CORP               img BLOCKED
+2a OFFLINE reload: iso/ctl/worker                    {"iso":true,"ctl":true,"worker":true,"ver":"v1"}
+2b OFFLINE nav with query string                     {"iso":true,"ver":"v1"}
+2c OFFLINE Cache API model entry still readable      2027
+2d OFFLINE lazy chunk                                lazy chunk of v1
+3a after deploy: page still shows (cached) + updateReady {"shows":"v1","updateReady":true,"iso":true}
+3b registration.waiting                              waiting
+3c OLD tab after v2 activated: lazy v1 chunk         lazy chunk of v1
+3d caches after activation                           ["shell-v1","kokoro-voices","shell-v2"]
+3e reload now shows                                  {"ver":"v2","iso":true,"worker":"v2","caches":["shell-v1","kokoro-voices","shell-v2"]}
+done ghpages

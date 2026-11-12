@@ -1,0 +1,11 @@
+opus-ogg32 {"perChunkFirst3":[30.0167,30.0167,30.0167],"sumOf12ChunkFiles":360.201,"singleFileDecoded":360.0168,"joinErrorMsPerJoin":18.3}
+opus-webm32 {"perChunkFirst3":[30.0167,30.0167,30.0167],"sumOf12ChunkFiles":360.201,"singleFileDecoded":360.0168,"joinErrorMsPerJoin":18.3}
+aac-m4a32 {"perChunkFirst3":[30.0373,30.0373,30.0373],"sumOf12ChunkFiles":360.448,"singleFileDecoded":360.0213,"joinErrorMsPerJoin":40.7}
+aac-fmp4_32 {"perChunkFirst3":[30.0373,30.0373,30.0373],"sumOf12ChunkFiles":360.448,"singleFileDecoded":360.0213,"joinErrorMsPerJoin":40.7}
+mp3-48 {"perChunkFirst3":[30.002,30.002,30.002],"sumOf12ChunkFiles":360.0235,"singleFileDecoded":360.002,"joinErrorMsPerJoin":2.1}
+--- seek accuracy (tone-per-second signal; expected = floor(target)%50) via <audio src=http URL with Range>
+aac-fmp4_32.m4a    dur 1.024 ok(4ms) MISS det=0 exp=37 MISS det=0 exp=23 ok(2ms) MISS det=0 exp=1 MISS det=0 exp=9
+aac-m4a32.m4a      dur 360.021 ok(4ms) MISS det=0 exp=37 MISS det=0 exp=23 ok(1ms) MISS det=0 exp=1 MISS det=0 exp=9
+mp3-48.mp3         dur 360.026 ok(3ms) MISS det=0 exp=37 MISS det=0 exp=23 ok(1ms) MISS det=0 exp=1 MISS det=0 exp=9
+opus-ogg32.ogg     dur Infinity ok(2ms) MISS det=0 exp=37 MISS det=37 exp=23 MISS det=37 exp=0 MISS det=0 exp=1 MISS det=0 exp=9
+opus-webm32.webm   dur 360.02 ok(4ms) MISS det=0 exp=37 MISS det=0 exp=23 ok(1ms) MISS det=0 exp=1 MISS det=0 exp=9

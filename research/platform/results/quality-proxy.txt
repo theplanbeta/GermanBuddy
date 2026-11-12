@@ -1,0 +1,15 @@
+file                         lag   LSD dB  LSD>top20  SNR dB
+aac-fmp4-32.fmp4.m4a          17     6.79       9.49    17.8
+aac-m4a-24.m4a                17     8.53      11.95    13.6
+aac-m4a-32.m4a                17     6.79       9.49    17.8
+aac-m4a-48.m4a                17     3.82       4.92    22.5
+aac-m4a-64.m4a                17     2.39       2.83    26.4
+lamejs-js-48.mp3            1122     6.16       9.96    16.2
+mp3-lame-32.mp3               17    14.73      27.09    13.4
+mp3-lame-48.mp3               17     6.65      11.35    17.1
+mp3-lame-64.mp3               17     5.47       9.87    20.5
+opus-ogg-16.ogg               95     4.72       5.66    11.0
+opus-ogg-24.ogg               95     4.15       4.72    13.2
+opus-ogg-32.ogg               95     3.78       4.11    15.3
+opus-ogg-48.ogg               95     3.23       3.38    18.3
+opus-webm-32.webm             95     3.78       4.11    15.3

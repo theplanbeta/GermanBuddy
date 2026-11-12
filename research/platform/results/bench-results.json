@@ -1,0 +1,142 @@
+[
+ {
+  "route": "opus-ogg",
+  "kbps": 16,
+  "fmt": "ogg",
+  "bytes": 729802,
+  "effKbps": 16.2,
+  "encodeSec": 4.87,
+  "xRealtime": 74,
+  "MBperMin": 0.122
+ },
+ {
+  "route": "opus-ogg",
+  "kbps": 24,
+  "fmt": "ogg",
+  "bytes": 1073490,
+  "effKbps": 23.9,
+  "encodeSec": 4.81,
+  "xRealtime": 74.9,
+  "MBperMin": 0.179
+ },
+ {
+  "route": "opus-ogg",
+  "kbps": 32,
+  "fmt": "ogg",
+  "bytes": 1431068,
+  "effKbps": 31.8,
+  "encodeSec": 5.34,
+  "xRealtime": 67.4,
+  "MBperMin": 0.239
+ },
+ {
+  "route": "opus-ogg",
+  "kbps": 48,
+  "fmt": "ogg",
+  "bytes": 2146605,
+  "effKbps": 47.7,
+  "encodeSec": 5.13,
+  "xRealtime": 70.1,
+  "MBperMin": 0.358
+ },
+ {
+  "route": "opus-webm",
+  "kbps": 32,
+  "fmt": "webm",
+  "bytes": 1587812,
+  "effKbps": 35.3,
+  "encodeSec": 4.79,
+  "xRealtime": 75.2,
+  "MBperMin": 0.265
+ },
+ {
+  "route": "aac-m4a",
+  "kbps": 24,
+  "fmt": "mp4",
+  "bytes": 1104219,
+  "effKbps": 24.5,
+  "encodeSec": 7.44,
+  "xRealtime": 48.4,
+  "MBperMin": 0.184
+ },
+ {
+  "route": "aac-m4a",
+  "kbps": 32,
+  "fmt": "mp4",
+  "bytes": 1469485,
+  "effKbps": 32.7,
+  "encodeSec": 8.37,
+  "xRealtime": 43,
+  "MBperMin": 0.245
+ },
+ {
+  "route": "aac-m4a",
+  "kbps": 48,
+  "fmt": "mp4",
+  "bytes": 2182473,
+  "effKbps": 48.5,
+  "encodeSec": 9.19,
+  "xRealtime": 39.2,
+  "MBperMin": 0.364
+ },
+ {
+  "route": "aac-m4a",
+  "kbps": 64,
+  "fmt": "mp4",
+  "bytes": 2877690,
+  "effKbps": 63.9,
+  "encodeSec": 8.73,
+  "xRealtime": 41.2,
+  "MBperMin": 0.48
+ },
+ {
+  "route": "aac-fmp4",
+  "kbps": 32,
+  "fmt": "fmp4",
+  "bytes": 1533547,
+  "effKbps": 34.1,
+  "encodeSec": 7.24,
+  "xRealtime": 49.7,
+  "MBperMin": 0.256
+ },
+ {
+  "route": "mp3-lame",
+  "kbps": 32,
+  "fmt": "mp3",
+  "bytes": 1440510,
+  "effKbps": 32,
+  "encodeSec": 3.62,
+  "xRealtime": 99.5,
+  "MBperMin": 0.24
+ },
+ {
+  "route": "mp3-lame",
+  "kbps": 48,
+  "fmt": "mp3",
+  "bytes": 2160654,
+  "effKbps": 48,
+  "encodeSec": 2.74,
+  "xRealtime": 131.2,
+  "MBperMin": 0.36
+ },
+ {
+  "route": "mp3-lame",
+  "kbps": 64,
+  "fmt": "mp3",
+  "bytes": 2880798,
+  "effKbps": 64,
+  "encodeSec": 2.99,
+  "xRealtime": 120.3,
+  "MBperMin": 0.48
+ },
+ {
+  "route": "lamejs-js",
+  "kbps": 48,
+  "fmt": "mp3",
+  "bytes": 2160432,
+  "effKbps": 48,
+  "encodeSec": 14.18,
+  "xRealtime": 25.4,
+  "MBperMin": 0.36
+ }
+]

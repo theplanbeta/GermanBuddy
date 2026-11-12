@@ -1,0 +1,5 @@
+manifest errors: [] | parsed share_target present in raw: true
+installability errors: []
+POST share-target -> {"finalUrl":"http://localhost:8130/?share=8feb4303-5e72-4111-bb98-4c289d2e4fad","redirected":true,"status":200}
+page received: {"id":"8feb4303-5e72-4111-bb98-4c289d2e4fad","title":"A paper","text":"see this","url":"https://example.org/x","files":[{"name":"paper (1).pdf","type":"application/pdf","size":3145728},{"name":"note.txt","type":"text/plain","size":2}],"received":[{"name":"paper (1).pdf","type":"application/pdf","size":3145728},{"name":"note.txt","type":"text/plain","size":2}]}
+'launchQueue' in window (headless desktop chromium): true

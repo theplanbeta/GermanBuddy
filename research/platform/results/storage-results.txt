@@ -1,0 +1,60 @@
+estimate before: {"quota":4294967296,"usage":0,"usageDetails":{}}
+persisted(): false  persist(): false
+--- write 256 MB in 256 KB chunks, from a dedicated worker
+{
+ "opfs-syncAccessHandle flush=end": {
+  "ms": 1779,
+  "MBps": 144
+ },
+ "opfs-syncAccessHandle flush=8": {
+  "ms": 1897,
+  "MBps": 135
+ },
+ "opfs-createWritable": {
+  "ms": 1712,
+  "MBps": 150
+ },
+ "indexeddb Blob 1MB records": {
+  "ms": 634,
+  "MBps": 404
+ },
+ "indexeddb random read 1MB x50 ms": 155,
+ "cache-api put 1MB responses": {
+  "ms": 2250,
+  "MBps": 114
+ },
+ "opfs random read 1MB x50 ms": 80
+}
+--- write 64 MB in 64 KB chunks, from a dedicated worker
+{
+ "opfs-syncAccessHandle flush=end": {
+  "ms": 1047,
+  "MBps": 61
+ },
+ "opfs-syncAccessHandle flush=8": {
+  "ms": 1135,
+  "MBps": 56
+ },
+ "opfs-createWritable": {
+  "ms": 1208,
+  "MBps": 53
+ },
+ "indexeddb Blob 1MB records": {
+  "ms": 206,
+  "MBps": 311
+ },
+ "indexeddb random read 1MB x50 ms": 167,
+ "cache-api put 1MB responses": {
+  "ms": 686,
+  "MBps": 93
+ },
+ "opfs random read 1MB x50 ms": 80
+}
+estimate after: {"quota":4630560392,"usage":335593096,"usageDetails":{"caches":335593096}}
+controller: true
+opus-ogg32.ogg     {"sw-range":{"dur":360.02,"seeks":["ok","ok","ok"]},"blob-url-from-opfs-file":{"dur":360.02,"seeks":["ok","ok","ok"]}} | SW saw 5 requests, ranges: bytes=0- bytes=1409024- bytes=131072- bytes=65536- bytes=196608-
+aac-m4a32.m4a      {"sw-range":{"dur":360.02,"seeks":["ok","ok","ok"]},"blob-url-from-opfs-file":{"dur":360.02,"seeks":["ok","ok","ok"]}} | SW saw 1 requests, ranges: bytes=0-
+mp3-48.mp3         {"sw-range":{"dur":360.03,"seeks":["ok","ok","ok"]},"blob-url-from-opfs-file":{"dur":360.03,"seeks":["ok","ok","ok"]}} | SW saw 1 requests, ranges: bytes=0-
+opus-webm32.webm   {"sw-range":{"dur":360.02,"seeks":["ok","ok","ok"]},"blob-url-from-opfs-file":{"dur":360.02,"seeks":["ok","ok","ok"]}} | SW saw 1 requests, ranges: bytes=0-
+aac-fmp4_32.m4a    {"sw-range":{"dur":360.06,"seeks":["ok","ok","ok"]},"blob-url-from-opfs-file":{"dur":360.06,"seeks":["ok","ok","ok"]}} | SW saw 1 requests, ranges: bytes=0-
+estimate end: {"quota":4303259277,"usage":8291981,"usageDetails":{"fileSystem":8289998,"serviceWorkerRegistrations":1983}}

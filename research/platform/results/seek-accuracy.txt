@@ -1,0 +1,9 @@
+aac-fmp4_32.m4a    dur 360.064 | ok 2ms ; ok 2ms ; ok 1ms ; ok 2ms ; ok 2ms ; ok 1ms
+aac-m4a32.m4a      dur 360.021333 | ok 5ms ; ok 1ms ; ok 1ms ; ok 1ms ; ok 1ms ; ok 1ms
+ff-aac32.m4a       dur 360 | ok 1ms ; ok 1ms ; ok 2ms ; ok 3ms ; ok 1ms ; ok 2ms
+ff-mp3-48.mp3      dur 360 | ok 1ms ; ok 1ms ; ok 1ms ; ok 1ms ; ok 2ms ; ok 1ms
+ff-opus32.ogg      dur 360.0065 | ok 3ms ; ok 10ms ; ok 2ms ; ok 3ms ; ok 3ms ; ok 2ms
+mp3-48.mp3         dur 360.025958 | ok 1ms ; ok 1ms ; ok 2ms ; ok 1ms ; ok 2ms ; ok 1ms
+opus-ogg32.ogg     dur 360.02 | ok 3ms ; ok 4ms ; ok 4ms ; ok 2ms ; ok 5ms ; ok 8ms
+opus-webm32.webm   dur 360.02 | ok 10ms ; ok 2ms ; ok 2ms ; ok 2ms ; ok 5ms ; ok 4ms
+wav.wav            dur 360 | ok 4ms ; ok 1ms ; ok 13ms ; ok 2ms ; ok 11ms ; ok 1ms

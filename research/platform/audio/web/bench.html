@@ -1,0 +1,9 @@
+<!doctype html><meta charset=utf-8><title>encoder bench</title>
+<script type="importmap">{"imports":{"mediabunny":"./mediabunny.min.mjs"}}</script>
+<script src="lamejs.iife.js"></script>
+<script type="module">
+import * as MB from 'mediabunny';
+import { registerAacEncoder } from './mediabunny-aac-encoder.min.mjs';
+import { registerMp3Encoder } from './mediabunny-mp3-encoder.min.mjs';
+window.MB=MB;window.registerAacEncoder=registerAacEncoder;window.registerMp3Encoder=registerMp3Encoder;window.ready=true;
+</script>

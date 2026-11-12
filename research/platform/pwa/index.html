@@ -1,0 +1,8 @@
+<!doctype html><html><head><meta charset=utf-8><title>pwa spike</title><meta name=viewport content="width=device-width,initial-scale=1"><link rel=manifest href=manifest.webmanifest></head><body><pre id=o></pre>
+<script>
+navigator.serviceWorker.register('sw.js');
+(async()=>{const id=new URLSearchParams(location.search).get('share');if(!id)return;const c=await caches.open('incoming-shares');const meta=await (await c.match(`/__share/${id}/meta.json`)).json();
+ const files=[];for(const f of meta.files){const r=await c.match(`/__share/${id}/${encodeURIComponent(f.name)}`);files.push({name:f.name,type:f.type,size:(await r.blob()).size})}
+ window.__share={...meta,received:files};document.getElementById('o').textContent=JSON.stringify(window.__share)})();
+if('launchQueue' in window)launchQueue.setConsumer(async p=>{window.__launch=await Promise.all((p.files||[]).map(async h=>({name:h.name,size:(await h.getFile()).size})))});
+</script></body></html>
