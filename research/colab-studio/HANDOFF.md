@@ -107,6 +107,30 @@ If all of that holds, the next pieces are the real notebook and a free Google
 sign-in key so Hearshot may use its own Drive folder (narrow access: only
 files the app created).
 
+## Bigger models on Colab (the owner's question)
+
+Colab offers larger graphics cards than the T4 (the tool lists T4, L4, G4,
+A100, H100), so the studio voice does not have to be Chatterbox. Chatterbox
+Turbo was chosen under the old constraint of a plain processor. Once the
+Chatterbox test works, run the same scene through stronger candidates and let
+the owner compare by ear. From desk research, mostly unverified:
+
+| Model | Why it is interesting | Caveat |
+|---|---|---|
+| IndexTTS-2.5 | an emotion setting per line (afraid, angry, sad, happy, calm …) | needs a voice sample; own licence |
+| Orpheus (3B) | tags such as laugh, sigh, gasp, groan | larger; stability needs a repetition penalty |
+| Fish Audio S2-Pro / Drama 3 | whisper, anger, crying, multi-character scenes; strongest acting on paper | very large (48 GB or more of card memory); research or community licence |
+| NeuTTS-2E | one emotion per call, small | files gated behind a Hugging Face login and form; the owner would have to accept it |
+| Higgs Audio v3 | inline emotion and style control | non-commercial licence; large |
+
+For each, report: does it whisper (Chatterbox cannot), scream and laugh;
+words misread; seconds of compute per second of audio on which card; compute
+units per hour of that card; time to load (keeping the model files in the
+owner's Drive may pay off for the large ones); licence for private use. A
+stronger model may also change the H1 choice: "all dialogue by the studio
+voice" lost only because Chatterbox cannot whisper and its copied voices
+differed from Kokoro's.
+
 ## What is known about Chatterbox Turbo
 
 Measured on a 4-core processor with the q4 ONNX files; details in
