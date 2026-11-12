@@ -4,6 +4,7 @@
 
 export const SENTENCE_PAUSE = 0.3; // seconds of silence after a sentence
 export const PARAGRAPH_PAUSE = 0.75; // ... and after the end of a paragraph
+export const CLAUSE_PAUSE = 0.1; // ... and where one sentence was split in two (see splitOpening)
 const FADE = 0.004; // 4 ms fade in/out so clips never start or end with a click
 
 /**

@@ -1,7 +1,7 @@
 // Run with: npm test   (uses Node's built-in test runner, no extra packages)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { splitText, splitSentences, splitLong, toParagraphs, MAX_LENGTH } from '../src/text/splitter.js';
+import { splitText, splitSentences, splitLong, toParagraphs, splitOpening, MAX_LENGTH } from '../src/text/splitter.js';
 
 const texts = (input) => splitText(input).map((s) => s.text);
 
@@ -113,4 +113,32 @@ test('every word survives splitting of a long document', () => {
 
 test('splitSentences on text with no end punctuation', () => {
   assert.deepEqual(splitSentences('just some words'), ['just some words']);
+});
+
+test('splitOpening splits a long first sentence at an early comma', () => {
+  const pieces = splitOpening(splitText('Some years ago, never mind how long precisely, having little or no money in my purse, I thought I would sail about a little. Then more.'));
+  assert.deepEqual(pieces.map((p) => p.text), [
+    'Some years ago, never mind how long precisely,',
+    'having little or no money in my purse, I thought I would sail about a little.',
+    'Then more.',
+  ]);
+  assert.equal(pieces[0].joined, true);
+  assert.equal(pieces[1].joined, undefined);
+  assert.equal(pieces[0].para, pieces[1].para);
+});
+
+test('splitOpening leaves short or unsplittable openings alone', () => {
+  const short = splitText('Mr. Brown arrived at 9 a.m. on Monday. He sat down.');
+  assert.deepEqual(splitOpening(short), short);
+  const noComma = splitText('The quick brown fox jumps over the lazy dog and then runs far away into the woods.');
+  assert.deepEqual(splitOpening(noComma), noComma);
+  // the remainder must not be tiny either
+  const lateComma = splitText('The quick brown fox jumps over the lazy dog and then runs away, quickly.');
+  assert.deepEqual(splitOpening(lateComma), lateComma);
+  assert.deepEqual(splitOpening([]), []);
+});
+
+test('splitOpening only touches the first piece', () => {
+  const pieces = splitText('Short one. Some years ago, never mind how long precisely, having little or no money, I sailed.');
+  assert.deepEqual(splitOpening(pieces), pieces);
 });

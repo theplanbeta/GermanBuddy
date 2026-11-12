@@ -152,3 +152,25 @@ function findBreak(text, maxLength) {
   }
   return maxLength; // one enormous "word": hard cut
 }
+
+// The first piece is the one the listener waits for, and preparing it takes
+// time in proportion to its length. So a long opening sentence is split at an
+// early comma (or ; : —) to let the voice start sooner. The first part gets
+// `joined: true`, meaning "the sentence continues": only a short pause follows.
+const OPENING_MIN = 20; // characters: shorter first parts sound clipped
+const OPENING_LONG = 60; // only split sentences longer than this
+
+/** Splits the very first piece at an early clause boundary, if it is long. */
+export function splitOpening(pieces) {
+  const first = pieces[0];
+  if (!first || first.text.length <= OPENING_LONG) return pieces;
+  for (const m of first.text.matchAll(/[,;:](?=\s)|\s[—–](?=\s)/gu)) {
+    const cut = m.index + m[0].length;
+    const head = first.text.slice(0, cut).trim();
+    const tail = first.text.slice(cut).trim();
+    if (head.length < OPENING_MIN || head.split(' ').length < 3) continue;
+    if (tail.length < OPENING_MIN) break;
+    return [{ ...first, text: head, joined: true }, { ...first, text: tail }, ...pieces.slice(1)];
+  }
+  return pieces;
+}

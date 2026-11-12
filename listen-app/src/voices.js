@@ -18,9 +18,14 @@ export const VOICE_GROUPS = [
 
 export const ALL_VOICES = VOICE_GROUPS.flatMap((g) => g.voices);
 
+/** "af_heart" -> "Heart" */
+export function voiceName(id) {
+  const name = id.slice(3);
+  return `${name[0].toUpperCase()}${name.slice(1)}`;
+}
+
 /** "af_heart" -> "Heart — American, female" */
 export function voiceLabel(id) {
   const group = VOICE_GROUPS.find((g) => g.voices.includes(id));
-  const name = id.slice(3);
-  return `${name[0].toUpperCase()}${name.slice(1)} — ${group?.label ?? ''}`;
+  return `${voiceName(id)} — ${group?.label ?? ''}`;
 }
