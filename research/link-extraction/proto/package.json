@@ -1,0 +1,25 @@
+{
+  "name": "proto",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@extractus/article-extractor": "^9.0.1",
+    "@mozilla/readability": "^0.6.0",
+    "@postlight/parser": "^2.2.3",
+    "defuddle": "^0.19.6",
+    "jsdom": "^31.0.0",
+    "linkedom": "^0.18.15",
+    "unfluff": "^3.2.0"
+  },
+  "type": "module",
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
