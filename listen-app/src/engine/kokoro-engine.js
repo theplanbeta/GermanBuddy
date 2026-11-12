@@ -3,10 +3,13 @@
 //
 //   probe()                    -> Promise<{ device, dtype, cached, webgpu, previous }>
 //   load(onProgress)           -> Promise<{ device, dtype }>   (safe to call again)
-//   phonemize(texts, voice)    -> Promise<string[]>   one phoneme string per text
-//   render({ phonemes, voice, speed, row, text })
+//   phonemize(texts, voice)    -> Promise<(string | string[])[]>   one phoneme string per text;
+//                                 a text may also be { parts: [{ text, lang, names }] } (a
+//                                 sentence as the director planned it): then one string per part
+//   render({ phonemes, voice, speed, row, text, style?, shift? })
 //                              -> Promise<{ samples: Float32Array, durations, tokens, sampleRate, ms }>
-//                                 one model call; `durations` = per-token timings or null
+//                                 one model call; `durations` = per-token timings or null;
+//                                 `style` replaces the voice row (256 numbers), `shift` is added to it
 //   prefetchVoice(voice)       -> starts fetching a voice's small data file (optional)
 //   removePreviousModel()      -> deletes the model files of earlier versions; resolves to the bytes freed
 //
@@ -189,7 +192,7 @@ export function createKokoroEngine({ mode = 'auto', dtype = null, threads = null
       return ask({ type: 'phonemize', texts, lang: voice[0] === 'b' ? 'b' : 'a' });
     },
 
-    async render({ phonemes, voice, speed = 1, row, text = '' }) {
+    async render({ phonemes, voice, speed = 1, row, text = '', style = null, shift = null }) {
       for (;;) {
         // Wait for the model first, so the device checked below is the one used.
         waiting++;
@@ -202,7 +205,7 @@ export function createKokoroEngine({ mode = 'auto', dtype = null, threads = null
         let result;
         let problem;
         try {
-          result = await ask({ type: 'render', phonemes, voice, speed, row });
+          result = await ask({ type: 'render', phonemes, voice, speed, row, style, shift });
           if (slowdown > 1) {
             await new Promise((resolve) => setTimeout(resolve, (slowdown - 1) * result.ms));
             result.ms *= slowdown;

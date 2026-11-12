@@ -142,3 +142,12 @@ test('splitOpening only touches the first piece', () => {
   const pieces = splitText('Short one. Some years ago, never mind how long precisely, having little or no money, I sailed.');
   assert.deepEqual(splitOpening(pieces), pieces);
 });
+
+test('a trailing-off "…" inside quoted speech does not end the sentence', () => {
+  assert.deepEqual(texts('“Wait… WHAT?!” she exclaimed. He left.'), ['“Wait… WHAT?!” she exclaimed.', 'He left.']);
+  assert.deepEqual(texts('"Well... Maybe," he said. Done.'), ['"Well... Maybe," he said.', 'Done.']);
+  // in narration it still does
+  assert.deepEqual(texts('She waited… Nothing came.'), ['She waited…', 'Nothing came.']);
+  // an unclosed quote mark does not swallow the rest
+  assert.deepEqual(texts('“She waited… Nothing came.'), ['“She waited…', 'Nothing came.']);
+});

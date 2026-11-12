@@ -109,12 +109,28 @@ export function splitSentences(paragraph) {
     const next = paragraph.slice(m.index + m[0].length);
     if (!SENTENCE_START.test(next)) continue;
     if (m[1] === '.' && isAbbreviation(paragraph.slice(start, m.index))) continue;
+    // A trailing-off "…" inside quoted speech ("Wait… WHAT?!") is one utterance:
+    // split there, the voice would stop and restart in the middle of it.
+    if (isEllipsis(m[1]) && !m[2] && insideQuote(paragraph, m.index)) continue;
     sentences.push(paragraph.slice(start, end).trim());
     start = m.index + m[0].length;
   }
   const rest = paragraph.slice(start).trim();
   if (rest) sentences.push(rest);
   return sentences;
+}
+
+const isEllipsis = (mark) => mark === '…' || mark === '...';
+
+// True when position `at` lies inside a “…” quote (or a straight "…" pair)
+// that is closed later in the paragraph.
+function insideQuote(paragraph, at) {
+  const before = paragraph.slice(0, at);
+  const after = paragraph.slice(at);
+  const curlyOpen = (before.match(/“/g) || []).length > (before.match(/”/g) || []).length;
+  if (curlyOpen) return after.includes('”');
+  const straight = (before.match(/"/g) || []).length % 2 === 1;
+  return straight && after.includes('"');
 }
 
 function isAbbreviation(textBeforePeriod) {

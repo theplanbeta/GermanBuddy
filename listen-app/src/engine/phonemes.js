@@ -8,6 +8,7 @@
 // (eSpeak NG compiled to WebAssembly; its data is built into the package, so
 // nothing is downloaded).
 import { phonemize } from 'phonemizer';
+import { foreignWords, foreignWordPhonemes, foreignPhrase } from '../director/foreign.js';
 
 // "1990" -> "19 90", "7:43" -> "7 43", "3:00" -> "3 o'clock"
 function splitNum(s) {
@@ -82,7 +83,11 @@ const PUNCTUATION_RUN = new RegExp(`(\\s*[${PUNCTUATION.replace(/[.*+?^${}()|[\]
  * 'a' = American English, 'b' = British English.
  */
 export async function textToPhonemes(text, lang = 'a') {
-  text = normalize(text);
+  return spell(normalize(text), lang);
+}
+
+// The phonemiser itself, for text that has already been normalised.
+async function spell(text, lang) {
   const parts = [];
   let last = 0;
   for (const m of text.matchAll(PUNCTUATION_RUN)) {
@@ -101,6 +106,39 @@ export async function textToPhonemes(text, lang = 'a') {
     .replace(/ z(?=[;:,.!?¡¿—…"«»“” ]|$)/g, 'z');
   if (lang === 'a') s = s.replace(/(?<=nˈaɪn)ti(?!ː)/g, 'di');
   return s.trim();
+}
+
+/**
+ * English text with German or Spanish words in it ("Dr. Müller"): the
+ * English is read by the rules above (normalised as a whole first, so "Dr."
+ * still becomes "Doctor" before the name), the foreign words by
+ * director/foreign.js. The same approach as the research prototype.
+ */
+export async function namesToPhonemes(text, lang = 'a') {
+  const pieces = foreignWords(normalize(text));
+  let out = '';
+  for (const piece of pieces) {
+    if (piece.lang) {
+      out += (out && !/\s$/.test(out) ? ' ' : '') + foreignWordPhonemes(piece.text, piece.lang);
+      continue;
+    }
+    if (!/[\p{L}\p{N}]/u.test(piece.text)) {
+      out += piece.text.replace(/\s+/g, ' '); // punctuation and spaces pass through
+      continue;
+    }
+    const said = await spell(piece.text, lang);
+    out += (/^\s/.test(piece.text) && out ? ' ' : '') + said + (/\s$/.test(piece.text) ? ' ' : '');
+  }
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Sound symbols for one part of a sentence as the director planned it
+ * ({ text, lang: 'en' | 'de' | 'es', names }); `lang` is the voice's accent.
+ */
+export async function partToPhonemes(part, lang = 'a') {
+  if (part.lang === 'de' || part.lang === 'es') return foreignPhrase(part.text, part.lang);
+  return part.names ? namesToPhonemes(part.text, lang) : textToPhonemes(part.text, lang);
 }
 
 /**

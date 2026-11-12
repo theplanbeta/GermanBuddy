@@ -3,7 +3,7 @@
 // Messages in:   { type: 'probe', mode, dtype? }   mode: 'auto' | 'webgpu' | 'webgpu-fp16' | 'wasm'
 //                { type: 'load', mode, dtype? }  dtype: only for tests (?debug&dtype=fp32)
 //                { type: 'phonemize', id, texts, lang }        lang: 'a' (American) | 'b' (British)
-//                { type: 'render', id, phonemes, voice, speed, row }
+//                { type: 'render', id, phonemes, voice, speed, row, style?, shift? }
 //                { type: 'warmup' }   pays the one-off cost of the first request early
 // Messages out:  { type: 'probe', device, dtype, cached, webgpu, previous }
 //                { type: 'progress', loaded, total }
@@ -18,7 +18,7 @@
 // that this "timestamped" export of the model adds as a second output.
 import { KokoroTTS, env as kokoroEnv } from 'kokoro-js';
 import { env, Tensor } from '@huggingface/transformers';
-import { textToPhonemes, keepKnown } from './phonemes.js';
+import { textToPhonemes, partToPhonemes, keepKnown } from './phonemes.js';
 // Serve the ONNX Runtime engine file from our own site instead of the CDN that
 // transformers.js would otherwise use. Vite copies this file into the build.
 import ortWasmUrl from '../../node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.wasm?url';
@@ -126,13 +126,27 @@ async function voicePack(voice) {
   return pack;
 }
 
+// A text is a string (read as English), or { parts: [{ text, lang, names }] }
+// as the director planned a sentence; then the answer is one phoneme string per part.
 async function phonemizeAll({ id, texts, lang }) {
   const phonemes = [];
-  for (const text of texts) phonemes.push(keepKnown(await textToPhonemes(text, lang), vocabulary));
+  for (const text of texts) {
+    if (typeof text === 'string') phonemes.push(keepKnown(await textToPhonemes(text, lang), vocabulary));
+    else phonemes.push(await Promise.all(text.parts.map(async (part) => keepKnown(await partToPhonemes(part, lang), vocabulary))));
+  }
   postMessage({ type: 'phonemes', id, phonemes });
 }
 
-async function render({ id, phonemes, voice, speed = 1, row }) {
+// The style vector for a call: the voice's own row, or a custom vector
+// (`style`, 256 numbers), plus an optional offset (`shift`, 256 numbers: the
+// director's whisper / firm / pitch directions, see director/styles.js).
+function styleVector(pack, r, style, shift) {
+  const vector = style ? Float32Array.from(style) : pack.slice(r * 256, r * 256 + 256);
+  if (shift) for (let i = 0; i < 256; i++) vector[i] += shift[i];
+  return vector;
+}
+
+async function render({ id, phonemes, voice, speed = 1, row, style = null, shift = null }) {
   const pack = await voicePack(voice);
   const started = performance.now();
   const { input_ids } = tts.tokenizer(phonemes, { truncation: true });
@@ -140,7 +154,7 @@ async function render({ id, phonemes, voice, speed = 1, row }) {
   const r = Math.min(Math.max(row ?? tokens, 0), 509);
   const output = await tts.model({
     input_ids,
-    style: new Tensor('float32', pack.slice(r * 256, r * 256 + 256), [1, 256]),
+    style: new Tensor('float32', styleVector(pack, r, style, shift), [1, 256]),
     speed: new Tensor('float32', [speed], [1]),
   });
   const samples = new Float32Array(output.waveform.data);

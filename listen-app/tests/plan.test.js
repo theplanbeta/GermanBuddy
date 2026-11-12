@@ -212,3 +212,62 @@ test('growth floor: the smallest group that prepares clearly faster than it play
   const call = planCall({ ...d, start: 0, rule: { maxSentences: 12, maxMs: 0 }, predict: (t) => 1300 + 60 * t, listenPerToken: 0.07 });
   assert.equal(call.last, 1); // 2 sentences + look-ahead: 14.07 s of listening for 13.8 s of work
 });
+
+// ---- phase B: deliveries from the director (rule 5) ----
+
+const PLAIN = { key: '' };
+const SLOW = { key: 'en speed0.85', quoted: true };
+const SPLICED = { key: 'spliced', spliced: true };
+
+test('sentences with different deliveries never share a call', () => {
+  const d = doc([0, 0, 0, 0, 0, 0], 50);
+  const deliveries = [PLAIN, PLAIN, SLOW, SLOW, PLAIN, PLAIN];
+  const plan = (start) => planCall({ ...d, start, rule: FULL, deliveries });
+  // the plain pair stops before the slow sentences, and takes no look-ahead from them
+  assert.deepEqual([plan(0).first, plan(0).last, plan(0).lookahead, plan(0).row], [0, 1, -1, 101]);
+  assert.deepEqual([plan(2).first, plan(2).last, plan(2).lookahead, plan(2).row], [2, 3, -1, 101]);
+  assert.deepEqual([plan(4).first, plan(4).last], [4, 5]);
+});
+
+test('a styled call looks ahead into the same style, with the row of what is sent (no virtual row)', () => {
+  const d = doc([0, 0, 0, 0], 50, 8);
+  const deliveries = [SLOW, SLOW, SLOW, SLOW];
+  const call = planCall({ ...d, start: 0, rule: { maxSentences: 2, maxMs: Infinity }, deliveries });
+  assert.deepEqual([call.first, call.last, call.lookahead], [0, 1, 2]);
+  assert.equal(call.tokens, 101 + 1 + 8);
+  assert.equal(call.row, call.tokens); // a plain call would use 101 + 1 + 50
+});
+
+test('a sentence whose delivery changes inside it is always a call of its own', () => {
+  const d = doc([0, 0, 0, 0], 50);
+  const deliveries = [PLAIN, SPLICED, PLAIN, PLAIN];
+  const before = planCall({ ...d, start: 0, rule: FULL, deliveries });
+  assert.deepEqual([before.first, before.last, before.lookahead, before.row], [0, 0, -1, 50]); // no look-ahead into it
+  const spliced = planCall({ ...d, start: 1, rule: FULL, deliveries });
+  assert.deepEqual([spliced.first, spliced.last, spliced.lookahead, spliced.row, spliced.spliced], [1, 1, -1, 50, true]);
+  assert.equal(planCall({ ...d, start: 1, rule: FULL, deliveries, plain: true }).spliced, true);
+  const after = planCall({ ...d, start: 2, rule: FULL, deliveries });
+  assert.deepEqual([after.first, after.last], [2, 3]);
+});
+
+test('short calls of quoted speech get no virtual row; longer ones and narration do', () => {
+  const QUOTE = { key: '', quoted: true };
+  const one = { maxSentences: 1, maxMs: Infinity };
+  const short = doc([0, 0, 0], 30, 8);
+  const quoted = planCall({ ...short, start: 0, rule: one, deliveries: [QUOTE, PLAIN, PLAIN] });
+  assert.deepEqual([quoted.lookahead, quoted.row], [1, quoted.tokens]);
+  const narration = planCall({ ...short, start: 0, rule: one, deliveries: [PLAIN, PLAIN, PLAIN] });
+  assert.deepEqual([narration.lookahead, narration.row], [1, 30 + 1 + 30]);
+  const long = doc([0, 0, 0], 100, 8);
+  const longQuote = planCall({ ...long, start: 0, rule: one, deliveries: [QUOTE, QUOTE, PLAIN] });
+  assert.equal(longQuote.row, 100 + 1 + 100);
+});
+
+test('without deliveries (or all plain) the plan is exactly as before', () => {
+  const d = doc([0, 0, 0, 0, 0, 0, 0]);
+  for (const rule of [FULL, { maxSentences: 2, maxMs: Infinity }]) {
+    const without = planCall({ ...d, start: 0, rule });
+    const plain = planCall({ ...d, start: 0, rule, deliveries: d.sentences.map(() => ({ key: '', spliced: false, quoted: false })) });
+    assert.deepEqual(plain, without);
+  }
+});

@@ -1,7 +1,7 @@
 // Cutting one model call into sentences, with designed pauses (src/flow/assemble.js).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { tokenStarts, assembleCall, plainClip, designedPause, sentenceAt, KEEP, PARAGRAPH_PAUSE, CLAUSE_PAUSE } from '../src/flow/assemble.js';
+import { tokenStarts, assembleCall, plainClip, designedPause, sentenceAt, spliceParts, spliceCuts, KEEP, PARAGRAPH_PAUSE, CLAUSE_PAUSE } from '../src/flow/assemble.js';
 import { silentEdges, findGaps } from '../src/flow/signal.js';
 
 const RATE = 24000;
@@ -120,4 +120,28 @@ test('a plain (urgent) clip keeps the model audio as it is, then the designed pa
   assert.equal(out.samples.length, audio.length + Math.round(0.4 * RATE));
   assert.deepEqual(out.offsets, [0, out.samples.length]);
   assert.equal(silentEdges(out.samples).lead, silentEdges(audio).lead); // edge silence kept
+});
+
+// Loudest sample between two times (seconds).
+const peak = (x, a, b) => x.subarray(Math.round(a * RATE), Math.round(b * RATE)).reduce((m, v) => Math.max(m, Math.abs(v)), 0);
+
+test('splice: each part comes from the render in its own style, cut at the model’s own pause', () => {
+  const members = ['abc,', 'defg.'];
+  const quiet = fakeCall(members); // tone at 0.3: the plain render
+  const loud = { audio: quiet.audio.map((v) => 2 * v), durations: quiet.durations }; // the styled render
+  const renders = [{ samples: quiet.audio, durations: quiet.durations }, { samples: loud.audio, durations: loud.durations }];
+  const [cut] = spliceCuts(quiet.audio, quiet.durations, members);
+  // the cut lies in the silence between "abc," and "defg."
+  const tokenEnd = ((10 + 3 * 3) * FRAME) / RATE; // pad + three tones
+  assert.ok(cut > tokenEnd && cut < tokenEnd + (2 * 6 * FRAME) / RATE, `cut at ${cut}`);
+  const out = spliceParts({ renders, partRender: [0, 1], members });
+  assert.ok(Math.abs(out.length - quiet.audio.length - Math.round(0.012 * RATE)) <= 1); // nothing lost, no pause added
+  assert.ok(Math.abs(peak(out, 0, cut - 0.02) - 0.3) < 0.01, 'first part from the plain render');
+  assert.ok(Math.abs(peak(out, cut + 0.03, out.length / RATE) - 0.6) < 0.01, 'second part from the styled render');
+  // each part gets its own after-effects
+  const halved = spliceParts({ renders, partRender: [0, 1], members, post: (x, k) => (k === 1 ? x.map((v) => v / 2) : x) });
+  assert.ok(Math.abs(peak(halved, cut + 0.03, halved.length / RATE) - 0.3) < 0.01);
+  // without usable timings or quiet stretches it gives up
+  const flat = new Float32Array(quiet.audio.length).fill(0.2);
+  assert.equal(spliceParts({ renders: [{ samples: flat, durations: null }], partRender: [0, 0], members }), null);
 });

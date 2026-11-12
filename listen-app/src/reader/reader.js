@@ -17,6 +17,16 @@
 //   what is already prepared keeps playing, the text from the next sentence
 //   on is re-made in small calls first, and at the first sentence boundary
 //   where the new voice is ready the player switches clips.
+// - Every sentence has a delivery (director/director.js): what is said (the
+//   spoken form: "2.5 million euros" for "€2.5 million"), in which style and
+//   language. Spoken forms always apply; the styles, and German and Spanish
+//   sounds, only while "Expressive reading" is on (reader.expressive). A
+//   styled call carries a style offset and its own speed to the voice model,
+//   and is made louder or brighter afterwards where the style asks for it. A
+//   sentence whose delivery changes inside it is made once per style and cut
+//   together (flow/assemble.js, spliceParts). Each clip remembers the delivery
+//   of its sentences, so switching the setting re-makes only the sentences
+//   whose delivery really changes (none, in ordinary prose).
 //
 // Any "source" (pasted text today; files, photos, web pages later) just calls
 // reader.load(sentences).
@@ -36,7 +46,9 @@
 import { toInt16, wavBlob, silentWav } from './audio.js';
 import { bakedSpeedFor, speedFactor, prepRatio, predictMs, listenPerToken, expectedCallMs } from './schedule.js';
 import { chooseStart, planCall, sizeRule, freshAhead, takeoverStart, firstWords, callLength, MAX_SENTENCES } from '../flow/plan.js';
-import { assembleCall, plainClip, designedPause, sentenceAt } from '../flow/assemble.js';
+import { assembleCall, plainClip, designedPause, sentenceAt, spliceParts } from '../flow/assemble.js';
+import { direct, plainDelivery, styleKey } from '../director/director.js';
+import { styleShift, styledSpeed, afterEffects } from '../director/styles.js';
 
 const SPEED_SETTLE_MS = 1000; // wait for the tempo slider to rest before re-preparing at a new speed
 // On the graphics chip (WebGPU) one model call occupies the chip until it is
@@ -57,6 +69,26 @@ const RATE = 24000;
 const PHONEMIZE_GUESS_MS = 300;
 const SECONDS_PER_CHAR_GUESS = 0.065;
 
+// How many model calls a sentence's delivery needs: one per style (a spliced sentence has several).
+function renderCount(delivery) {
+  return delivery?.spliced ? new Set(delivery.parts.map((p) => styleKey(p.style))).size : 1;
+}
+
+// The part with the most phonemes (its style is used when a spliced sentence is made in one go).
+function mainPart(known) {
+  let best = 0;
+  known.parts.forEach((p, k) => {
+    if (p.length > known.parts[best].length) best = k;
+  });
+  return best;
+}
+
+// The style of a call made in one go: its sentences' style, or for a spliced
+// sentence made quickly ("urgent"), that of its longest part.
+function callStyle(delivery, known) {
+  return delivery.spliced ? delivery.parts[mainPart(known)].style : delivery.parts[0].style;
+}
+
 export class Reader extends EventTarget {
   #modelAbsentAt = -Infinity; // last time waitMs() saw the voice model not loaded
 
@@ -76,6 +108,8 @@ export class Reader extends EventTarget {
     this.voice = 'af_heart';
     this.tempo = 1;
     this.speed = 1; // the speed new clips are made at (follows the tempo, see schedule.js)
+    this.expressive = true; // "Expressive reading": the director's styles and foreign sounds
+    this.directed = new Map(); // 'a' | 'b' + on/off -> { deliveries, sigs } per sentence
     this.sizing = 'adaptive'; // or 'ramp' (fixed 1, 2, 4, full calls; for tests)
     this.failedCount = 0;
     this.stats = []; // per model call: { tokens, ms, seconds, speed }
@@ -84,7 +118,7 @@ export class Reader extends EventTarget {
     this.inFlight = null; // the model call under way: { first, last, tokens, expectedMs, startedAt }
     this.prior = []; // { tokens, ms } of calls on an earlier visit, until this visit has measured one
     this.overheads = []; // recent time per call beyond the model's own (queue, transfer, cutting), ms
-    this.phonemes = new Map(); // 'a' | 'b' -> per sentence { ph, head, n, headN }
+    this.phonemes = new Map(); // phonemeKey() -> per sentence { ph, parts, head, n, headN }
     this.single = new Set(); // sentences that must be made on their own (a group could not be cut apart)
     this.ordinal = 0; // model calls since the text was loaded
     this.epoch = 0; // bumps when new text is loaded
@@ -125,6 +159,7 @@ export class Reader extends EventTarget {
     this.epoch++;
     this.segments = new Array(sentences.length).fill(null);
     this.phonemes.clear();
+    this.directed.clear();
     this.single.clear();
     this.calls = [];
     this.ordinal = 0;
@@ -160,9 +195,58 @@ export class Reader extends EventTarget {
     else settle(); // nothing prepared yet: nothing to throw away
   }
 
+  /**
+   * "Expressive reading" on or off. Like a voice change, it never stops the
+   * sound: sentences whose delivery changes are re-made from the next one on.
+   */
+  setExpressive(on) {
+    on = Boolean(on);
+    if (on === this.expressive) return;
+    this.expressive = on;
+    this.#emit('generated');
+    this.#pump();
+  }
+
   retry() {
     this.halted = false;
     this.#pump();
+  }
+
+  // ---- delivery -----------------------------------------------------------
+
+  // 'a' (American) or 'b' (British): the voice's accent.
+  #lang() {
+    return this.voice[0] === 'b' ? 'b' : 'a';
+  }
+
+  // Phonemes depend on the accent and on the setting (foreign sounds only when expressive).
+  #phonemeKey() {
+    return `${this.#lang()}${this.expressive ? '+' : ''}`;
+  }
+
+  /** The delivery of every sentence under the current voice accent and setting (see director/director.js). */
+  deliveries() {
+    return this.#directed().deliveries;
+  }
+
+  #directed() {
+    const key = this.#phonemeKey();
+    if (!this.directed.has(key)) {
+      const british = this.#lang() === 'b';
+      const deliveries = this.expressive ? direct(this.sentences, { british }) : this.sentences.map((s) => plainDelivery(s, { british }));
+      // What decides a sentence's audio (besides voice and speed): a clip made
+      // for the same signature is still right after the setting changed.
+      const sigs = deliveries.map((d) => JSON.stringify(d.parts));
+      this.directed.set(key, { deliveries, sigs });
+    }
+    return this.directed.get(key);
+  }
+
+  // True when a clip no longer matches the current voice, speed or delivery of its sentences.
+  #outdated(clip) {
+    if (clip.voice !== this.voice || clip.speed !== this.speed) return true;
+    const { sigs } = this.#directed();
+    return clip.sigs ? clip.sigs.some((s, k) => s !== sigs[clip.first + k]) : false;
   }
 
   // ---- transport ---------------------------------------------------------
@@ -235,7 +319,8 @@ export class Reader extends EventTarget {
   /** True when sentence i is prepared in the current voice and speed. */
   isFresh(i) {
     const clip = this.segments[i]?.clip;
-    return Boolean(clip) && clip.voice === this.voice && clip.speed === this.speed;
+    if (!clip || clip.voice !== this.voice || clip.speed !== this.speed) return false;
+    return !clip.sigs || clip.sigs[i - clip.first] === this.#directed().sigs[i];
   }
 
   /** True when sentence i is prepared in full quality (not a quick "urgent" version) in the current voice and speed. */
@@ -303,7 +388,7 @@ export class Reader extends EventTarget {
     }
     if (end === i) {
       // Nothing for the current sentence is being made yet: it is made on its own next.
-      const known = this.phonemes.get(this.voice[0] === 'b' ? 'b' : 'a')?.[i];
+      const known = this.phonemes.get(this.#phonemeKey())?.[i];
       const tokens = known?.n || this.sentences[i].text.length;
       ms += (known ? 0 : PHONEMIZE_GUESS_MS) + this.#expectMs(tokens);
       end = i + 1;
@@ -325,7 +410,7 @@ export class Reader extends EventTarget {
 
   // Listening seconds a sentence that is not prepared yet will give, roughly.
   #guessSeconds(i) {
-    const known = this.phonemes.get(this.voice[0] === 'b' ? 'b' : 'a')?.[i];
+    const known = this.phonemes.get(this.#phonemeKey())?.[i];
     const perToken = listenPerToken(this.stats);
     if (known?.n && perToken) return (known.n * perToken) / this.tempo;
     return (this.sentences[i].text.length * SECONDS_PER_CHAR_GUESS) / this.tempo;
@@ -479,14 +564,24 @@ export class Reader extends EventTarget {
 
   // Makes sure the phonemes of `count` sentences from `start` on are known
   // (a call may use up to 12 sentences plus the one after it).
-  async #ensurePhonemes(lang, start, count = MAX_SENTENCES + 2) {
-    if (!this.phonemes.has(lang)) this.phonemes.set(lang, new Array(this.sentences.length).fill(null));
-    const known = this.phonemes.get(lang);
+  // What is said is the director's spoken text (the same as the written text
+  // in ordinary prose); `parts` keeps each part's phonemes for a spliced sentence.
+  async #ensurePhonemes(start, count = MAX_SENTENCES + 2) {
+    const key = this.#phonemeKey();
+    const lang = this.#lang();
+    const { deliveries } = this.#directed();
+    if (!this.phonemes.has(key)) this.phonemes.set(key, new Array(this.sentences.length).fill(null));
+    const known = this.phonemes.get(key);
     const wanted = [];
     for (let i = start; i < Math.min(this.sentences.length, start + count); i++) if (!known[i]) wanted.push(i);
     if (!wanted.length) return;
-    const texts = wanted.map((i) => this.sentences[i].text);
-    const heads = wanted.map((i) => firstWords(this.sentences[i].text));
+    // Plain English goes as a string (exactly as before the director); other parts with their language.
+    const item = (parts) => (parts.length === 1 && parts[0].lang === 'en' && !parts[0].names ? parts[0].text : { parts });
+    const texts = wanted.map((i) => item(deliveries[i].parts));
+    const heads = wanted.map((i) => {
+      const first = deliveries[i].parts[0];
+      return item([{ ...first, text: firstWords(first.text) }]);
+    });
     let out;
     try {
       out = await this.engine.phonemize([...texts, ...heads], lang);
@@ -494,10 +589,12 @@ export class Reader extends EventTarget {
       if (error.phase !== 'generate') throw error;
       out = []; // unreadable: these sentences are skipped with a short silence
     }
+    const asParts = (x) => (Array.isArray(x) ? x : [x ?? '']);
     wanted.forEach((i, j) => {
-      const ph = out[j] ?? '';
-      const head = out[j + wanted.length] ?? '';
-      known[i] = { ph, head, n: [...ph].length, headN: [...head].length };
+      const parts = asParts(out[j]);
+      const ph = parts.join(' ');
+      const head = asParts(out[j + wanted.length]).join(' ');
+      known[i] = { ph, parts, head, n: [...ph].length, headN: [...head].length };
     });
   }
 
@@ -528,7 +625,9 @@ export class Reader extends EventTarget {
 
   // Plans and makes one call. Returns true when there may be more to do.
   async #prepareNext() {
-    const { epoch, voice, speed, sentences } = this;
+    const { epoch, voice, speed, expressive, sentences } = this;
+    // The text, voice, speed or setting changed while waiting: plan again.
+    const moved = () => epoch !== this.epoch || voice !== this.voice || speed !== this.speed || expressive !== this.expressive;
     const n = sentences.length;
     let fresh = sentences.map((_, i) => this.isFresh(i));
     const stale = this.#heardStale();
@@ -541,43 +640,44 @@ export class Reader extends EventTarget {
       upgrade = true;
     }
     if (start < 0) return false;
-    const lang = voice[0] === 'b' ? 'b' : 'a';
+    const { deliveries, sigs } = this.#directed();
     // Only this sentence and the next are needed for a one-sentence call, and
     // only this one for an urgent call (phonemes for 28 texts take about half
     // a second, which would delay the first audio).
     const nothingYet = start === this.current && !this.segments[start] && !upgrade;
-    await this.#ensurePhonemes(lang, start, nothingYet ? 1 : 2);
-    if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true; // changed meanwhile: plan again
+    await this.#ensurePhonemes(start, nothingYet ? 1 : 2);
+    if (moved()) return true;
     // The opening sentence of a text, or the listener is waiting for the first
     // sound: make this sentence quickly and plainly. (Measured: prepared in
     // full quality while the listener was still about to press Play, the
     // opening sentence made the first sound about 1.8 s later.)
     const urgent = nothingYet && (this.ordinal === 0 || (this.starting && this.state === 'waiting'));
     if (!urgent) {
-      await this.#ensurePhonemes(lang, start, 2); // the next sentence: look-ahead and voice row
-      if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true;
+      await this.#ensurePhonemes(start, 2); // the next sentence: look-ahead and voice row
+      if (moved()) return true;
     }
-    const phonemes = this.phonemes.get(lang);
+    const phonemes = this.phonemes.get(this.#phonemeKey());
     const measured = this.stats.length > 0;
     const predict = (tokens) => predictMs(this.stats, tokens) ?? 0;
     const seconds = sentences.map((_, i) => this.#seconds(i));
 
-    // After a voice or speed change, while the old audio plays on: take over
+    // After a voice, speed or setting change, while the old audio plays on: take over
     // at the first sentence the new audio can be ready for in time.
     const old = this.loaded;
-    if (this.state === 'playing' && old && (old.voice !== voice || old.speed !== speed) && this.#holdsCurrent() && start > this.current && measured) {
+    if (this.state === 'playing' && old && this.#outdated(old) && this.#holdsCurrent() && start > this.current && measured) {
       const alone = (k) => {
         if (!phonemes[k]?.n) return Infinity;
-        return predict(planCall({ sentences, phonemes, fresh, start: k, rule: { maxSentences: 1, maxMs: Infinity }, single: this.single }).tokens);
+        const call = planCall({ sentences, phonemes, fresh, start: k, rule: { maxSentences: 1, maxMs: Infinity }, single: this.single, deliveries });
+        return predict(call.tokens) * renderCount(deliveries[k]);
       };
-      await this.#ensurePhonemes(lang, start);
-      if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true;
+      await this.#ensurePhonemes(start);
+      if (moved()) return true;
       const { end } = this.#span(old, this.current);
       const remaining = Math.max(0, ((end / RATE - this.audio.currentTime) * speedFactor(old.speed)) / this.tempo);
       // (only sentences whose phonemes are known count: up to 13 past `start`)
       start = takeoverStart({ start, current: this.current, remaining, seconds, predictMs: alone, fresh });
-      await this.#ensurePhonemes(lang, start, 2);
-      if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true;
+      await this.#ensurePhonemes(start, 2);
+      if (moved()) return true;
     }
 
     // How large this call may be (see flow/plan.js).
@@ -589,18 +689,18 @@ export class Reader extends EventTarget {
     const budgetSeconds = upgrade ? Infinity : freshAhead({ fresh, seconds, current: this.current, elapsed, start });
     const rule = sizeRule({ ordinal: this.ordinal, budgetSeconds, measured, sizing: this.sizing });
     if (!urgent && rule.maxSentences > 1) {
-      await this.#ensurePhonemes(lang, start); // the call may grow: know its neighbours
-      if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true;
+      await this.#ensurePhonemes(start); // the call may grow: know its neighbours
+      if (moved()) return true;
     }
     // The growth floor (see flow/plan.js) only when nothing at all is playable
     // there yet; while old-voice audio can fill in, small calls take over sooner.
     const growth = this.segments[start] ? 0 : listenPerToken(this.stats) / this.tempo;
-    const options = { sentences, phonemes, fresh, start, rule, predict, single: this.single, listenPerToken: growth, maxPhonemes: this.#maxPhonemes() };
+    const options = { sentences, phonemes, fresh, start, rule, predict, single: this.single, listenPerToken: growth, maxPhonemes: this.#maxPhonemes(), deliveries };
     let call = planCall({ ...options, plain: urgent });
     // Early in a reading, if the full-quality call cannot be ready before the
     // listener needs it, a wait is coming anyway: keep it short with a plain call.
     const listening = this.state === 'playing' || this.state === 'waiting';
-    if (!call.plain && !upgrade && listening && this.ordinal < 2 && measured && predict(call.tokens) > budgetSeconds * 1000) {
+    if (!call.plain && !upgrade && listening && this.ordinal < 2 && measured && predict(call.tokens) * renderCount(deliveries[start]) > budgetSeconds * 1000) {
       call = planCall({ ...options, plain: true });
     }
 
@@ -609,14 +709,18 @@ export class Reader extends EventTarget {
     if (indices.some((i) => !phonemes[i].n)) return this.#giveUp(indices, new Error('Nothing to read in this sentence.'));
     const members = indices.map((i) => phonemes[i].ph);
     if (call.lookahead >= 0) members.push(phonemes[call.lookahead].head);
-    const text = indices.map((i) => sentences[i].text).join(' ');
+    // What is said (for the broken-audio check): the spoken text.
+    const text = indices.map((i) => deliveries[i].parts.map((p) => p.text).join(' ')).join(' ');
 
     let result;
     const startedAt = performance.now();
-    this.inFlight = { first: call.first, last: call.last, tokens: call.tokens, expectedMs: this.#expectMs(call.tokens), startedAt };
+    const renders = call.spliced && !call.plain ? renderCount(deliveries[start]) : 1;
+    this.inFlight = { first: call.first, last: call.last, tokens: call.tokens, expectedMs: this.#expectMs(call.tokens) * renders, startedAt };
     this.#emit('call', this.inFlight);
     try {
-      result = await this.engine.render({ phonemes: members.join(' '), voice, speed, row: call.row, text });
+      result = call.spliced && !call.plain
+        ? await this.#renderSpliced({ delivery: deliveries[start], known: phonemes[start], voice, speed, text })
+        : await this.#renderStyled({ style: callStyle(deliveries[start], phonemes[start]), phonemes: members.join(' '), voice, speed, row: call.row, tokens: call.tokens, text });
     } catch (error) {
       if (error.phase !== 'generate') throw error;
       // A group failed: make its sentences one by one; a lone sentence is skipped.
@@ -636,32 +740,68 @@ export class Reader extends EventTarget {
     const built = call.plain ? plainClip(result.samples, pauses[0], call.first + 1) : assembleCall({
       audio: result.samples,
       durations: result.durations,
-      members,
+      members: result.spliced ? [members.join(' ')] : members,
       lookahead: call.lookahead >= 0,
       pauses,
       joinedInside,
       fadeIn: call.first === 0 ? 0.008 : 0.002,
       seed: call.first + 1,
     });
-    this.calls.push({ ...call, voice, speed, ms: result.ms, method: built?.method ?? 'failed' });
+    const method = !built ? 'failed' : result.spliced ? result.spliced : built.method;
+    this.calls.push({ ...call, voice, speed, ms: result.ms, method, key: deliveries[start].key, renders: result.stats.length, modelSpeed: result.modelSpeed });
     if (!built) {
       // The sentences could not be told apart: make them one by one instead.
       for (const i of indices) this.single.add(i);
       return true;
     }
-    const clip = { pcm: toInt16(built.samples), offsets: built.offsets, first: call.first, last: call.last, voice, speed, plain: Boolean(call.plain) };
+    const clip = { pcm: toInt16(built.samples), offsets: built.offsets, first: call.first, last: call.last, voice, speed, plain: Boolean(call.plain), sigs: sigs.slice(call.first, call.last + 1) };
     const kept = callLength(phonemes, call.first, call.last);
-    this.stats.push({ tokens: result.tokens, kept, ms: result.ms, seconds: built.samples.length / RATE, speed });
+    // One measurement per model call; the clip's listening time counts once.
+    result.stats.forEach((s, k) => this.stats.push({ tokens: s.tokens, kept: k ? 0 : kept, ms: s.ms, seconds: k ? 0 : built.samples.length / RATE, speed }));
     this.overheads = [...this.overheads.slice(-3), Math.max(0, performance.now() - startedAt - result.ms)];
     this.#store(clip);
     return true;
   }
 
-  // Files a finished clip. A clip in a voice or speed that was changed
-  // meanwhile only fills gaps (it is playable until its replacement is ready);
-  // otherwise it replaces what was there.
+  // One model call in one style: the style's offset to the voice row, its
+  // speed, then louder or brighter where it asks for it. A plain style is
+  // exactly the plain call of before.
+  async #renderStyled({ style, phonemes, voice, speed, row, tokens, text }) {
+    const modelSpeed = styledSpeed(style, speed);
+    const result = await this.engine.render({ phonemes, voice, speed: modelSpeed, row, text, shift: styleShift(style, tokens) });
+    const samples = afterEffects(result.samples, style);
+    return { ...result, raw: result.samples, samples, modelSpeed, stats: [{ tokens: result.tokens, ms: result.ms }] };
+  }
+
+  // A sentence whose delivery changes inside it: the whole sentence is made
+  // once per style (own voice row, no look-ahead), and each part is cut out of
+  // the render in its own style (flow/assemble.js). If the renders cannot be
+  // cut, the render in the style of the longest part is used for all of it.
+  async #renderSpliced({ delivery, known, voice, speed, text }) {
+    const full = known.parts.join(' ');
+    const keys = delivery.parts.map((p) => styleKey(p.style));
+    const unique = [...new Set(keys)];
+    const renders = [];
+    for (const key of unique) {
+      const style = delivery.parts[keys.indexOf(key)].style;
+      renders.push(await this.#renderStyled({ style, phonemes: full, voice, speed, row: known.n, tokens: known.n, text }));
+    }
+    const stats = renders.flatMap((r) => r.stats);
+    const ms = renders.reduce((a, r) => a + r.ms, 0);
+    // The renders are spliced before their after-effects, which each part then gets on its own.
+    const raw = renders.map((r) => ({ samples: r.raw, durations: r.durations }));
+    const partRender = keys.map((k) => unique.indexOf(k));
+    const samples = spliceParts({ renders: raw, partRender, members: known.parts, post: (piece, k) => afterEffects(piece, delivery.parts[k].style) });
+    if (samples) return { samples, durations: null, ms, stats, spliced: 'splice', modelSpeed: renders.map((r) => r.modelSpeed) };
+    const main = partRender[mainPart(known)];
+    return { samples: renders[main].samples, durations: null, ms, stats, spliced: 'splice-fallback', modelSpeed: renders.map((r) => r.modelSpeed) };
+  }
+
+  // Files a finished clip. A clip in a voice, speed or delivery that was
+  // changed meanwhile only fills gaps (it is playable until its replacement
+  // is ready); otherwise it replaces what was there.
   #store(clip) {
-    const current = clip.voice === this.voice && clip.speed === this.speed;
+    const current = !this.#outdated(clip);
     for (let i = clip.first; i <= clip.last; i++) {
       if (current || !this.segments[i]) this.segments[i] = { clip, k: i - clip.first };
     }
@@ -677,9 +817,10 @@ export class Reader extends EventTarget {
 
   // One sentence could not be read: leave a short silence and carry on.
   #giveUp(indices, error) {
+    const { sigs } = this.#directed();
     for (const i of indices) {
       const pcm = new Int16Array(Math.round(0.3 * RATE));
-      this.#store({ pcm, offsets: [0, pcm.length], first: i, last: i, voice: this.voice, speed: this.speed });
+      this.#store({ pcm, offsets: [0, pcm.length], first: i, last: i, voice: this.voice, speed: this.speed, sigs: [sigs[i]] });
       this.failedCount++;
       this.#emit('error', { error, fatal: false, index: i });
     }

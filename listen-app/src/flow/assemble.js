@@ -181,6 +181,69 @@ function nextPieceLead(audio, bounds, k, joinedInside) {
   return silentEdges(piece).lead;
 }
 
+const SPLICE_FADE = 0.012; // seconds of overlap where two renders meet
+
+/**
+ * Where a sentence that changes delivery part-way ("Wait… what?!" she
+ * exclaimed) is cut between its parts, in one render: the middle of the
+ * stretch from the end of a part's words to the start of the next part, from
+ * the model's own token timings (as the research prototype's splice). Returns
+ * seconds, one per join, or null when the timings do not fit.
+ */
+export function spliceCuts(audio, durations, members) {
+  const starts = tokenStarts(durations, audio.length);
+  if (!starts || starts.length !== [...members.join(' ')].length + 3) return null;
+  const cuts = [];
+  let o = 0;
+  for (const m of members.slice(0, -1)) {
+    const ch = [...m];
+    let i1 = ch.length;
+    while (i1 > 0 && END_PUNCTUATION.test(ch[i1 - 1])) i1--;
+    cuts.push((starts[o + i1 + 1] + starts[o + ch.length + 2]) / 2 / RATE);
+    o += ch.length + 1;
+  }
+  return sane(cuts, audio.length) ? cuts : null;
+}
+
+/**
+ * One sentence whose delivery changes inside it, put together from several
+ * renders of the whole sentence (one per style): every part is cut out of the
+ * render made in its own style, exactly at the model's own pause, so each part
+ * keeps the intonation of the complete sentence and no pause is inserted.
+ * (The research prototype's "splice", chosen by ear.)
+ *   renders     [{ samples, durations }], one per style
+ *   partRender  for each part, the index of its render
+ *   members     phoneme strings of the parts (as joined with spaces in each render)
+ *   post        (samples, k) -> samples: part k's after-effects (louder, brighter)
+ * Returns the sentence's audio, or null when a render cannot be cut.
+ */
+export function spliceParts({ renders, partRender, members, post = (x) => x }) {
+  const cutsOf = renders.map((r) => {
+    const cuts = spliceCuts(r.samples, r.durations, members) ?? cutsFromEnergy(r.samples, members);
+    return cuts && sane(cuts, r.samples.length) ? cuts : null;
+  });
+  if (cutsOf.some((c) => !c)) return null;
+  const fade = Math.round(SPLICE_FADE * RATE);
+  const pieces = members.map((_, k) => {
+    const { samples } = renders[partRender[k]];
+    const cuts = cutsOf[partRender[k]];
+    const a = k ? Math.max(0, Math.round(cuts[k - 1] * RATE) - fade) : 0;
+    const b = k < members.length - 1 ? Math.round(cuts[k] * RATE) + fade : samples.length;
+    const piece = samples.slice(a, b);
+    cosFade(piece, k ? SPLICE_FADE : 0, k < members.length - 1 ? SPLICE_FADE : 0);
+    return post(piece, k);
+  });
+  // Overlap-add the short fades where the parts meet.
+  const length = pieces.reduce((n, p) => n + p.length, 0) - fade * (pieces.length - 1);
+  const out = new Float32Array(length);
+  let o = 0;
+  for (const p of pieces) {
+    for (let i = 0; i < p.length; i++) out[o + i] += p[i];
+    o += p.length - fade;
+  }
+  return out;
+}
+
 /**
  * Which sentence of a clip a playback position (in samples) falls in:
  * the k with offsets[k] <= sample < offsets[k + 1] (clamped to the clip).

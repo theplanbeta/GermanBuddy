@@ -493,6 +493,27 @@ input[type='range'] {
 .prefs p {
   margin: 8px 0 0;
 }
+/* A checkbox with its label beside it (the label is the tap target too). */
+.field.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 0.9rem;
+}
+.field.check label {
+  color: var(--text);
+  cursor: pointer;
+}
+.field.check input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.prefs p + .field {
+  margin-top: 12px;
+}
 
 .foot {
   text-align: center;

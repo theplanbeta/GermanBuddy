@@ -42,6 +42,7 @@ const ui = {
   download: $('download-button'),
   downloadText: $('download-text'),
   mode: $('mode'),
+  expressive: $('expressive'),
 };
 
 // ---- remembered settings (quietly ignored if the browser blocks storage) ---
@@ -492,6 +493,16 @@ ui.more.addEventListener('click', () => {
   const open = ui.more.getAttribute('aria-expanded') !== 'true';
   ui.more.setAttribute('aria-expanded', String(open));
   ui.settingsRow.classList.toggle('open', open);
+});
+
+// "Expressive reading" (on unless switched off before): whispered, raised or
+// slower quotes and German or Spanish sounds. Switching it never stops the
+// sound; sentences whose delivery changes are re-made from the next one on.
+ui.expressive.checked = settings.get('expressive', 'on') !== 'off';
+reader.setExpressive(ui.expressive.checked);
+ui.expressive.addEventListener('change', () => {
+  reader.setExpressive(ui.expressive.checked);
+  settings.set('expressive', ui.expressive.checked ? 'on' : 'off');
 });
 
 const savedVoice = settings.get('voice', DEFAULT_VOICE);

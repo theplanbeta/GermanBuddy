@@ -24,6 +24,36 @@ server or an account.
   silence the voice model makes at its start and end (about 1.3 s on a 4-core
   laptop), so a slow device does better with fewer,
   larger pieces. Long texts keep playing while the rest is prepared.
+- **Spoken forms.** Money, times, dates and some abbreviations are read the
+  way a person says them, while the text on screen stays exactly as written:
+  "€2.5 million" as "2.5 million euros" (not "euros 2.5 million"), "a $5
+  bill" as "a 5 dollar bill", "19:30" as "nineteen thirty", "2026-11-12" as
+  "November 12th, 2026", "1 March" as "the 1st of March", "Nov. 12", "St.
+  Paul", "No. 5", "5 km", "20°C", "½", "1914–1918". What the voice model
+  already reads well ("$4.50", "37.8%", "1,250", "7:43 a.m.", "12th") is left
+  to it. A date such as 03/04/2025 is read the American way with American
+  voices and the British way with British ones. Always on.
+- **Expressive reading** (Settings, on by default, remembered). Quoted speech
+  is read the way the text around it describes it, by rules from the research
+  prototype (`research/expressive-kokoro`) whose results were chosen by ear:
+  - "she whispered, …" or "murmured": a breathy, slightly slower voice;
+  - "shouted", "yelled", or a run of capitals ending in ! or ?! ("Wait…
+    WHAT?!"): a raised voice (a little higher, firmer, louder and brighter);
+  - "deliberately slowing", "slowly", "drawled": 15% slower;
+  - "her voice trembling": a little breath added to the line;
+  - a quote with no such words carries on the slow or whispered delivery of
+    the same speaker's previous quote.
+  Narration is never styled, and small cues (laughing, sighing, softly, a
+  plain "!") are left out on purpose: the change they make is too small to be
+  worth breaking up the sentence. Where the delivery changes inside a
+  sentence ("Consider this," he said), the whole sentence is made once per
+  delivery and the parts are cut together at the voice's own pause, so the
+  intonation does not restart. German and Spanish quotes ("Das kann doch
+  nicht wahr sein.", "¡Cuidado!") and German or Spanish names inside English
+  ("Dr. Müller", "Zürich") are read with German or Spanish sounds. With
+  nothing to direct (ordinary prose) the reading is exactly what it is with
+  the setting off. Off: everything is read as plain narration (spoken forms
+  still apply).
 - 28 English voices (American and British, female and male). Default: Heart.
   Changing the voice never interrupts the reading: the sentence you are
   hearing finishes, and the new voice takes over at the next sentence that
@@ -58,11 +88,14 @@ server or an account.
   (WebAssembly) · preparing 1.7× faster than playback". If a device is slower
   than playback, Hearshot says so once and gathers a few seconds of lead after
   running out, instead of stopping at every sentence.
-- Settings (below the text) lets you choose the voice engine: Automatic,
+- Settings (below the text) has the "Expressive reading" switch (changing
+  it never stops the sound: sentences whose delivery changes are re-made from
+  the next one on, as after a voice change) and lets you choose the voice
+  engine: Automatic,
   Graphics chip (WebGPU, only offered where the browser has it), Graphics
   chip with a smaller model (fp16, experimental, half the download) or
   Standard (WebAssembly). Useful to compare them on a phone.
-- Remembers your voice, tempo and engine choice.
+- Remembers your voice, tempo, expressive setting and engine choice.
 - On phones the player is a single row; "Heart · 1.00×" opens voice, tempo and
   download.
 
@@ -90,7 +123,7 @@ to free the space and says so.
 Other commands:
 
 ```bash
-npm test         # checks the sentence splitter, the grouping and cutting rules, the speed rules
+npm test         # checks the splitter, spoken forms, the director, the grouping and cutting rules, the speed rules
 npm run build    # makes a finished site in dist/
 npm run preview  # serves dist/ at http://localhost:4173 to try the finished site
 ```
@@ -186,8 +219,27 @@ Everything else, including the speech engine itself, is served by the app.
   a semicolon, dash or comma where possible). Pieces of one sentence are
   normally spoken in one go, so the split cannot be heard; only where a
   prepared piece has to end is there a short pause.
-- **English only** for now. Very unusual text (long tables of numbers, code)
-  may be read oddly.
+- **English only** for now, apart from German and Spanish quotes and names
+  inside English text. These are read by simple spelling rules, good for
+  short phrases and names, not for long passages; the voice also lacks a few
+  German sounds ("ü" is close but not exact). Other languages (French
+  "café", for example) are read with English rules. Very unusual text (long
+  tables of numbers, code) may be read oddly.
+- **What the voice cannot express.** Kokoro has no control for emotion, so
+  expressive reading only moves the voice a little: breathier, firmer, higher,
+  slower or faster, louder. It cannot laugh, sigh, cry or truly shout, cannot
+  make a question rise at the end on request, and cannot stress a single word
+  (capitals or stress marks change nothing; this was tested). A "whisper" is a
+  breathy voice, not a real whisper. Those cues in the text are therefore
+  left out rather than imitated badly.
+- **Expressive sentences cost a little more.** A sentence whose delivery
+  changes inside it is made once per delivery (usually twice), and styled
+  sentences are made in their own, smaller pieces, so a dialogue-heavy text
+  takes somewhat longer to prepare in full than plain prose. The first sound
+  comes just as fast: the opening sentence (or one you jump to that is not
+  ready) is made at once in one go; if its delivery changes inside it, the
+  quick version uses the delivery of its longest part, and the full version
+  follows in the background.
 - **Phones:** expect the page to need to stay open in the foreground; browsers
   usually slow or stop background tabs, so reading may stop when the screen
   locks.
@@ -199,10 +251,15 @@ Everything else, including the speech engine itself, is served by the app.
 | `index.html` | The page layout. |
 | `src/main.js` | Connects the page's buttons, text box and settings to the reader and engine. |
 | `src/styles.css` | Look and feel, light and dark, phone layout. |
-| `src/text/splitter.js` | Splits text into sentences (handles "Mr.", "U.S.", 3.5, quotes, paragraphs, over-long sentences); splits a long opening sentence. |
-| `src/flow/plan.js` | Which sentences go into the next model call: grouping within a paragraph, size limits, starting small and growing, the two-word look-ahead and its "voice row". |
-| `src/flow/assemble.js` | Cuts one model call into its sentences at the exact boundaries, throws the look-ahead away, sets the designed pauses. |
-| `src/flow/signal.js` | Small sound helpers: finding quiet stretches, trimming edges, fades, room tone, limiter. |
+| `src/text/splitter.js` | Splits text into sentences (handles "Mr.", "U.S.", 3.5, quotes, "Wait… what?!" inside a quote, paragraphs, over-long sentences); splits a long opening sentence. |
+| `src/text/spoken.js` | Spoken forms: money, times, dates, abbreviations, units, fractions, as said aloud. |
+| `src/director/director.js` | The director: which sentences (or parts of one) are whispered, raised, slower, German or Spanish, from quotes and the words around them. |
+| `src/director/styles.js` | Turns a delivery into a style offset, a speed and louder or brighter sound. |
+| `src/director/directions.js` | The two style directions (breathy, higher), 2 KB, measured in the research prototype. |
+| `src/director/foreign.js` | German and Spanish sound rules (from the prototype), and finding such words inside English. |
+| `src/flow/plan.js` | Which sentences go into the next model call: grouping within a paragraph and delivery, size limits, starting small and growing, the two-word look-ahead and its "voice row". |
+| `src/flow/assemble.js` | Cuts one model call into its sentences at the exact boundaries, throws the look-ahead away, sets the designed pauses; splices a sentence whose delivery changes inside it. |
+| `src/flow/signal.js` | Small sound helpers: finding quiet stretches, trimming edges, fades, room tone, limiter, louder and brighter. |
 | `src/reader/reader.js` | Prepares ahead of time, plays the prepared pieces in order, highlight, tempo, skip, voice changes without gaps, download. |
 | `src/reader/schedule.js` | Tempo-to-speed steps and preparation-speed measurements. |
 | `src/reader/audio.js` | 16-bit audio and WAV files. |
@@ -213,7 +270,7 @@ Everything else, including the speech engine itself, is served by the app.
 | `src/ui/wait.js` | How the waiting ring moves (never backwards, never full before the sound) and the rule for repeated taps. |
 | `src/ui/ring.js` | Draws the waiting ring around the Play button. |
 | `src/voices.js` | The list of voices and their plain-English names. |
-| `tests/` | Tests for the splitter, the call planning and cutting, the speed rules, the broken-audio check and the waiting ring. |
+| `tests/` | Tests for the splitter, spoken forms, the director (on the stress paragraph and on plain prose), the call planning and cutting, the speed rules, the broken-audio check and the waiting ring. |
 | `vercel.json` | Build settings and headers for Vercel. |
 
 Planned additions slot in without touching the reader: new **sources** (PDF or
@@ -223,9 +280,11 @@ produce text and call `splitText` and `reader.load`; a second **voice engine**
 functions described at the top of `kokoro-engine.js`.
 
 The way sentences are grouped, cut and paused follows the research prototype
-in `research/expressive-kokoro` (its "D4" rendering, chosen by ear). Each
-model call can later carry its own delivery style, language and speed; that
-is the next step (whispered or raised quotes, foreign phrases).
+in `research/expressive-kokoro` (its "D4" rendering, chosen by ear), and so
+do the director's rules, the style directions and the splicing of a sentence
+whose delivery changes (its render that the owner chose by ear). Each model
+call carries its own delivery: a style offset to the voice's style vector,
+a speed and a language.
 
 Voices: Kokoro (open source, Apache 2.0), via the `kokoro-js` library; the
 `Kokoro-82M-v1.0-ONNX-timestamped` model files (Apache 2.0) from Hugging Face.

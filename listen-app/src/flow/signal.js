@@ -127,6 +127,42 @@ export function makeRandom(seed = 12345) {
   return () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff) * 2 - 1;
 }
 
+/**
+ * High-shelf filter: `db` louder above about `fc` Hz. A flatter spectral
+ * tilt sounds like more vocal effort (a raised voice). Standard (RBJ) biquad.
+ */
+export function highShelf(x, fc = 2000, db = 3) {
+  const A = 10 ** (db / 40);
+  const w = (2 * Math.PI * fc) / RATE;
+  const cs = Math.cos(w);
+  const sq = 2 * Math.sqrt(A) * (Math.sin(w) / 2) * Math.sqrt(2);
+  const b0 = A * (A + 1 + (A - 1) * cs + sq);
+  const b1 = -2 * A * (A - 1 + (A + 1) * cs);
+  const b2 = A * (A + 1 + (A - 1) * cs - sq);
+  const a0 = A + 1 - (A - 1) * cs + sq;
+  const a1 = 2 * (A - 1 - (A + 1) * cs);
+  const a2 = A + 1 - (A - 1) * cs - sq;
+  const y = new Float32Array(x.length);
+  let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+  for (let i = 0; i < x.length; i++) {
+    const v = (b0 * x[i] + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2) / a0;
+    x2 = x1; x1 = x[i]; y2 = y1; y1 = v; y[i] = v;
+  }
+  return y;
+}
+
+/**
+ * `db` louder, ramped in over `ramp` seconds (no loudness step at the first
+ * syllable), with a soft limiter so peaks never clip.
+ */
+export function gainRamp(x, db, ramp = 0.08) {
+  const g = 10 ** (db / 20);
+  const r = Math.round(ramp * RATE);
+  const y = new Float32Array(x.length);
+  for (let i = 0; i < x.length; i++) y[i] = limit(x[i] * (i < r ? 1 + (g - 1) * (i / r) : g), 0.7);
+  return y;
+}
+
 /** Gentle safety limiter: only samples louder than 0.9 are touched (Kokoro sometimes peaks at 1). */
 export function limit(v, knee = 0.9) {
   const a = Math.abs(v);

@@ -26,14 +26,24 @@
 //    sentence that continues, and the voice row is chosen as if the whole next
 //    sentence were there ("virtual row").
 //
+// 5. Delivery (phase B, see director/director.js): sentences share a call only
+//    when they are delivered the same way (same style and language), and the
+//    look-ahead words only come from such a sentence. A sentence whose
+//    delivery changes inside it ("spliced") is always a call of its own,
+//    without look-ahead. The virtual row of rule 4 is only for plain calls,
+//    never for styled ones or short calls of quoted speech, as the research
+//    prototype found (their row is the phonemes actually sent).
+//
 // Sentences are { text, para, joined? }. `phonemes[i]` is { n, headN } once
 // known: n = phoneme count of sentence i, headN = that of its first two words.
+// `deliveries[i]` is { key, spliced, quoted } (missing: plain narration).
 
 export const MAX_PHONEMES = 480;
 export const MAX_SENTENCES = 12;
 export const TOKEN_LIMIT = 510; // the model reads at most 510 phonemes per call
 export const LAST_ROW = 509; // the voice file has rows 0..509
 export const RAMP = [1, 2, 4];
+export const SHORT_QUOTE = 80; // phonemes: a call of quoted speech shorter than this gets no virtual row
 const SAFETY = 0.8; // plan to finish with 20% of the waiting audio to spare
 // A call should prepare at least as fast as it plays. (Measured in the browser:
 // asking for 15% to spare made the first groups so large that the wait before
@@ -90,19 +100,23 @@ export function sizeRule({ ordinal, budgetSeconds, measured, sizing = 'adaptive'
  *   plain         an "urgent" call: this sentence alone, no look-ahead, own row
  *   listenPerToken  measured listening seconds per phoneme (enables the growth floor)
  *   maxPhonemes   cap on the call's length (default 480; smaller on the graphics chip, see reader.js)
- * Returns { first, last, lookahead (sentence index or -1), tokens, row, plain }.
+ *   deliveries    per sentence { key, spliced, quoted } from the director (rule 5)
+ * Returns { first, last, lookahead (sentence index or -1), tokens, row, plain, spliced }.
  * `tokens` counts the phonemes actually sent, look-ahead included.
  */
-export function planCall({ sentences, phonemes, fresh, start, rule, predict = () => 0, single = new Set(), plain = false, listenPerToken = 0, maxPhonemes = MAX_PHONEMES }) {
+export function planCall({ sentences, phonemes, fresh, start, rule, predict = () => 0, single = new Set(), plain = false, listenPerToken = 0, maxPhonemes = MAX_PHONEMES, deliveries = [] }) {
+  const spliced = Boolean(deliveries[start]?.spliced);
   if (plain) {
     const n = phonemes[start].n;
-    return { first: start, last: start, lookahead: -1, tokens: n, row: Math.min(LAST_ROW, n), plain: true };
+    return { first: start, last: start, lookahead: -1, tokens: n, row: Math.min(LAST_ROW, n), plain: true, spliced };
   }
   const sameParagraph = (i) => i < sentences.length && sentences[i].para === sentences[i - 1].para;
+  // Sentence i may join this call (as a member or as the look-ahead): same delivery, nothing spliced.
+  const sameDelivery = (i) => !spliced && !deliveries[i]?.spliced && (deliveries[i]?.key ?? '') === (deliveries[start]?.key ?? '');
   const withLookahead = (last) => {
     const next = last + 1;
     const n = callLength(phonemes, start, last);
-    if (single.has(start) || !sameParagraph(next) || !phonemes[next]?.headN) return { n, look: -1, tokens: n };
+    if (single.has(start) || !sameParagraph(next) || !sameDelivery(next) || !phonemes[next]?.headN) return { n, look: -1, tokens: n };
     const tokens = n + 1 + phonemes[next].headN;
     return tokens <= TOKEN_LIMIT ? { n, look: next, tokens } : { n, look: -1, tokens: n };
   };
@@ -112,7 +126,7 @@ export function planCall({ sentences, phonemes, fresh, start, rule, predict = ()
   };
   const canExtend = (last) => {
     const next = last + 1;
-    return sameParagraph(next) && phonemes[next]?.n > 0 && !fresh[next] && !single.has(next) && !single.has(start) && fits(next);
+    return sameParagraph(next) && sameDelivery(next) && phonemes[next]?.n > 0 && !fresh[next] && !single.has(next) && !single.has(start) && fits(next);
   };
   let last = start;
   // Grow while the size rule allows it.
@@ -125,8 +139,16 @@ export function planCall({ sentences, phonemes, fresh, start, rule, predict = ()
   // very smallest calls, such as the first one, may split there).
   while (rule.maxSentences > 1 && sentences[last].joined && canExtend(last)) last++;
   const { n, look, tokens } = withLookahead(last);
-  const row = Math.min(LAST_ROW, look >= 0 ? n + 1 + phonemes[look].n : n);
-  return { first: start, last, lookahead: look, tokens, row };
+  const row = Math.min(LAST_ROW, look < 0 ? n : virtualRowAllowed(deliveries, start, last, n) ? n + 1 + phonemes[look].n : tokens);
+  return { first: start, last, lookahead: look, tokens, row, spliced };
+}
+
+// Rule 5: the virtual row only for plain calls that are not short quoted speech.
+function virtualRowAllowed(deliveries, first, last, n) {
+  if (deliveries[first]?.key) return false;
+  let quoted = true;
+  for (let i = first; i <= last; i++) quoted &&= Boolean(deliveries[i]?.quoted);
+  return !(quoted && n < SHORT_QUOTE);
 }
 
 /**
