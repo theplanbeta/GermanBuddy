@@ -56,13 +56,13 @@ export function chooseStart(fresh, current, playing = -1) {
  * How many sentences the size rule allows for the next call.
  *   ordinal       how many calls have been made since the text was loaded
  *   budgetSeconds audio ready ahead of the listener before this call is needed
- *   msPerToken    measured preparation time per phoneme (null = not measured yet)
+ *   measured      true once this device's preparation speed has been measured
  *   sizing        'adaptive' (default) or 'ramp' (fixed 1, 2, 4, then full)
  * Returns { maxSentences, maxMs } (maxMs = Infinity when time does not matter).
  */
-export function sizeRule({ ordinal, budgetSeconds, msPerToken, sizing = 'adaptive' }) {
+export function sizeRule({ ordinal, budgetSeconds, measured, sizing = 'adaptive' }) {
   if (sizing === 'ramp') return { maxSentences: ordinal < RAMP.length ? RAMP[ordinal] : MAX_SENTENCES, maxMs: Infinity };
-  if (!msPerToken || ordinal === 0) return { maxSentences: 1, maxMs: Infinity };
+  if (!measured || ordinal === 0) return { maxSentences: 1, maxMs: Infinity };
   if (budgetSeconds === Infinity) return { maxSentences: MAX_SENTENCES, maxMs: Infinity };
   return { maxSentences: MAX_SENTENCES, maxMs: Math.max(0, budgetSeconds) * 1000 * SAFETY };
 }
@@ -70,12 +70,13 @@ export function sizeRule({ ordinal, budgetSeconds, msPerToken, sizing = 'adaptiv
 /**
  * Plans one call starting at sentence `start`.
  *   fresh[i]      sentence i is already prepared in the current voice and speed
+ *   predict(tokens) expected preparation time of a call (ms)
  *   single        a Set of sentences that must be made on their own (an
  *                 earlier group could not be cut apart)
  * Returns { first, last, lookahead (sentence index or -1), tokens, row }.
  * `tokens` counts the phonemes actually sent, look-ahead included.
  */
-export function planCall({ sentences, phonemes, fresh, start, rule, msPerToken = 0, single = new Set() }) {
+export function planCall({ sentences, phonemes, fresh, start, rule, predict = () => 0, single = new Set() }) {
   const sameParagraph = (i) => i < sentences.length && sentences[i].para === sentences[i - 1].para;
   const withLookahead = (last) => {
     const next = last + 1;
@@ -94,7 +95,7 @@ export function planCall({ sentences, phonemes, fresh, start, rule, msPerToken =
   };
   let last = start;
   // Grow while the size rule allows it.
-  while (canExtend(last) && last + 1 - start + 1 <= rule.maxSentences && withLookahead(last + 1).tokens * msPerToken <= rule.maxMs) last++;
+  while (canExtend(last) && last + 1 - start + 1 <= rule.maxSentences && predict(withLookahead(last + 1).tokens) <= rule.maxMs) last++;
   // Do not stop between two pieces of one sentence when it still fits (only the
   // very smallest calls, such as the first one, may split there).
   while (rule.maxSentences > 1 && sentences[last].joined && canExtend(last)) last++;
@@ -120,14 +121,21 @@ export function freshAhead({ fresh, seconds, current, elapsed = 0, start }) {
 }
 
 /**
- * After a voice or speed change the new voice takes over at a sentence
- * boundary. If the sentence right after the current one cannot be ready
- * before the listener reaches it, start one sentence later instead, so the
- * work is not wasted on a sentence that will already have been heard.
- *   remaining   seconds until the current sentence ends
- *   predictMs   expected preparation time if starting at the next sentence
+ * While the listener hears audio in an old voice (or speed), the new voice
+ * takes over at a sentence boundary. Work on a sentence the listener will
+ * already have passed is wasted, so start at the first sentence (from
+ * `start` on) that can be ready, made alone, before the listener gets there.
+ *   remaining     seconds until the sentence being heard ends
+ *   seconds[i]    listening time of the audio already there for sentence i (null = none)
+ *   predictMs(i)  expected preparation time of sentence i made alone
+ * Returns `start` unchanged when no later sentence fits either.
  */
-export function takeoverStart({ start, current, remaining, predictMs }) {
-  if (start !== current + 1) return start;
-  return predictMs <= remaining * 1000 ? start : start + 1;
+export function takeoverStart({ start, current, remaining, seconds, predictMs }) {
+  let ahead = remaining; // seconds until the listener reaches sentence k
+  for (let k = current + 1; k < seconds.length; k++) {
+    if (k >= start && predictMs(k) <= ahead * 1000) return k;
+    if (seconds[k] == null) break; // nothing to play there: the listener waits anyway
+    ahead += seconds[k];
+  }
+  return start;
 }

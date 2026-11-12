@@ -104,19 +104,20 @@ test('ramp sizing: 1, 2, 4, then full calls', () => {
 });
 
 test('adaptive sizing: first call alone, then as much as fits in the waiting audio', () => {
-  assert.deepEqual(sizeRule({ ordinal: 0, budgetSeconds: 99, msPerToken: 10 }), { maxSentences: 1, maxMs: Infinity });
-  assert.deepEqual(sizeRule({ ordinal: 3, budgetSeconds: 5, msPerToken: null }), { maxSentences: 1, maxMs: Infinity });
-  const rule = sizeRule({ ordinal: 1, budgetSeconds: 5, msPerToken: 10 }); // 5 s * 80% = 4000 ms
+  assert.deepEqual(sizeRule({ ordinal: 0, budgetSeconds: 99, measured: true }), { maxSentences: 1, maxMs: Infinity });
+  assert.deepEqual(sizeRule({ ordinal: 3, budgetSeconds: 5, measured: false }), { maxSentences: 1, maxMs: Infinity });
+  const rule = sizeRule({ ordinal: 1, budgetSeconds: 5, measured: true }); // 5 s * 80% = 4000 ms
   assert.equal(rule.maxMs, 4000);
   const d = doc(Array(8).fill(0), 100);
   // 10 ms per phoneme: 2 sentences + look-ahead = 210 tokens = 2.1 s; 3 = 311 = 3.1 s; 4 = 412 = 4.1 s
-  const call = planCall({ ...d, start: 0, rule, msPerToken: 10 });
+  const predict = (tokens) => tokens * 10;
+  const call = planCall({ ...d, start: 0, rule, predict });
   assert.deepEqual([call.first, call.last], [0, 2]);
   // nothing waiting: never less than one sentence
-  const none = planCall({ ...d, start: 0, rule: sizeRule({ ordinal: 1, budgetSeconds: 0, msPerToken: 10 }), msPerToken: 10 });
+  const none = planCall({ ...d, start: 0, rule: sizeRule({ ordinal: 1, budgetSeconds: 0, measured: true }), predict });
   assert.deepEqual([none.first, none.last], [0, 0]);
   // preparing earlier text after the end: full calls
-  assert.equal(sizeRule({ ordinal: 4, budgetSeconds: Infinity, msPerToken: 10 }).maxMs, Infinity);
+  assert.equal(sizeRule({ ordinal: 4, budgetSeconds: Infinity, measured: true }).maxMs, Infinity);
 });
 
 test('chooseStart works forward from the listener, then wraps round', () => {
@@ -144,20 +145,30 @@ test('re-planning after a voice change: next sentence, alone, then growing', () 
   assert.equal(start, 4);
   const budget = freshAhead({ fresh: d.fresh, seconds, current: 3, elapsed: 1, start });
   assert.equal(budget, 0);
-  const first = planCall({ ...d, start, rule: sizeRule({ ordinal: 9, budgetSeconds: budget, msPerToken: 10 }), msPerToken: 10 });
+  const predict = (tokens) => tokens * 10;
+  const first = planCall({ ...d, start, rule: sizeRule({ ordinal: 9, budgetSeconds: budget, measured: true }), predict });
   assert.deepEqual([first.first, first.last, first.lookahead], [4, 4, 5]);
   // once sentence 4 is ready in the new voice, the next call may be larger
   d.fresh[4] = true;
   const budget2 = freshAhead({ fresh: d.fresh, seconds, current: 3, elapsed: 1, start: 5 });
   assert.equal(budget2, 4);
-  const second = planCall({ ...d, start: 5, rule: sizeRule({ ordinal: 10, budgetSeconds: budget2, msPerToken: 10 }), msPerToken: 10 });
+  const second = planCall({ ...d, start: 5, rule: sizeRule({ ordinal: 10, budgetSeconds: budget2, measured: true }), predict });
   assert.ok(second.last > 5);
 });
 
-test('takeover skips a sentence that cannot be ready in time', () => {
-  assert.equal(takeoverStart({ start: 4, current: 3, remaining: 2, predictMs: 1500 }), 4);
-  assert.equal(takeoverStart({ start: 4, current: 3, remaining: 1, predictMs: 1500 }), 5);
-  assert.equal(takeoverStart({ start: 0, current: 3, remaining: 0, predictMs: 1500 }), 0); // not right after the listener
+test('takeover starts at the first sentence the new voice can be ready for', () => {
+  const seconds = [3, 3, 3, 3, 3, 3, 3, 3];
+  const takes = (ms) => () => ms;
+  // 1.5 s of work, 2 s left in sentence 3: the very next sentence
+  assert.equal(takeoverStart({ start: 4, current: 3, remaining: 2, seconds, predictMs: takes(1500) }), 4);
+  // 1 s left: sentence 5 (the listener reaches it in 1 + 3 s)
+  assert.equal(takeoverStart({ start: 4, current: 3, remaining: 1, seconds, predictMs: takes(1500) }), 5);
+  // a slow device (8 s per sentence): sentence 6 is reached in 1 + 3 + 3 = 7 s, sentence 7 in 10 s
+  assert.equal(takeoverStart({ start: 4, current: 3, remaining: 1, seconds, predictMs: takes(8000) }), 7);
+  // nothing fits before the end: unchanged
+  assert.equal(takeoverStart({ start: 4, current: 3, remaining: 0, seconds, predictMs: takes(99999) }), 4);
+  // a sentence with nothing to play yet: the listener will wait there, so start there at the latest
+  assert.equal(takeoverStart({ start: 4, current: 3, remaining: 0.5, seconds: [3, 3, 3, 3, null, 3], predictMs: takes(5000) }), 4);
 });
 
 test('look-ahead text is the first two words without trailing punctuation', () => {

@@ -29,7 +29,7 @@
 //   'slow'       playback ran dry and this device prepares more slowly than it plays
 //   'error'      event.detail = { error, fatal }
 import { toInt16, wavBlob, silentWav } from './audio.js';
-import { bakedSpeedFor, speedFactor, prepRatio, msPerToken } from './schedule.js';
+import { bakedSpeedFor, speedFactor, prepRatio, predictMs } from './schedule.js';
 import { chooseStart, planCall, sizeRule, freshAhead, takeoverStart, firstWords, MAX_SENTENCES } from '../flow/plan.js';
 import { assembleCall, designedPause, sentenceAt } from '../flow/assemble.js';
 
@@ -422,15 +422,23 @@ export class Reader extends EventTarget {
     await this.#ensurePhonemes(lang, start);
     if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true; // changed meanwhile: plan again
     const phonemes = this.phonemes.get(lang);
-    const speedPerToken = msPerToken(this.stats);
+    const measured = this.stats.length > 0;
+    const predict = (tokens) => predictMs(this.stats, tokens) ?? 0;
+    const seconds = sentences.map((_, i) => this.#seconds(i));
 
-    // After a voice or speed change: take over where the new audio can be ready in time.
-    if (stale >= 0 && start === stale + 1 && start + 1 < n && !fresh[start + 1] && speedPerToken) {
-      const alone = planCall({ sentences, phonemes, fresh, start, rule: { maxSentences: 1, maxMs: Infinity }, single: this.single });
-      const { end } = this.#span(this.loaded, stale);
-      const remaining = ((end / RATE - this.audio.currentTime) * speedFactor(this.loaded.speed)) / this.tempo;
-      start = takeoverStart({ start, current: stale, remaining, predictMs: alone.tokens * speedPerToken });
-      if (start !== stale + 1) await this.#ensurePhonemes(lang, start);
+    // After a voice or speed change, while the old audio plays on: take over
+    // at the first sentence the new audio can be ready for in time.
+    const old = this.loaded;
+    if (this.state === 'playing' && old && (old.voice !== voice || old.speed !== speed) && this.#holdsCurrent() && start > this.current && measured) {
+      const alone = (k) => {
+        if (!phonemes[k]?.n) return Infinity;
+        return predict(planCall({ sentences, phonemes, fresh, start: k, rule: { maxSentences: 1, maxMs: Infinity }, single: this.single }).tokens);
+      };
+      const { end } = this.#span(old, this.current);
+      const remaining = Math.max(0, ((end / RATE - this.audio.currentTime) * speedFactor(old.speed)) / this.tempo);
+      // (only sentences whose phonemes are known count: up to 13 past `start`)
+      start = takeoverStart({ start, current: this.current, remaining, seconds, predictMs: alone });
+      await this.#ensurePhonemes(lang, start);
       if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true;
     }
 
@@ -440,10 +448,9 @@ export class Reader extends EventTarget {
       const { start: s } = this.#span(this.loaded, this.current);
       elapsed = ((this.audio.currentTime - s / RATE) * speedFactor(this.loaded.speed)) / this.tempo;
     }
-    const seconds = sentences.map((_, i) => this.#seconds(i));
     const budgetSeconds = freshAhead({ fresh, seconds, current: this.current, elapsed, start });
-    const rule = sizeRule({ ordinal: this.ordinal, budgetSeconds, msPerToken: speedPerToken, sizing: this.sizing });
-    const call = planCall({ sentences, phonemes, fresh, start, rule, msPerToken: speedPerToken || 0, single: this.single });
+    const rule = sizeRule({ ordinal: this.ordinal, budgetSeconds, measured, sizing: this.sizing });
+    const call = planCall({ sentences, phonemes, fresh, start, rule, predict, single: this.single });
 
     const indices = [];
     for (let i = call.first; i <= call.last; i++) indices.push(i);

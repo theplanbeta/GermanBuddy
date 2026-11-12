@@ -43,12 +43,23 @@ export function prepRatio(stats, tempo, window = 8) {
 }
 
 /**
- * Measured preparation time per phoneme sent to the model (ms), from recent
- * calls ({ tokens, ms }), or null before the first call. Used to predict how
- * long a planned call will take.
+ * Predicts how long a model call of `tokens` phonemes will take (ms), from
+ * recent calls ({ tokens, ms }). Every call has a fixed cost (measured about
+ * 1 s on a 4-core laptop) plus a cost per phoneme, so a straight line is
+ * fitted through recent calls when their sizes differ enough; otherwise the
+ * plain average per phoneme is used. Returns null before the first call.
  */
-export function msPerToken(stats, window = 6) {
-  const recent = stats.slice(-window);
-  const tokens = recent.reduce((n, s) => n + s.tokens, 0);
-  return tokens > 0 ? recent.reduce((n, s) => n + s.ms, 0) / tokens : null;
+export function predictMs(stats, tokens, window = 8) {
+  const recent = stats.slice(-window).filter((s) => s.tokens > 0);
+  if (!recent.length) return null;
+  const n = recent.length;
+  const mx = recent.reduce((a, s) => a + s.tokens, 0) / n;
+  const my = recent.reduce((a, s) => a + s.ms, 0) / n;
+  const sxx = recent.reduce((a, s) => a + (s.tokens - mx) ** 2, 0);
+  if (n >= 3 && Math.sqrt(sxx / n) >= 0.25 * mx) {
+    const slope = recent.reduce((a, s) => a + (s.tokens - mx) * (s.ms - my), 0) / sxx;
+    const fixed = my - slope * mx;
+    if (slope > 0 && fixed >= 0) return fixed + slope * tokens;
+  }
+  return (my / mx) * tokens;
 }

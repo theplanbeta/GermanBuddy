@@ -1,7 +1,7 @@
 // Speed rules: tempo -> generation speed, preparation speed measurements.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bakedSpeedFor, speedFactor, prepRatio, msPerToken } from '../src/reader/schedule.js';
+import { bakedSpeedFor, speedFactor, prepRatio, predictMs } from '../src/reader/schedule.js';
 
 test('tempo maps to a few generation speeds; small changes never re-prepare', () => {
   for (const t of [0.5, 0.8, 1, 1.2, 1.4]) assert.equal(bakedSpeedFor(t), 1, `tempo ${t}`);
@@ -35,9 +35,15 @@ test('prepRatio compares preparation with playback speed', () => {
   assert.ok(Math.abs(prepRatio([{ seconds: 2, ms: 2000, speed: 1.5 }, { seconds: 2, ms: 2000, speed: 1.5 }], 1) - 1.55) < 1e-9);
 });
 
-test('msPerToken is the recent preparation time per phoneme', () => {
-  assert.equal(msPerToken([]), null);
-  assert.equal(msPerToken([{ tokens: 100, ms: 5000 }, { tokens: 300, ms: 11000 }]), 40);
+test('predictMs: a fixed cost per call plus a cost per phoneme', () => {
+  assert.equal(predictMs([], 100), null);
+  // calls of similar size: the plain average per phoneme
+  assert.equal(predictMs([{ tokens: 100, ms: 5000 }, { tokens: 110, ms: 5500 }], 200), 10000);
+  // calls of different sizes (measured in the browser: ~1.1 s + 58 ms per phoneme)
+  const stats = [59, 214, 294, 468].map((tokens) => ({ tokens, ms: 1100 + 58 * tokens }));
+  assert.ok(Math.abs(predictMs(stats, 70) - (1100 + 58 * 70)) < 1);
+  assert.ok(Math.abs(predictMs(stats, 480) - (1100 + 58 * 480)) < 1);
+  // only recent calls count
   const old = Array.from({ length: 10 }, () => ({ tokens: 100, ms: 99999 }));
-  assert.equal(msPerToken([...old, ...Array(6).fill({ tokens: 50, ms: 1000 })]), 20);
+  assert.equal(predictMs([...old, ...Array(8).fill({ tokens: 50, ms: 1000 })], 100), 2000);
 });
