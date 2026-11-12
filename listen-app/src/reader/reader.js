@@ -479,7 +479,7 @@ export class Reader extends EventTarget {
       await this.#ensurePhonemes(lang, start); // the call may grow: know its neighbours
       if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true;
     }
-    const call = planCall({ sentences, phonemes, fresh, start, rule, predict, single: this.single, plain: urgent, listenPerToken: listenPerToken(this.stats) });
+    const call = planCall({ sentences, phonemes, fresh, start, rule, predict, single: this.single, plain: urgent, listenPerToken: listenPerToken(this.stats) / this.tempo });
 
     const indices = [];
     for (let i = call.first; i <= call.last; i++) indices.push(i);
