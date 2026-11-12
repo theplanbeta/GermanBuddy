@@ -1,0 +1,3805 @@
+{
+ "backend": "web",
+ "sentences": [
+  {
+   "text": "“Hello?",
+   "para": 0
+  },
+  {
+   "text": "Can you hear me?”",
+   "para": 0
+  },
+  {
+   "text": "The voice on the other end was barely a whisper.",
+   "para": 1
+  },
+  {
+   "text": "“Daniel… I need you to listen very carefully.”",
+   "para": 2
+  },
+  {
+   "text": "He laughed.",
+   "para": 3
+  },
+  {
+   "text": "“Oh, come on, Sarah!",
+   "para": 3
+  },
+  {
+   "text": "What is it this time?",
+   "para": 3
+  },
+  {
+   "text": "Another one of your ridiculous conspiracy theories?”",
+   "para": 3
+  },
+  {
+   "text": "“No.” Her voice cracked.",
+   "para": 4
+  },
+  {
+   "text": "“I'm serious.”",
+   "para": 4
+  },
+  {
+   "text": "Something about the way she said it made him stop smiling.",
+   "para": 5
+  },
+  {
+   "text": "“Sarah?",
+   "para": 6
+  },
+  {
+   "text": "What's going on?”",
+   "para": 6
+  },
+  {
+   "text": "Silence.",
+   "para": 7
+  },
+  {
+   "text": "Then, very quietly, she said, “There's someone in the house.”",
+   "para": 8
+  },
+  {
+   "text": "Daniel sat upright.",
+   "para": 9
+  },
+  {
+   "text": "“What do you mean, someone?",
+   "para": 10
+  },
+  {
+   "text": "Did you call the police?”",
+   "para": 10
+  },
+  {
+   "text": "“I can't.",
+   "para": 11
+  },
+  {
+   "text": "He's standing right outside my door.”",
+   "para": 11
+  },
+  {
+   "text": "A floorboard creaked.",
+   "para": 12
+  },
+  {
+   "text": "“Sarah…”",
+   "para": 13
+  },
+  {
+   "text": "Daniel whispered.",
+   "para": 13
+  },
+  {
+   "text": "“Don't move.”",
+   "para": 13
+  },
+  {
+   "text": "And then—",
+   "para": 14
+  },
+  {
+   "text": "BANG!",
+   "para": 15
+  },
+  {
+   "text": "A deafening crash.",
+   "para": 16
+  },
+  {
+   "text": "“OH MY GOD!” she screamed.",
+   "para": 17
+  },
+  {
+   "text": "“RUN, SARAH!",
+   "para": 18
+  },
+  {
+   "text": "RUN!”",
+   "para": 18
+  },
+  {
+   "text": "Footsteps.",
+   "para": 19
+  },
+  {
+   "text": "Heavy breathing.",
+   "para": 19
+  },
+  {
+   "text": "A door slamming shut.",
+   "para": 19
+  },
+  {
+   "text": "Then… nothing.",
+   "para": 20
+  },
+  {
+   "text": "Ten seconds passed.",
+   "para": 21
+  },
+  {
+   "text": "Twenty.",
+   "para": 22
+  },
+  {
+   "text": "“Sarah?”",
+   "para": 23
+  },
+  {
+   "text": "His voice trembled.",
+   "para": 23
+  },
+  {
+   "text": "“Sarah, please… say something.”",
+   "para": 23
+  },
+  {
+   "text": "A faint sound came through the phone.",
+   "para": 24
+  },
+  {
+   "text": "A giggle.",
+   "para": 25
+  },
+  {
+   "text": "Then another.",
+   "para": 26
+  },
+  {
+   "text": "Finally, Sarah burst into uncontrollable laughter.",
+   "para": 27
+  },
+  {
+   "text": "“OH, DANIEL!",
+   "para": 28
+  },
+  {
+   "text": "You should have HEARD yourself!”",
+   "para": 28
+  },
+  {
+   "text": "He blinked.",
+   "para": 29
+  },
+  {
+   "text": "“Wait… WHAT?”",
+   "para": 30
+  },
+  {
+   "text": "“Happy April Fools' Day, you absolute idiot!”",
+   "para": 31
+  },
+  {
+   "text": "Daniel stared at his phone in disbelief.",
+   "para": 32
+  },
+  {
+   "text": "“You… you actually—”",
+   "para": 33
+  },
+  {
+   "text": "He stopped.",
+   "para": 34
+  },
+  {
+   "text": "Inhaled slowly.",
+   "para": 34
+  },
+  {
+   "text": "“Sarah.”",
+   "para": 35
+  },
+  {
+   "text": "“Yes?” she replied sweetly.",
+   "para": 36
+  },
+  {
+   "text": "“I am going to kill you.”",
+   "para": 37
+  },
+  {
+   "text": "She laughed even harder.",
+   "para": 38
+  },
+  {
+   "text": "And despite himself, Daniel began to laugh too.",
+   "para": 39
+  },
+  {
+   "text": "“You're unbelievable,” he murmured.",
+   "para": 40
+  },
+  {
+   "text": "“I know,” she whispered.",
+   "para": 41
+  },
+  {
+   "text": "“But you love me anyway.”",
+   "para": 41
+  },
+  {
+   "text": "A pause.",
+   "para": 42
+  },
+  {
+   "text": "Then, softly—",
+   "para": 43
+  },
+  {
+   "text": "“Yeah.",
+   "para": 44
+  },
+  {
+   "text": "I really do.”",
+   "para": 44
+  }
+ ],
+ "deliveries": [
+  {
+   "parts": [
+    {
+     "text": "Hello?",
+     "lang": "en",
+     "style": {
+      "whisper": 1.1,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 0.92,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "af_aoede"
+    }
+   ],
+   "key": "en whisper1.1 speed0.92 voice:af_aoede",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "Can you hear me?",
+     "lang": "en",
+     "style": {
+      "whisper": 1.1,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 0.92,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "af_aoede"
+    }
+   ],
+   "key": "en whisper1.1 speed0.92 voice:af_aoede",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "The voice on the other end was barely a whisper.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Daniel… I need you to listen very carefully.",
+     "lang": "en",
+     "style": {
+      "whisper": 1.1,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 0.92,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "af_aoede"
+    }
+   ],
+   "key": "en whisper1.1 speed0.92 voice:af_aoede",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "He laughed.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Oh, come on, Sarah!",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0.35,
+      "speed": 1.04,
+      "gainDb": 1,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "en pitch0.35 speed1.04 gainDb1 voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "What is it this time?",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0.35,
+      "speed": 1.04,
+      "gainDb": 1,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "en pitch0.35 speed1.04 gainDb1 voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "Another one of your ridiculous conspiracy theories?",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0.35,
+      "speed": 1.04,
+      "gainDb": 1,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "en pitch0.35 speed1.04 gainDb1 voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "No.",
+     "lang": "en",
+     "style": {
+      "whisper": 0.6,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 0.95,
+      "gainDb": -1,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "af_aoede"
+    },
+    {
+     "text": "Her voice cracked.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "spliced",
+   "spliced": true,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "I'm serious.",
+     "lang": "en",
+     "style": {
+      "whisper": 0.6,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 0.95,
+      "gainDb": -1,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "af_aoede"
+    }
+   ],
+   "key": "en whisper0.6 speed0.95 gainDb-1 voice:af_aoede",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "Something about the way she said it made him stop smiling.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Sarah?",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "What's going on?",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "Silence.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Then, very quietly, she said,",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    },
+    {
+     "text": "There's someone in the house.",
+     "lang": "en",
+     "style": {
+      "whisper": 0.6,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": -3,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "af_aoede"
+    }
+   ],
+   "key": "spliced",
+   "spliced": true,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Daniel sat upright.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "What do you mean, someone?",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "Did you call the police?",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "I can't.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "af_aoede"
+    }
+   ],
+   "key": "voice:af_aoede",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "He's standing right outside my door.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "af_aoede"
+    }
+   ],
+   "key": "voice:af_aoede",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "A floorboard creaked.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Sarah…",
+     "lang": "en",
+     "style": {
+      "whisper": 1.1,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 0.92,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "en whisper1.1 speed0.92 voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "Daniel whispered.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Don't move.",
+     "lang": "en",
+     "style": {
+      "whisper": 1.1,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 0.92,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "en whisper1.1 speed0.92 voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "And then—",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "bang!",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0.6,
+      "pitch": 0.55,
+      "speed": 1.06,
+      "gainDb": 4,
+      "shelfDb": 3
+     },
+     "names": false
+    }
+   ],
+   "key": "en firm0.6 pitch0.55 speed1.06 gainDb4 shelfDb3",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "A deafening crash.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "oh my god!",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0.6,
+      "pitch": 0.55,
+      "speed": 1.06,
+      "gainDb": 4,
+      "shelfDb": 3
+     },
+     "names": false,
+     "voice": "af_aoede"
+    },
+    {
+     "text": "she screamed.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "spliced",
+   "spliced": true,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "run, sarah!",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0.6,
+      "pitch": 0.55,
+      "speed": 1.0918,
+      "gainDb": 4.5,
+      "shelfDb": 3
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "en firm0.6 pitch0.55 speed1.0918 gainDb4.5 shelfDb3 voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "run!",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0.6,
+      "pitch": 0.55,
+      "speed": 1.0918,
+      "gainDb": 4.5,
+      "shelfDb": 3
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "en firm0.6 pitch0.55 speed1.0918 gainDb4.5 shelfDb3 voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "Footsteps.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Heavy breathing.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "A door slamming shut.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Then… nothing.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Ten seconds passed.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Twenty.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Sarah?",
+     "lang": "en",
+     "style": {
+      "whisper": 0.6,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 0.95,
+      "gainDb": -1,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "en whisper0.6 speed0.95 gainDb-1 voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "His voice trembled.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Sarah, please… say something.",
+     "lang": "en",
+     "style": {
+      "whisper": 0.6,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 0.95,
+      "gainDb": -1,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "en whisper0.6 speed0.95 gainDb-1 voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "A faint sound came through the phone.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "A giggle.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Then another.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Finally, Sarah burst into uncontrollable laughter.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "oh, daniel!",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0.6,
+      "pitch": 0.55,
+      "speed": 1.0918,
+      "gainDb": 4.5,
+      "shelfDb": 3
+     },
+     "names": false,
+     "voice": "af_aoede"
+    }
+   ],
+   "key": "en firm0.6 pitch0.55 speed1.0918 gainDb4.5 shelfDb3 voice:af_aoede",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "You should have HEARD yourself!",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0.3,
+      "pitch": 0.3,
+      "speed": 1.03,
+      "gainDb": 1.5,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "af_aoede"
+    }
+   ],
+   "key": "en firm0.3 pitch0.3 speed1.03 gainDb1.5 voice:af_aoede",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "He blinked.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Wait…",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    },
+    {
+     "text": "what?",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0.6,
+      "pitch": 0.55,
+      "speed": 1.06,
+      "gainDb": 4,
+      "shelfDb": 3
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "spliced",
+   "spliced": true,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "Happy April Fools' Day, you absolute idiot!",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0.3,
+      "pitch": 0.3,
+      "speed": 1.03,
+      "gainDb": 1.5,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "af_aoede"
+    }
+   ],
+   "key": "en firm0.3 pitch0.3 speed1.03 gainDb1.5 voice:af_aoede",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "Daniel stared at his phone in disbelief.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "You… you actually—",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "He stopped.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Inhaled slowly.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Sarah.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "Yes?",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "af_aoede"
+    },
+    {
+     "text": "she replied sweetly.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "spliced",
+   "spliced": true,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "I am going to kill you.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "She laughed even harder.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "And despite himself, Daniel began to laugh too.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "You're unbelievable,",
+     "lang": "en",
+     "style": {
+      "whisper": 1.1,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 0.92,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    },
+    {
+     "text": "he murmured.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "spliced",
+   "spliced": true,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "I know,",
+     "lang": "en",
+     "style": {
+      "whisper": 1.1,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 0.92,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "af_aoede"
+    },
+    {
+     "text": "she whispered.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "spliced",
+   "spliced": true,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "But you love me anyway.",
+     "lang": "en",
+     "style": {
+      "whisper": 1.1,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 0.92,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "af_aoede"
+    }
+   ],
+   "key": "en whisper1.1 speed0.92 voice:af_aoede",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "A pause.",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Then, softly—",
+     "lang": "en",
+     "style": {
+      "whisper": 0,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 1,
+      "gainDb": 0,
+      "shelfDb": 0
+     },
+     "names": false
+    }
+   ],
+   "key": "",
+   "spliced": false,
+   "quoted": false
+  },
+  {
+   "parts": [
+    {
+     "text": "Yeah.",
+     "lang": "en",
+     "style": {
+      "whisper": 0.6,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 0.93,
+      "gainDb": -3,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "en whisper0.6 speed0.93 gainDb-3 voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  },
+  {
+   "parts": [
+    {
+     "text": "I really do.",
+     "lang": "en",
+     "style": {
+      "whisper": 0.6,
+      "firm": 0,
+      "pitch": 0,
+      "speed": 0.93,
+      "gainDb": -3,
+      "shelfDb": 0
+     },
+     "names": false,
+     "voice": "am_fenrir"
+    }
+   ],
+   "key": "en whisper0.6 speed0.93 gainDb-3 voice:am_fenrir",
+   "spliced": false,
+   "quoted": true
+  }
+ ],
+ "pauses": [
+  0.291,
+  0.85,
+  0.85,
+  0.5,
+  0.315,
+  0.361,
+  0.359,
+  0.5,
+  0.355,
+  0.85,
+  0.85,
+  0.329,
+  1,
+  1.6,
+  0.85,
+  0.85,
+  0.327,
+  0.5,
+  0.307,
+  0.85,
+  0.85,
+  0.295,
+  0.32,
+  1,
+  1.25,
+  1.2,
+  0.85,
+  0.5,
+  0.303,
+  0.85,
+  0.292,
+  0.304,
+  1,
+  1.6,
+  1.6,
+  1.2,
+  0.302,
+  0.339,
+  0.85,
+  1,
+  1.2,
+  1.2,
+  0.85,
+  0.316,
+  1,
+  1.2,
+  0.5,
+  0.85,
+  0.85,
+  0.55,
+  0.32,
+  0.85,
+  0.5,
+  0.5,
+  0.85,
+  0.85,
+  0.85,
+  0.5,
+  0.343,
+  1,
+  1.6,
+  1,
+  0.31,
+  0.85
+ ],
+ "starts": [
+  0,
+  15864,
+  55464,
+  136584,
+  200184,
+  222624,
+  263928,
+  295584,
+  369984,
+  405144,
+  444744,
+  531864,
+  548640,
+  589200,
+  642720,
+  729360,
+  778320,
+  811848,
+  850728,
+  872016,
+  933936,
+  980976,
+  1001736,
+  1031976,
+  1073016,
+  1116456,
+  1156536,
+  1202136,
+  1246536,
+  1268448,
+  1296048,
+  1318656,
+  1342272,
+  1394832,
+  1452432,
+  1517952,
+  1561152,
+  1581840,
+  1617096,
+  1669896,
+  1731096,
+  1774296,
+  1820376,
+  1909176,
+  1934040,
+  1985640,
+  2031240,
+  2060280,
+  2135640,
+  2202360,
+  2236920,
+  2259240,
+  2303160,
+  2328360,
+  2371560,
+  2417880,
+  2467800,
+  2552520,
+  2600040,
+  2632272,
+  2684112,
+  2738112,
+  2782992,
+  2798112
+ ],
+ "calls": [
+  {
+   "first": 0,
+   "last": 0,
+   "lookahead": 1,
+   "tokens": 16,
+   "row": 16,
+   "spliced": false,
+   "method": "timings",
+   "key": "en whisper1.1 speed0.92 voice:af_aoede",
+   "renders": 1,
+   "modelSpeed": 0.92,
+   "ms": 1786.1570490000004,
+   "stats": [
+    {
+     "tokens": 16,
+     "ms": 1786.1570490000004
+    }
+   ],
+   "voice": [
+    "af_aoede"
+   ],
+   "pauses": [
+    0.291
+   ]
+  },
+  {
+   "first": 1,
+   "last": 1,
+   "lookahead": -1,
+   "tokens": 18,
+   "row": 18,
+   "spliced": false,
+   "method": "single",
+   "key": "en whisper1.1 speed0.92 voice:af_aoede",
+   "renders": 1,
+   "modelSpeed": 0.92,
+   "ms": 1481.5189929999997,
+   "stats": [
+    {
+     "tokens": 18,
+     "ms": 1481.5189929999997
+    }
+   ],
+   "voice": [
+    "af_aoede"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 2,
+   "last": 2,
+   "lookahead": -1,
+   "tokens": 45,
+   "row": 45,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 3253.042386,
+   "stats": [
+    {
+     "tokens": 45,
+     "ms": 3253.042386
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 3,
+   "last": 3,
+   "lookahead": -1,
+   "tokens": 47,
+   "row": 47,
+   "spliced": false,
+   "method": "single",
+   "key": "en whisper1.1 speed0.92 voice:af_aoede",
+   "renders": 1,
+   "modelSpeed": 0.92,
+   "ms": 3234.351197,
+   "stats": [
+    {
+     "tokens": 47,
+     "ms": 3234.351197
+    }
+   ],
+   "voice": [
+    "af_aoede"
+   ],
+   "pauses": [
+    0.5
+   ]
+  },
+  {
+   "first": 4,
+   "last": 4,
+   "lookahead": -1,
+   "tokens": 10,
+   "row": 10,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 2269.4458539999996,
+   "stats": [
+    {
+     "tokens": 10,
+     "ms": 2269.4458539999996
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    0.315
+   ]
+  },
+  {
+   "first": 5,
+   "last": 7,
+   "lookahead": -1,
+   "tokens": 95,
+   "row": 95,
+   "spliced": false,
+   "method": "timings",
+   "key": "en pitch0.35 speed1.04 gainDb1 voice:am_fenrir",
+   "renders": 1,
+   "modelSpeed": 1.04,
+   "ms": 11447.262939,
+   "stats": [
+    {
+     "tokens": 95,
+     "ms": 11447.262939
+    }
+   ],
+   "voice": [
+    "am_fenrir"
+   ],
+   "pauses": [
+    0.361,
+    0.359,
+    0.5
+   ]
+  },
+  {
+   "first": 8,
+   "last": 8,
+   "lookahead": -1,
+   "tokens": 23,
+   "row": 23,
+   "spliced": true,
+   "method": "splice",
+   "key": "spliced",
+   "renders": 2,
+   "modelSpeed": [
+    0.95,
+    1
+   ],
+   "ms": 7694.687451000002,
+   "stats": [
+    {
+     "tokens": 23,
+     "ms": 4347.637077000003
+    },
+    {
+     "tokens": 23,
+     "ms": 3347.0503739999986
+    }
+   ],
+   "voice": [
+    "af_aoede",
+    "af_heart"
+   ],
+   "pauses": [
+    0.355
+   ]
+  },
+  {
+   "first": 9,
+   "last": 9,
+   "lookahead": -1,
+   "tokens": 12,
+   "row": 12,
+   "spliced": false,
+   "method": "single",
+   "key": "en whisper0.6 speed0.95 gainDb-1 voice:af_aoede",
+   "renders": 1,
+   "modelSpeed": 0.95,
+   "ms": 1463.4713239999983,
+   "stats": [
+    {
+     "tokens": 12,
+     "ms": 1463.4713239999983
+    }
+   ],
+   "voice": [
+    "af_aoede"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 10,
+   "last": 10,
+   "lookahead": -1,
+   "tokens": 62,
+   "row": 62,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 3705.056854000002,
+   "stats": [
+    {
+     "tokens": 62,
+     "ms": 3705.056854000002
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 11,
+   "last": 12,
+   "lookahead": -1,
+   "tokens": 24,
+   "row": 24,
+   "spliced": false,
+   "method": "timings",
+   "key": "voice:am_fenrir",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1571.1251549999943,
+   "stats": [
+    {
+     "tokens": 24,
+     "ms": 1571.1251549999943
+    }
+   ],
+   "voice": [
+    "am_fenrir"
+   ],
+   "pauses": [
+    0.329,
+    1
+   ]
+  },
+  {
+   "first": 13,
+   "last": 13,
+   "lookahead": -1,
+   "tokens": 9,
+   "row": 9,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1361.3767909999951,
+   "stats": [
+    {
+     "tokens": 9,
+     "ms": 1361.3767909999951
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    1.6
+   ]
+  },
+  {
+   "first": 14,
+   "last": 14,
+   "lookahead": -1,
+   "tokens": 57,
+   "row": 57,
+   "spliced": true,
+   "method": "splice",
+   "key": "spliced",
+   "renders": 2,
+   "modelSpeed": [
+    1,
+    1
+   ],
+   "ms": 7529.519086,
+   "stats": [
+    {
+     "tokens": 57,
+     "ms": 3868.22148
+    },
+    {
+     "tokens": 57,
+     "ms": 3661.297606
+    }
+   ],
+   "voice": [
+    "af_heart",
+    "af_aoede"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 15,
+   "last": 15,
+   "lookahead": -1,
+   "tokens": 21,
+   "row": 21,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 2022.8577970000042,
+   "stats": [
+    {
+     "tokens": 21,
+     "ms": 2022.8577970000042
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 16,
+   "last": 17,
+   "lookahead": -1,
+   "tokens": 56,
+   "row": 56,
+   "spliced": false,
+   "method": "timings",
+   "key": "voice:am_fenrir",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 3327.901797999999,
+   "stats": [
+    {
+     "tokens": 56,
+     "ms": 3327.901797999999
+    }
+   ],
+   "voice": [
+    "am_fenrir"
+   ],
+   "pauses": [
+    0.327,
+    0.5
+   ]
+  },
+  {
+   "first": 18,
+   "last": 19,
+   "lookahead": -1,
+   "tokens": 49,
+   "row": 49,
+   "spliced": false,
+   "method": "timings",
+   "key": "voice:af_aoede",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 3189.7745730000024,
+   "stats": [
+    {
+     "tokens": 49,
+     "ms": 3189.7745730000024
+    }
+   ],
+   "voice": [
+    "af_aoede"
+   ],
+   "pauses": [
+    0.307,
+    0.85
+   ]
+  },
+  {
+   "first": 20,
+   "last": 20,
+   "lookahead": -1,
+   "tokens": 22,
+   "row": 22,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1886.998814999999,
+   "stats": [
+    {
+     "tokens": 22,
+     "ms": 1886.998814999999
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 21,
+   "last": 21,
+   "lookahead": -1,
+   "tokens": 6,
+   "row": 6,
+   "spliced": false,
+   "method": "single",
+   "key": "en whisper1.1 speed0.92 voice:am_fenrir",
+   "renders": 1,
+   "modelSpeed": 0.92,
+   "ms": 1346.0047859999977,
+   "stats": [
+    {
+     "tokens": 6,
+     "ms": 1346.0047859999977
+    }
+   ],
+   "voice": [
+    "am_fenrir"
+   ],
+   "pauses": [
+    0.295
+   ]
+  },
+  {
+   "first": 22,
+   "last": 22,
+   "lookahead": -1,
+   "tokens": 16,
+   "row": 16,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1757.7811829999991,
+   "stats": [
+    {
+     "tokens": 16,
+     "ms": 1757.7811829999991
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    0.32
+   ]
+  },
+  {
+   "first": 23,
+   "last": 23,
+   "lookahead": -1,
+   "tokens": 13,
+   "row": 13,
+   "spliced": false,
+   "method": "single",
+   "key": "en whisper1.1 speed0.92 voice:am_fenrir",
+   "renders": 1,
+   "modelSpeed": 0.92,
+   "ms": 1539.4445280000073,
+   "stats": [
+    {
+     "tokens": 13,
+     "ms": 1539.4445280000073
+    }
+   ],
+   "voice": [
+    "am_fenrir"
+   ],
+   "pauses": [
+    1
+   ]
+  },
+  {
+   "first": 24,
+   "last": 24,
+   "lookahead": -1,
+   "tokens": 9,
+   "row": 9,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1369.9039489999996,
+   "stats": [
+    {
+     "tokens": 9,
+     "ms": 1369.9039489999996
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    1.25
+   ]
+  },
+  {
+   "first": 25,
+   "last": 25,
+   "lookahead": -1,
+   "tokens": 5,
+   "row": 5,
+   "spliced": false,
+   "method": "single",
+   "key": "en firm0.6 pitch0.55 speed1.06 gainDb4 shelfDb3",
+   "renders": 1,
+   "modelSpeed": 1.06,
+   "ms": 1376.379384999993,
+   "stats": [
+    {
+     "tokens": 5,
+     "ms": 1376.379384999993
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    1.2
+   ]
+  },
+  {
+   "first": 26,
+   "last": 26,
+   "lookahead": -1,
+   "tokens": 17,
+   "row": 17,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1913.9117899999983,
+   "stats": [
+    {
+     "tokens": 17,
+     "ms": 1913.9117899999983
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 27,
+   "last": 27,
+   "lookahead": -1,
+   "tokens": 28,
+   "row": 28,
+   "spliced": true,
+   "method": "splice",
+   "key": "spliced",
+   "renders": 2,
+   "modelSpeed": [
+    1.06,
+    1
+   ],
+   "ms": 5075.110790999999,
+   "stats": [
+    {
+     "tokens": 28,
+     "ms": 2311.0275929999916
+    },
+    {
+     "tokens": 28,
+     "ms": 2764.0831980000075
+    }
+   ],
+   "voice": [
+    "af_aoede",
+    "af_heart"
+   ],
+   "pauses": [
+    0.5
+   ]
+  },
+  {
+   "first": 28,
+   "last": 29,
+   "lookahead": -1,
+   "tokens": 18,
+   "row": 18,
+   "spliced": false,
+   "method": "timings",
+   "key": "en firm0.6 pitch0.55 speed1.0918 gainDb4.5 shelfDb3 voice:am_fenrir",
+   "renders": 1,
+   "modelSpeed": 1.0918,
+   "ms": 2076.7082010000013,
+   "stats": [
+    {
+     "tokens": 18,
+     "ms": 2076.7082010000013
+    }
+   ],
+   "voice": [
+    "am_fenrir"
+   ],
+   "pauses": [
+    0.303,
+    0.85
+   ]
+  },
+  {
+   "first": 30,
+   "last": 32,
+   "lookahead": -1,
+   "tokens": 48,
+   "row": 48,
+   "spliced": false,
+   "method": "timings",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 3787.4474229999905,
+   "stats": [
+    {
+     "tokens": 48,
+     "ms": 3787.4474229999905
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    0.292,
+    0.304,
+    1
+   ]
+  },
+  {
+   "first": 33,
+   "last": 33,
+   "lookahead": -1,
+   "tokens": 13,
+   "row": 13,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1778.6550819999975,
+   "stats": [
+    {
+     "tokens": 13,
+     "ms": 1778.6550819999975
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    1.6
+   ]
+  },
+  {
+   "first": 34,
+   "last": 34,
+   "lookahead": -1,
+   "tokens": 20,
+   "row": 20,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 2087.2326220000105,
+   "stats": [
+    {
+     "tokens": 20,
+     "ms": 2087.2326220000105
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    1.6
+   ]
+  },
+  {
+   "first": 35,
+   "last": 35,
+   "lookahead": -1,
+   "tokens": 8,
+   "row": 8,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1448.671767000007,
+   "stats": [
+    {
+     "tokens": 8,
+     "ms": 1448.671767000007
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    1.2
+   ]
+  },
+  {
+   "first": 36,
+   "last": 36,
+   "lookahead": -1,
+   "tokens": 6,
+   "row": 6,
+   "spliced": false,
+   "method": "single",
+   "key": "en whisper0.6 speed0.95 gainDb-1 voice:am_fenrir",
+   "renders": 1,
+   "modelSpeed": 0.95,
+   "ms": 1429.5590439999942,
+   "stats": [
+    {
+     "tokens": 6,
+     "ms": 1429.5590439999942
+    }
+   ],
+   "voice": [
+    "am_fenrir"
+   ],
+   "pauses": [
+    0.302
+   ]
+  },
+  {
+   "first": 37,
+   "last": 37,
+   "lookahead": -1,
+   "tokens": 20,
+   "row": 20,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1842.032613999996,
+   "stats": [
+    {
+     "tokens": 20,
+     "ms": 1842.032613999996
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    0.339
+   ]
+  },
+  {
+   "first": 38,
+   "last": 38,
+   "lookahead": -1,
+   "tokens": 28,
+   "row": 28,
+   "spliced": false,
+   "method": "single",
+   "key": "en whisper0.6 speed0.95 gainDb-1 voice:am_fenrir",
+   "renders": 1,
+   "modelSpeed": 0.95,
+   "ms": 3095.1095950000017,
+   "stats": [
+    {
+     "tokens": 28,
+     "ms": 3095.1095950000017
+    }
+   ],
+   "voice": [
+    "am_fenrir"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 39,
+   "last": 39,
+   "lookahead": -1,
+   "tokens": 36,
+   "row": 36,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 3263.8205020000023,
+   "stats": [
+    {
+     "tokens": 36,
+     "ms": 3263.8205020000023
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    1
+   ]
+  },
+  {
+   "first": 40,
+   "last": 40,
+   "lookahead": -1,
+   "tokens": 9,
+   "row": 9,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1486.57781599999,
+   "stats": [
+    {
+     "tokens": 9,
+     "ms": 1486.57781599999
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    1.2
+   ]
+  },
+  {
+   "first": 41,
+   "last": 41,
+   "lookahead": -1,
+   "tokens": 12,
+   "row": 12,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1701.2981119999895,
+   "stats": [
+    {
+     "tokens": 12,
+     "ms": 1701.2981119999895
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    1.2
+   ]
+  },
+  {
+   "first": 42,
+   "last": 42,
+   "lookahead": -1,
+   "tokens": 52,
+   "row": 52,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 3120.6950050000014,
+   "stats": [
+    {
+     "tokens": 52,
+     "ms": 3120.6950050000014
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 43,
+   "last": 43,
+   "lookahead": -1,
+   "tokens": 13,
+   "row": 13,
+   "spliced": false,
+   "method": "single",
+   "key": "en firm0.6 pitch0.55 speed1.0918 gainDb4.5 shelfDb3 voice:af_aoede",
+   "renders": 1,
+   "modelSpeed": 1.0918,
+   "ms": 1251.2230689999997,
+   "stats": [
+    {
+     "tokens": 13,
+     "ms": 1251.2230689999997
+    }
+   ],
+   "voice": [
+    "af_aoede"
+   ],
+   "pauses": [
+    0.316
+   ]
+  },
+  {
+   "first": 44,
+   "last": 44,
+   "lookahead": -1,
+   "tokens": 27,
+   "row": 27,
+   "spliced": false,
+   "method": "single",
+   "key": "en firm0.3 pitch0.3 speed1.03 gainDb1.5 voice:af_aoede",
+   "renders": 1,
+   "modelSpeed": 1.03,
+   "ms": 1913.5726920000016,
+   "stats": [
+    {
+     "tokens": 27,
+     "ms": 1913.5726920000016
+    }
+   ],
+   "voice": [
+    "af_aoede"
+   ],
+   "pauses": [
+    1
+   ]
+  },
+  {
+   "first": 45,
+   "last": 45,
+   "lookahead": -1,
+   "tokens": 12,
+   "row": 12,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1346.7260839999944,
+   "stats": [
+    {
+     "tokens": 12,
+     "ms": 1346.7260839999944
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    1.2
+   ]
+  },
+  {
+   "first": 46,
+   "last": 46,
+   "lookahead": -1,
+   "tokens": 12,
+   "row": 12,
+   "spliced": true,
+   "method": "splice",
+   "key": "spliced",
+   "renders": 2,
+   "modelSpeed": [
+    1,
+    1.06
+   ],
+   "ms": 2160.046518999996,
+   "stats": [
+    {
+     "tokens": 12,
+     "ms": 1096.2218339999963
+    },
+    {
+     "tokens": 12,
+     "ms": 1063.8246849999996
+    }
+   ],
+   "voice": [
+    "am_fenrir"
+   ],
+   "pauses": [
+    0.5
+   ]
+  },
+  {
+   "first": 47,
+   "last": 47,
+   "lookahead": -1,
+   "tokens": 49,
+   "row": 49,
+   "spliced": false,
+   "method": "single",
+   "key": "en firm0.3 pitch0.3 speed1.03 gainDb1.5 voice:af_aoede",
+   "renders": 1,
+   "modelSpeed": 1.03,
+   "ms": 3199.904337,
+   "stats": [
+    {
+     "tokens": 49,
+     "ms": 3199.904337
+    }
+   ],
+   "voice": [
+    "af_aoede"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 48,
+   "last": 48,
+   "lookahead": -1,
+   "tokens": 43,
+   "row": 43,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 2486.844511999996,
+   "stats": [
+    {
+     "tokens": 43,
+     "ms": 2486.844511999996
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 49,
+   "last": 49,
+   "lookahead": -1,
+   "tokens": 21,
+   "row": 21,
+   "spliced": false,
+   "method": "single",
+   "key": "voice:am_fenrir",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1514.5161099999968,
+   "stats": [
+    {
+     "tokens": 21,
+     "ms": 1514.5161099999968
+    }
+   ],
+   "voice": [
+    "am_fenrir"
+   ],
+   "pauses": [
+    0.55
+   ]
+  },
+  {
+   "first": 50,
+   "last": 51,
+   "lookahead": -1,
+   "tokens": 30,
+   "row": 30,
+   "spliced": false,
+   "method": "timings",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 2225.1626140000008,
+   "stats": [
+    {
+     "tokens": 30,
+     "ms": 2225.1626140000008
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    0.32,
+    0.85
+   ]
+  },
+  {
+   "first": 52,
+   "last": 52,
+   "lookahead": -1,
+   "tokens": 6,
+   "row": 6,
+   "spliced": false,
+   "method": "single",
+   "key": "voice:am_fenrir",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1140.382712000006,
+   "stats": [
+    {
+     "tokens": 6,
+     "ms": 1140.382712000006
+    }
+   ],
+   "voice": [
+    "am_fenrir"
+   ],
+   "pauses": [
+    0.5
+   ]
+  },
+  {
+   "first": 53,
+   "last": 53,
+   "lookahead": -1,
+   "tokens": 28,
+   "row": 28,
+   "spliced": true,
+   "method": "splice",
+   "key": "spliced",
+   "renders": 2,
+   "modelSpeed": [
+    1,
+    1
+   ],
+   "ms": 4287.539493000018,
+   "stats": [
+    {
+     "tokens": 28,
+     "ms": 1987.9808690000064
+    },
+    {
+     "tokens": 28,
+     "ms": 2299.558624000012
+    }
+   ],
+   "voice": [
+    "af_aoede",
+    "af_heart"
+   ],
+   "pauses": [
+    0.5
+   ]
+  },
+  {
+   "first": 54,
+   "last": 54,
+   "lookahead": -1,
+   "tokens": 24,
+   "row": 24,
+   "spliced": false,
+   "method": "single",
+   "key": "voice:am_fenrir",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1963.6887940000015,
+   "stats": [
+    {
+     "tokens": 24,
+     "ms": 1963.6887940000015
+    }
+   ],
+   "voice": [
+    "am_fenrir"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 55,
+   "last": 55,
+   "lookahead": -1,
+   "tokens": 25,
+   "row": 25,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 1961.3374329999933,
+   "stats": [
+    {
+     "tokens": 25,
+     "ms": 1961.3374329999933
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 56,
+   "last": 56,
+   "lookahead": -1,
+   "tokens": 51,
+   "row": 51,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 4575.954750000004,
+   "stats": [
+    {
+     "tokens": 51,
+     "ms": 4575.954750000004
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    0.85
+   ]
+  },
+  {
+   "first": 57,
+   "last": 57,
+   "lookahead": -1,
+   "tokens": 31,
+   "row": 31,
+   "spliced": true,
+   "method": "splice",
+   "key": "spliced",
+   "renders": 2,
+   "modelSpeed": [
+    0.92,
+    1
+   ],
+   "ms": 8767.479999999981,
+   "stats": [
+    {
+     "tokens": 31,
+     "ms": 4127.98694599999
+    },
+    {
+     "tokens": 31,
+     "ms": 4639.493053999991
+    }
+   ],
+   "voice": [
+    "am_fenrir",
+    "af_heart"
+   ],
+   "pauses": [
+    0.5
+   ]
+  },
+  {
+   "first": 58,
+   "last": 58,
+   "lookahead": -1,
+   "tokens": 21,
+   "row": 21,
+   "spliced": true,
+   "method": "splice",
+   "key": "spliced",
+   "renders": 2,
+   "modelSpeed": [
+    0.92,
+    1
+   ],
+   "ms": 7785.949759999989,
+   "stats": [
+    {
+     "tokens": 21,
+     "ms": 3799.3370779999823
+    },
+    {
+     "tokens": 21,
+     "ms": 3986.6126820000063
+    }
+   ],
+   "voice": [
+    "af_aoede",
+    "af_heart"
+   ],
+   "pauses": [
+    0.343
+   ]
+  },
+  {
+   "first": 59,
+   "last": 59,
+   "lookahead": -1,
+   "tokens": 28,
+   "row": 28,
+   "spliced": false,
+   "method": "single",
+   "key": "en whisper1.1 speed0.92 voice:af_aoede",
+   "renders": 1,
+   "modelSpeed": 0.92,
+   "ms": 4168.408685999981,
+   "stats": [
+    {
+     "tokens": 28,
+     "ms": 4168.408685999981
+    }
+   ],
+   "voice": [
+    "af_aoede"
+   ],
+   "pauses": [
+    1
+   ]
+  },
+  {
+   "first": 60,
+   "last": 60,
+   "lookahead": -1,
+   "tokens": 8,
+   "row": 8,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 3467.6467230000126,
+   "stats": [
+    {
+     "tokens": 8,
+     "ms": 3467.6467230000126
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    1.6
+   ]
+  },
+  {
+   "first": 61,
+   "last": 61,
+   "lookahead": -1,
+   "tokens": 14,
+   "row": 14,
+   "spliced": false,
+   "method": "single",
+   "key": "",
+   "renders": 1,
+   "modelSpeed": 1,
+   "ms": 3426.2491359999985,
+   "stats": [
+    {
+     "tokens": 14,
+     "ms": 3426.2491359999985
+    }
+   ],
+   "voice": [
+    "af_heart"
+   ],
+   "pauses": [
+    1
+   ]
+  },
+  {
+   "first": 62,
+   "last": 63,
+   "lookahead": -1,
+   "tokens": 21,
+   "row": 21,
+   "spliced": false,
+   "method": "timings",
+   "key": "en whisper0.6 speed0.93 gainDb-3 voice:am_fenrir",
+   "renders": 1,
+   "modelSpeed": 0.93,
+   "ms": 3805.882612000016,
+   "stats": [
+    {
+     "tokens": 21,
+     "ms": 3805.882612000016
+    }
+   ],
+   "voice": [
+    "am_fenrir"
+   ],
+   "pauses": [
+    0.31,
+    0.85
+   ]
+  }
+ ],
+ "phonemes": [
+  {
+   "ph": "həlˈoʊ?",
+   "parts": [
+    "həlˈoʊ?"
+   ],
+   "head": "həlˈoʊ",
+   "n": 7,
+   "headN": 6
+  },
+  {
+   "ph": "kæn juː hˈɪɹ mˌiː?",
+   "parts": [
+    "kæn juː hˈɪɹ mˌiː?"
+   ],
+   "head": "kˈæn juː",
+   "n": 18,
+   "headN": 8
+  },
+  {
+   "ph": "ðə vˈɔɪs ɔnðɪ ˈʌðɚɹ ˈɛnd wʌz bˈɛɹli ɐ wˈɪspɚ.",
+   "parts": [
+    "ðə vˈɔɪs ɔnðɪ ˈʌðɚɹ ˈɛnd wʌz bˈɛɹli ɐ wˈɪspɚ."
+   ],
+   "head": "ðə vˈɔɪs",
+   "n": 45,
+   "headN": 8
+  },
+  {
+   "ph": "dˈænjəl… aɪ nˈiːd juː tə lˈɪsən vˈɛɹi kˈɛɹfəli.",
+   "parts": [
+    "dˈænjəl… aɪ nˈiːd juː tə lˈɪsən vˈɛɹi kˈɛɹfəli."
+   ],
+   "head": "dˈænjəl… ˈaɪ",
+   "n": 47,
+   "headN": 12
+  },
+  {
+   "ph": "hiː lˈæft.",
+   "parts": [
+    "hiː lˈæft."
+   ],
+   "head": "hiː lˈæft",
+   "n": 10,
+   "headN": 9
+  },
+  {
+   "ph": "ˈoʊ, kˈʌm ˈɔn, sˈɛɹə!",
+   "parts": [
+    "ˈoʊ, kˈʌm ˈɔn, sˈɛɹə!"
+   ],
+   "head": "ˈoʊ, kˈʌm",
+   "n": 21,
+   "headN": 9
+  },
+  {
+   "ph": "wˌʌt ɪz ɪt ðɪs tˈaɪm?",
+   "parts": [
+    "wˌʌt ɪz ɪt ðɪs tˈaɪm?"
+   ],
+   "head": "wˈʌt ɪz",
+   "n": 21,
+   "headN": 7
+  },
+  {
+   "ph": "ɐnˈʌðɚ wˈʌn ʌv jʊɹ ɹɪdˈɪkjʊləs kənspˈɪɹəsi θˈiəɹiz?",
+   "parts": [
+    "ɐnˈʌðɚ wˈʌn ʌv jʊɹ ɹɪdˈɪkjʊləs kənspˈɪɹəsi θˈiəɹiz?"
+   ],
+   "head": "ɐnˈʌðɚ wˌʌn",
+   "n": 51,
+   "headN": 11
+  },
+  {
+   "ph": "nˈoʊ. hɜː vˈɔɪs kɹˈækt.",
+   "parts": [
+    "nˈoʊ.",
+    "hɜː vˈɔɪs kɹˈækt."
+   ],
+   "head": "nˈoʊ",
+   "n": 23,
+   "headN": 4
+  },
+  {
+   "ph": "aɪm sˈɪɹiəs.",
+   "parts": [
+    "aɪm sˈɪɹiəs."
+   ],
+   "head": "aɪm sˈɪɹiəs",
+   "n": 12,
+   "headN": 11
+  },
+  {
+   "ph": "sˈʌmθɪŋ ɐbˌaʊt ðə wˈeɪ ʃiː sˈɛd ɪt mˌeɪd hˌɪm stˈɑːp smˈaɪlɪŋ.",
+   "parts": [
+    "sˈʌmθɪŋ ɐbˌaʊt ðə wˈeɪ ʃiː sˈɛd ɪt mˌeɪd hˌɪm stˈɑːp smˈaɪlɪŋ."
+   ],
+   "head": "sˈʌmθɪŋ ɐbˈaʊt",
+   "n": 62,
+   "headN": 14
+  },
+  {
+   "ph": "sˈɛɹə?",
+   "parts": [
+    "sˈɛɹə?"
+   ],
+   "head": "sˈɛɹə",
+   "n": 6,
+   "headN": 5
+  },
+  {
+   "ph": "wˌʌts ɡˌoʊɪŋ ˈɔn?",
+   "parts": [
+    "wˌʌts ɡˌoʊɪŋ ˈɔn?"
+   ],
+   "head": "wˌʌts ɡˈoʊɪŋ",
+   "n": 17,
+   "headN": 12
+  },
+  {
+   "ph": "sˈaɪləns.",
+   "parts": [
+    "sˈaɪləns."
+   ],
+   "head": "sˈaɪləns",
+   "n": 9,
+   "headN": 8
+  },
+  {
+   "ph": "ðˈɛn, vˈɛɹi kwˈaɪətli, ʃiː sˈɛd, ðɛɹz sˈʌmwʌn ɪnðə hˈaʊs.",
+   "parts": [
+    "ðˈɛn, vˈɛɹi kwˈaɪətli, ʃiː sˈɛd,",
+    "ðɛɹz sˈʌmwʌn ɪnðə hˈaʊs."
+   ],
+   "head": "ðˈɛn, vˈɛɹi",
+   "n": 57,
+   "headN": 11
+  },
+  {
+   "ph": "dˈænjəl sˈæt ˈʌpɹaɪt.",
+   "parts": [
+    "dˈænjəl sˈæt ˈʌpɹaɪt."
+   ],
+   "head": "dˈænjəl sˈæt",
+   "n": 21,
+   "headN": 12
+  },
+  {
+   "ph": "wˌʌt dˈuː juː mˈiːn, sˈʌmwʌn?",
+   "parts": [
+    "wˌʌt dˈuː juː mˈiːn, sˈʌmwʌn?"
+   ],
+   "head": "wˌʌt dˈuː",
+   "n": 29,
+   "headN": 9
+  },
+  {
+   "ph": "dˈɪd juː kˈɔːl ðə pəlˈiːs?",
+   "parts": [
+    "dˈɪd juː kˈɔːl ðə pəlˈiːs?"
+   ],
+   "head": "dˈɪd juː",
+   "n": 26,
+   "headN": 8
+  },
+  {
+   "ph": "aɪ kˈænt.",
+   "parts": [
+    "aɪ kˈænt."
+   ],
+   "head": "aɪ kˈænt",
+   "n": 9,
+   "headN": 8
+  },
+  {
+   "ph": "hiːz stˈændɪŋ ɹˈaɪt aʊtsˈaɪd maɪ dˈoːɹ.",
+   "parts": [
+    "hiːz stˈændɪŋ ɹˈaɪt aʊtsˈaɪd maɪ dˈoːɹ."
+   ],
+   "head": "hiːz stˈændɪŋ",
+   "n": 39,
+   "headN": 13
+  },
+  {
+   "ph": "ɐ flˈoːɹboːɹd kɹˈiːkt.",
+   "parts": [
+    "ɐ flˈoːɹboːɹd kɹˈiːkt."
+   ],
+   "head": "ɐ flˈoːɹboːɹd",
+   "n": 22,
+   "headN": 13
+  },
+  {
+   "ph": "sˈɛɹə…",
+   "parts": [
+    "sˈɛɹə…"
+   ],
+   "head": "sˈɛɹə…",
+   "n": 6,
+   "headN": 6
+  },
+  {
+   "ph": "dˈænjəl wˈɪspɚd.",
+   "parts": [
+    "dˈænjəl wˈɪspɚd."
+   ],
+   "head": "dˈænjəl wˈɪspɚd",
+   "n": 16,
+   "headN": 15
+  },
+  {
+   "ph": "dˈoʊnt mˈuːv.",
+   "parts": [
+    "dˈoʊnt mˈuːv."
+   ],
+   "head": "dˈoʊnt mˈuːv",
+   "n": 13,
+   "headN": 12
+  },
+  {
+   "ph": "ænd ðˈɛn—",
+   "parts": [
+    "ænd ðˈɛn—"
+   ],
+   "head": "ænd ðˈɛn—",
+   "n": 9,
+   "headN": 9
+  },
+  {
+   "ph": "bˈæŋ!",
+   "parts": [
+    "bˈæŋ!"
+   ],
+   "head": "bˈæŋ",
+   "n": 5,
+   "headN": 4
+  },
+  {
+   "ph": "ɐ dˈɛfənɪŋ kɹˈæʃ.",
+   "parts": [
+    "ɐ dˈɛfənɪŋ kɹˈæʃ."
+   ],
+   "head": "ɐ dˈɛfənɪŋ",
+   "n": 17,
+   "headN": 10
+  },
+  {
+   "ph": "ˈoʊ maɪ ɡˈɑːd! ʃiː skɹˈiːmd.",
+   "parts": [
+    "ˈoʊ maɪ ɡˈɑːd!",
+    "ʃiː skɹˈiːmd."
+   ],
+   "head": "ˈoʊ mˈaɪ",
+   "n": 28,
+   "headN": 8
+  },
+  {
+   "ph": "ɹˈʌn, sˈɛɹə!",
+   "parts": [
+    "ɹˈʌn, sˈɛɹə!"
+   ],
+   "head": "ɹˈʌn, sˈɛɹə",
+   "n": 12,
+   "headN": 11
+  },
+  {
+   "ph": "ɹˈʌn!",
+   "parts": [
+    "ɹˈʌn!"
+   ],
+   "head": "ɹˈʌn",
+   "n": 5,
+   "headN": 4
+  },
+  {
+   "ph": "fˈʊtstɛps.",
+   "parts": [
+    "fˈʊtstɛps."
+   ],
+   "head": "fˈʊtstɛps",
+   "n": 10,
+   "headN": 9
+  },
+  {
+   "ph": "hˈɛvi bɹˈiːðɪŋ.",
+   "parts": [
+    "hˈɛvi bɹˈiːðɪŋ."
+   ],
+   "head": "hˈɛvi bɹˈiːðɪŋ",
+   "n": 15,
+   "headN": 14
+  },
+  {
+   "ph": "ɐ dˈoːɹ slˈæmɪŋ ʃˈʌt.",
+   "parts": [
+    "ɐ dˈoːɹ slˈæmɪŋ ʃˈʌt."
+   ],
+   "head": "ɐ dˈoːɹ",
+   "n": 21,
+   "headN": 7
+  },
+  {
+   "ph": "ðˈɛn… nˈʌθɪŋ.",
+   "parts": [
+    "ðˈɛn… nˈʌθɪŋ."
+   ],
+   "head": "ðˈɛn… nˈʌθɪŋ",
+   "n": 13,
+   "headN": 12
+  },
+  {
+   "ph": "tˈɛn sˈɛkəndz pˈæst.",
+   "parts": [
+    "tˈɛn sˈɛkəndz pˈæst."
+   ],
+   "head": "tˈɛn sˈɛkəndz",
+   "n": 20,
+   "headN": 13
+  },
+  {
+   "ph": "twˈɛnti.",
+   "parts": [
+    "twˈɛnti."
+   ],
+   "head": "twˈɛnti",
+   "n": 8,
+   "headN": 7
+  },
+  {
+   "ph": "sˈɛɹə?",
+   "parts": [
+    "sˈɛɹə?"
+   ],
+   "head": "sˈɛɹə",
+   "n": 6,
+   "headN": 5
+  },
+  {
+   "ph": "hɪz vˈɔɪs tɹˈɛmbəld.",
+   "parts": [
+    "hɪz vˈɔɪs tɹˈɛmbəld."
+   ],
+   "head": "hɪz vˈɔɪs",
+   "n": 20,
+   "headN": 9
+  },
+  {
+   "ph": "sˈɛɹə, plˈiːz… sˈeɪ sˈʌmθɪŋ.",
+   "parts": [
+    "sˈɛɹə, plˈiːz… sˈeɪ sˈʌmθɪŋ."
+   ],
+   "head": "sˈɛɹə, plˈiːz…",
+   "n": 28,
+   "headN": 14
+  },
+  {
+   "ph": "ɐ fˈeɪnt sˈaʊnd kˈeɪm θɹuː ðə fˈoʊn.",
+   "parts": [
+    "ɐ fˈeɪnt sˈaʊnd kˈeɪm θɹuː ðə fˈoʊn."
+   ],
+   "head": "ɐ fˈeɪnt",
+   "n": 36,
+   "headN": 8
+  },
+  {
+   "ph": "ɐ ɡˈɪɡəl.",
+   "parts": [
+    "ɐ ɡˈɪɡəl."
+   ],
+   "head": "ɐ ɡˈɪɡəl",
+   "n": 9,
+   "headN": 8
+  },
+  {
+   "ph": "ðˈɛn ɐnˈʌðɚ.",
+   "parts": [
+    "ðˈɛn ɐnˈʌðɚ."
+   ],
+   "head": "ðˈɛn ɐnˈʌðɚ",
+   "n": 12,
+   "headN": 11
+  },
+  {
+   "ph": "fˈaɪnəli, sˈɛɹə bˈɜːst ˌɪntʊ ʌŋkəntɹˈoʊləbəl lˈæftɚ.",
+   "parts": [
+    "fˈaɪnəli, sˈɛɹə bˈɜːst ˌɪntʊ ʌŋkəntɹˈoʊləbəl lˈæftɚ."
+   ],
+   "head": "fˈaɪnəli, sˈɛɹə",
+   "n": 52,
+   "headN": 15
+  },
+  {
+   "ph": "ˈoʊ, dˈænjəl!",
+   "parts": [
+    "ˈoʊ, dˈænjəl!"
+   ],
+   "head": "ˈoʊ, dˈænjəl",
+   "n": 13,
+   "headN": 12
+  },
+  {
+   "ph": "juː ʃˌʊdəv hˈɜːd joːɹsˈɛlf!",
+   "parts": [
+    "juː ʃˌʊdəv hˈɜːd joːɹsˈɛlf!"
+   ],
+   "head": "juː ʃˈʊd",
+   "n": 27,
+   "headN": 8
+  },
+  {
+   "ph": "hiː blˈɪŋkt.",
+   "parts": [
+    "hiː blˈɪŋkt."
+   ],
+   "head": "hiː blˈɪŋkt",
+   "n": 12,
+   "headN": 11
+  },
+  {
+   "ph": "wˈeɪt… wˈʌt?",
+   "parts": [
+    "wˈeɪt…",
+    "wˈʌt?"
+   ],
+   "head": "wˈeɪt…",
+   "n": 12,
+   "headN": 6
+  },
+  {
+   "ph": "hˈæpi ˈeɪpɹəl fˈuːlz dˈeɪ, juː ˈæbsəlˌuːt ˈɪdɪət!",
+   "parts": [
+    "hˈæpi ˈeɪpɹəl fˈuːlz dˈeɪ, juː ˈæbsəlˌuːt ˈɪdɪət!"
+   ],
+   "head": "hˈæpi ˈeɪpɹəl",
+   "n": 49,
+   "headN": 13
+  },
+  {
+   "ph": "dˈænjəl stˈɛɹd æt hɪz fˈoʊn ɪn dˌɪsbᵻlˈiːf.",
+   "parts": [
+    "dˈænjəl stˈɛɹd æt hɪz fˈoʊn ɪn dˌɪsbᵻlˈiːf."
+   ],
+   "head": "dˈænjəl stˈɛɹd",
+   "n": 43,
+   "headN": 14
+  },
+  {
+   "ph": "jˈuː… juː ˈæktʃuːəli—",
+   "parts": [
+    "jˈuː… juː ˈæktʃuːəli—"
+   ],
+   "head": "jˈuː… jˈuː",
+   "n": 21,
+   "headN": 10
+  },
+  {
+   "ph": "hiː stˈɑːpt.",
+   "parts": [
+    "hiː stˈɑːpt."
+   ],
+   "head": "hiː stˈɑːpt",
+   "n": 12,
+   "headN": 11
+  },
+  {
+   "ph": "ɪnhˈeɪld slˈoʊli.",
+   "parts": [
+    "ɪnhˈeɪld slˈoʊli."
+   ],
+   "head": "ɪnhˈeɪld slˈoʊli",
+   "n": 17,
+   "headN": 16
+  },
+  {
+   "ph": "sˈɛɹə.",
+   "parts": [
+    "sˈɛɹə."
+   ],
+   "head": "sˈɛɹə",
+   "n": 6,
+   "headN": 5
+  },
+  {
+   "ph": "jˈɛs? ʃiː ɹᵻplˈaɪd swˈiːtli.",
+   "parts": [
+    "jˈɛs?",
+    "ʃiː ɹᵻplˈaɪd swˈiːtli."
+   ],
+   "head": "jˈɛs",
+   "n": 28,
+   "headN": 4
+  },
+  {
+   "ph": "aɪɐm ɡˌoʊɪŋ tə kˈɪl juː.",
+   "parts": [
+    "aɪɐm ɡˌoʊɪŋ tə kˈɪl juː."
+   ],
+   "head": "aɪˈæm",
+   "n": 24,
+   "headN": 5
+  },
+  {
+   "ph": "ʃiː lˈæft ˈiːvən hˈɑːɹdɚ.",
+   "parts": [
+    "ʃiː lˈæft ˈiːvən hˈɑːɹdɚ."
+   ],
+   "head": "ʃiː lˈæft",
+   "n": 25,
+   "headN": 9
+  },
+  {
+   "ph": "ænd dᵻspˈaɪt hɪmsˈɛlf, dˈænjəl bɪɡˈæn tə lˈæf tˈuː.",
+   "parts": [
+    "ænd dᵻspˈaɪt hɪmsˈɛlf, dˈænjəl bɪɡˈæn tə lˈæf tˈuː."
+   ],
+   "head": "ænd dᵻspˈaɪt",
+   "n": 51,
+   "headN": 12
+  },
+  {
+   "ph": "jʊɹ ʌnbᵻlˈiːvəbəl, hiː mˈɜːmɚd.",
+   "parts": [
+    "jʊɹ ʌnbᵻlˈiːvəbəl,",
+    "hiː mˈɜːmɚd."
+   ],
+   "head": "jʊɹ ʌnbᵻlˈiːvəbəl",
+   "n": 31,
+   "headN": 17
+  },
+  {
+   "ph": "aɪ nˈoʊ, ʃiː wˈɪspɚd.",
+   "parts": [
+    "aɪ nˈoʊ,",
+    "ʃiː wˈɪspɚd."
+   ],
+   "head": "aɪ nˈoʊ",
+   "n": 21,
+   "headN": 7
+  },
+  {
+   "ph": "bˌʌt juː lˈʌv mˌiː ˈɛnɪwˌeɪ.",
+   "parts": [
+    "bˌʌt juː lˈʌv mˌiː ˈɛnɪwˌeɪ."
+   ],
+   "head": "bˈʌt juː",
+   "n": 28,
+   "headN": 8
+  },
+  {
+   "ph": "ɐ pˈɔːz.",
+   "parts": [
+    "ɐ pˈɔːz."
+   ],
+   "head": "ɐ pˈɔːz",
+   "n": 8,
+   "headN": 7
+  },
+  {
+   "ph": "ðˈɛn, sˈɔftli—",
+   "parts": [
+    "ðˈɛn, sˈɔftli—"
+   ],
+   "head": "ðˈɛn, sˈɔftli—",
+   "n": 14,
+   "headN": 14
+  },
+  {
+   "ph": "jˈɛə.",
+   "parts": [
+    "jˈɛə."
+   ],
+   "head": "jˈɛə",
+   "n": 5,
+   "headN": 4
+  },
+  {
+   "ph": "aɪ ɹˈiəli dˈuː.",
+   "parts": [
+    "aɪ ɹˈiəli dˈuː."
+   ],
+   "head": "aɪ ɹˈiəli",
+   "n": 15,
+   "headN": 9
+  }
+ ],
+ "wallMs": 161685
+}
