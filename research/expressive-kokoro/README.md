@@ -16,10 +16,15 @@ on CPU in Node with the fp32 model; nothing here has run in a browser.
    length) lands in its steady range.
 2. **Voice row = phoneme count of the call.** Never pin it; forcing a long-call
    row onto a short call damaged short lines.
-3. **First sentence alone** for a fast start, rendered with the next sentence
-   as look-ahead (the look-ahead audio is discarded).
-4. **Look-ahead at joins between calls** when the next sentence has the same
-   style and language.
+3. **First sentence alone** for a fast start, then growing calls (2, 4, then
+   up to a paragraph) so audio reaches the listener sooner.
+4. **Two-word look-ahead with a "virtual row".** Every call that ends
+   mid-paragraph is rendered with the first two words of the next sentence
+   (same style and language only), and the voice row is set as if the whole
+   next sentence were present. The look-ahead audio is cut off at the token
+   timing. This keeps natural sentence endings at a fraction of the cost of a
+   full-sentence look-ahead. Never use the virtual row on styled or short
+   quoted calls.
 5. **Sentence boundaries and pauses from token timings**, using the
    `onnx-community/Kokoro-82M-v1.0-ONNX-timestamped` model (same audio as the
    standard model, plus a `durations` output). Each pause is set to a designed

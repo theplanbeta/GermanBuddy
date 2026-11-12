@@ -101,22 +101,35 @@ async function render(name, v) {
       pieces.push(...splitCall(await call(c.ph, row), [c]));
     }
   } else {
-    let G = v.context === "para" ? paraGroups : groups;
+    let G = v.context === "para" || v.context === "ramp" ? paraGroups : groups;
+    if (v.context === "ramp") { // grow call sizes 1, 2, 4, then up to the cap (never across a paragraph)
+      const flat = []; for (const g of paraGroups) flat.push(g);
+      G = []; const sizes = [1, 2, 4]; let ci = 0;
+      for (const pg of paraGroups) { let i = 0; while (i < pg.length) { const sz = ci < sizes.length ? sizes[ci] : 99; G.push(pg.slice(i, i + sz)); i += sz; ci++; } }
+    }
     // the app must render the first sentence alone (fast first audio): split it off its group
     if (v.firstAlone && G[0].length > 1) G = [[G[0][0]], G[0].slice(1), ...G.slice(1)];
     for (const [gi, g] of G.entries()) {
       const ph = g.map((c) => c.ph).join(" ");
       const mean = Math.round(g.reduce((a, c) => a + c.n, 0) / g.length);
       const row = v.row === "single" ? mean : v.row?.startsWith?.("fixed:") ? +v.row.slice(6) : null;
-      const lookHere = v.context === "look" || (v.firstLook && gi === 0);
+      const lookHere = v.context === "look" || (v.firstLook && gi === 0) || v.laWords;
       if (lookHere) {
         // lead-in = previous sentence in the same paragraph, look-ahead = next sentence in the same paragraph
         const all = plan, i0 = all.indexOf(g[0]), i1 = all.indexOf(g.at(-1));
         const pre = i0 > 0 && !all[i0 - 1].paraEnd ? [all[i0 - 1]] : [];
-        const post = !g.at(-1).paraEnd && all[i1 + 1] ? [all[i1 + 1]] : [];
-        const mem = [...pre, ...g, ...post];
-        const r = await call(mem.map((c) => c.ph).join(" "), row);
-        pieces.push(...splitCall(r, mem).slice(pre.length, pre.length + g.length));
+        let post = !g.at(-1).paraEnd && all[i1 + 1] ? [all[i1 + 1]] : [];
+        let pre2 = v.laWords ? [] : pre;
+        let rowHere = row;
+        if (v.laWords && post.length) { // truncated look-ahead: first N words of the next sentence; row as if it were complete
+          const w = post[0].text.split(/\s+/).slice(0, v.laWords).join(" ").replace(/[,.;:!?]$/, "");
+          const lp = clean(await textToPhonemes(w));
+          if (v.virtualRow) rowHere = g.reduce((a, c) => a + c.n + 1, 0) + post[0].n;
+          post = [{ ph: lp, n: [...lp].length, text: w }];
+        }
+        const mem = [...pre2, ...g, ...post];
+        const r = await call(mem.map((c) => c.ph).join(" "), rowHere);
+        pieces.push(...splitCall(r, mem).slice(pre2.length, pre2.length + g.length));
       } else pieces.push(...splitCall(await call(ph, row), g));
     }
   }
@@ -163,6 +176,10 @@ const V = {
   D3d_lookahead_row300: { context: "look", row: "fixed:300", edges: "model", pauses: "exact" },
   D3e_paragraph_row300: { context: "para", row: "fixed:300", edges: "model", pauses: "exact" },
   D1_row300: { context: "none", row: "fixed:300", edges: "model", pauses: "exact" },
+  D3_ref_para_first_alone_full_lookahead: { context: "para", row: "own", edges: "model", pauses: "exact", firstAlone: true, firstLook: true },
+  R1_ramp_2w_virtualrow: { context: "ramp", row: "own", edges: "model", pauses: "exact", laWords: 2, virtualRow: true },
+  R2_ramp_2w_ownrow: { context: "ramp", row: "own", edges: "model", pauses: "exact", laWords: 2 },
+  R3_para_2w_virtualrow_first_alone: { context: "para", row: "own", edges: "model", pauses: "exact", laWords: 2, virtualRow: true, firstAlone: true },
   D3f_para_row300_first_alone: { context: "para", row: "fixed:300", edges: "model", pauses: "exact", firstAlone: true },
   D3g_para_row300_first_alone_lookahead: { context: "para", row: "fixed:300", edges: "model", pauses: "exact", firstAlone: true, firstLook: true },
   D3h_para_ownrow_first_alone: { context: "para", row: "own", edges: "model", pauses: "exact", firstAlone: true },
