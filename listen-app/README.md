@@ -28,17 +28,26 @@ server or an account.
   way a person says them, while the text on screen stays exactly as written:
   "€2.5 million" as "2.5 million euros" (not "euros 2.5 million"), "a $5
   bill" as "a 5 dollar bill", "19:30" as "nineteen thirty", "2026-11-12" as
-  "November 12th, 2026", "1 March" as "the 1st of March", "Nov. 12", "St.
-  Paul", "No. 5", "5 km", "20°C", "½", "1914–1918". What the voice model
+  "November 12th, 2026", "1 March" as "the 1st of March", "$5M" as "5
+  million dollars", "Nov. 12", "St. Paul" (but "123 Main St." as a street),
+  "No. 5", "5 km", "20°C", "½", "1914–1918". A date is only completed where
+  it clearly is one ("In May 20 people died" stays as written). What the voice model
   already reads well ("$4.50", "37.8%", "1,250", "7:43 a.m.", "12th") is left
   to it. A date such as 03/04/2025 is read the American way with American
   voices and the British way with British ones. Always on.
 - **Expressive reading** (Settings, on by default, remembered). Quoted speech
   is read the way the text around it describes it, by rules from the research
   prototype (`research/expressive-kokoro`) whose results were chosen by ear:
+  Only speech counts as a quote: words in quote marks that end like spoken
+  words (with , . ! ? … or a dash), so a title ("War and Peace"), a term or
+  scare quotes ("the so-called “experts”") are read as plain narration. The
+  cue must be close: in the last 8 words before the quote or the first 6
+  after it ("…,” she whispered."), not in narration that goes on about
+  something else ("…,” who shouted at the press"). The rules prefer to miss
+  a cue (the line is simply read plainly) over a wrong one.
   - "she whispered, …" or "murmured": a breathy, slightly slower voice;
   - "shouted", "yelled", or a run of capitals ending in ! or ?! ("Wait…
-    WHAT?!"): a raised voice (a little higher, firmer, louder and brighter);
+    WHAT?!", not "OK?"): a raised voice (a little higher, firmer, louder and brighter);
   - "deliberately slowing", "slowly", "drawled": 15% slower;
   - "her voice trembling": a little breath added to the line;
   - a quote with no such words carries on the slow or whispered delivery of
@@ -50,7 +59,10 @@ server or an account.
   delivery and the parts are cut together at the voice's own pause, so the
   intonation does not restart. German and Spanish quotes ("Das kann doch
   nicht wahr sein.", "¡Cuidado!") and German or Spanish names inside English
-  ("Dr. Müller", "Zürich") are read with German or Spanish sounds. With
+  ("Dr. Müller", "Zürich", "El Niño") are read with German or Spanish sounds.
+  A quote counts as German or Spanish only with a clearly German or Spanish
+  word in it (or ¡ ¿), so "No way!", "Die, die!" or "La Bamba" stay English,
+  and narration is never switched as a whole. With
   nothing to direct (ordinary prose) the reading is exactly what it is with
   the setting off. Off: everything is read as plain narration (spoken forms
   still apply).
@@ -274,7 +286,7 @@ Everything else, including the speech engine itself, is served by the app.
 | `vercel.json` | Build settings and headers for Vercel. |
 
 Planned additions slot in without touching the reader: new **sources** (PDF or
-file import, photo text recognition, web links, a saved library) only need to
+file import, web links, a saved library) only need to
 produce text and call `splitText` and `reader.load`; a second **voice engine**
 (for example a server-hosted one) only needs the same `probe / load / generate`
 functions described at the top of `kokoro-engine.js`.

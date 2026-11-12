@@ -100,6 +100,35 @@ test('left alone: what kokoro-js already reads well, and ordinary words', () => 
   for (const s of splitText(PROSE_LONG)) assert.equal(spokenForms(s.text), s.text);
 });
 
+test('precision: money letters, clauses after an amount, dates that are not dates, streets', () => {
+  cases([
+    ['$5M in funding', '5 million dollars in funding'],
+    ['$5K', '5 thousand dollars'],
+    ['$2B', '2 billion dollars'],
+    ['€3BN', '3 billion euros'],
+    ['$5m', '5 million dollars'],
+    ['€3bn', '3 billion euros'],
+    ['the $5 he owed', 'the 5 dollars he owed'],
+    ['the $2 million he raised', 'the 2 million dollars he raised'],
+    ['the $5 million raised last year', 'the 5 million dollars raised last year'],
+    ['the $5 they paid', 'the 5 dollars they paid'],
+    ['a $5 bill', 'a 5 dollar bill'],
+    ['the €2.45 million budget', 'the 2.45 million euro budget'],
+    ['In May 20 people died', 'In May 20 people died'],
+    ['May 5 percent', 'May 5 percent'],
+    ['on March 3.', 'on March 3rd.'],
+    ['by March 3, 2024', 'by March 3rd, 2024'],
+    ['until March 3)', 'until March 3rd)'],
+    ['March 3', 'March 3rd'],
+    ['123 Main St. The house', '123 Main Street. The house'],
+    ['I live at 123 Main St.', 'I live at 123 Main Street.'],
+    ['10 Downing St., London', '10 Downing Street, London'],
+    ['St. Paul', 'Saint Paul'],
+    ['Mont St. Michel', 'Mont Saint Michel'],
+    ['they coöperate in zoölogy', 'they cooperate in zoology'],
+  ]);
+});
+
 test('the stress paragraph: only the money changes', () => {
   const changed = splitText(STRESS).filter((s) => spokenForms(s.text) !== s.text);
   assert.deepEqual(changed.map((s) => spokenForms(s.text)), ['“You\'re telling me that 37.8% of the 2.45 million euro budget has simply… disappeared?”']);

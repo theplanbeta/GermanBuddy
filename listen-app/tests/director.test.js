@@ -139,3 +139,77 @@ test('German and Spanish: sound symbols for names inside English and for whole p
   const plain = { text: PROSE_LONG.split('. ')[0] + '.', lang: 'en', names: true };
   assert.equal(await partToPhonemes(plain, 'a'), await partToPhonemes({ ...plain, names: false }, 'a'));
 });
+
+// ---- precision: a missed cue is inaudible, a wrong one is jarring ----
+
+// Every sentence of `text` plain: no style, no language switch, exactly as written (names may still be marked).
+function assertPlain(text) {
+  const sentences = splitText(text);
+  direct(sentences).forEach((d, i) => {
+    assert.equal(d.key, '', `${sentences[i].text}: ${view(d)}`);
+    assert.equal(d.parts.length, 1, sentences[i].text);
+    assert.equal(d.parts[0].lang, 'en', sentences[i].text);
+    assert.equal(d.parts[0].text, sentences[i].text);
+  });
+}
+
+test('narration is never read as German or Spanish as a whole', () => {
+  for (const t of ['No way.', 'No problem.', 'No thanks.', 'Los Angeles.', 'El Paso.', 'La La Land.', 'Café.', 'Résumé attached.', 'Beyoncé sang.', 'Pokémon Go.', 'War ended.', 'Die now.', 'Gut feeling.', 'Tag him.', 'War is war.', 'The El Niño pattern will bring rain this year.', 'She ordered a jalapeño pizza and a piñata.', 'Schrödinger and Gödel met Björk in Malmö.']) assertPlain(t);
+  // names inside English still get their own sounds
+  const d = direct(splitText('Schrödinger and Gödel met Björk in Malmö. The El Niño pattern returned.'));
+  assert.ok(d.every((x) => x.parts[0].names));
+});
+
+test('the language of quoted speech needs a strong hint', () => {
+  const lang = (quote) => direct(splitText(`She said, “${quote}”`))[0].parts.at(-1).lang;
+  assert.equal(lang('Das kann doch nicht wahr sein.'), 'de');
+  assert.equal(lang('¡Cuidado!'), 'es');
+  assert.equal(lang('Achtung!'), 'de');
+  assert.equal(lang('Watch out!'), 'en');
+  assert.equal(lang('Guten Tag!'), 'de');
+  assert.equal(lang('No, gracias.'), 'es');
+  for (const q of ['No way,', 'No!', 'Die, die!', 'No problem,', 'La Bamba.', 'Achtung, baby!']) assert.equal(lang(q), 'en', q);
+});
+
+test('an English diaeresis is not German: read in English, the dots removed', () => {
+  const d = direct(splitText('I love coöperation and zoölogy.'))[0];
+  assert.equal(d.parts[0].text, 'I love cooperation and zoology.');
+  assert.equal(d.parts[0].names, false);
+});
+
+test('titles, terms and scare quotes are not speech: no cue, no style, no language', () => {
+  for (const t of [
+    'The so-called “experts,” who shouted at the press, left.',
+    'The “shock” of the scream echoed.',
+    'As the engine roared, “Betsy” pulled away.',
+    'The term “inflation” is measured by prices.',
+    'The “lean” approach was deliberately slow.',
+    'He read “War and Peace” slowly.',
+    'She sang “La Bamba” while the crowd roared.',
+    'He called it “Project X”. Nobody cared.',
+    'The sign said "Exit" and he whispered it.',
+  ]) assertPlain(t);
+  // a title does not become the "previous speaker" either
+  const d = direct(splitText('“Listen,” she whispered. He read “War and Peace”. “They are coming.”'));
+  assert.equal(d[2].parts[0].style.whisper, 1.1);
+});
+
+test('capitals raise the voice only with "!" and never for a plain "OK"', () => {
+  for (const t of ['“OK?”', '“I work at NASA, OK?”', '“Well, OK!” she said.', '“Is that OK?” he asked.']) assertPlain(t);
+  const raised = (t) => direct(splitText(t))[0].parts.some((p) => p.style.pitch > 0);
+  assert.ok(raised('“Wait… WHAT?!” she exclaimed.'));
+  assert.ok(raised('“STOP!” he said.'));
+});
+
+test('cues still work where they should', () => {
+  const one = (text) => view(direct(splitText(text))[0]);
+  assert.deepEqual(one('"Stop," he whispered.'), ['en whisper1.1 speed0.92: Stop,', 'plain: he whispered.']);
+  assert.deepEqual(one('"Run!" she yelled.'), [`en ${SHOUT}: Run!`, 'plain: she yelled.']);
+  assert.deepEqual(one('She whispered, “Go.”'), ['plain: She whispered,', 'en whisper1.1 speed0.92: Go.']);
+  assert.deepEqual(one('"I can\'t," he said slowly, "not today."'), ['en speed0.85: I can\'t,', 'plain: he said slowly,', 'en speed0.85: not today.']);
+  assert.deepEqual(one('"Come here," she whispered, "and bring the key."'), ['en whisper1.1 speed0.92: Come here,', 'plain: she whispered,', 'en whisper1.1 speed0.92: and bring the key.']);
+  assert.deepEqual(one('“No!” he shouted.'), [`en ${SHOUT}: No!`, 'plain: he shouted.']);
+  // a cue far from the quote does not count (before: last 8 words; after: first 6)
+  assertPlain('He shouted at the dog all morning and then, much later and very tired, said: “Fine.”');
+  assertPlain('“Fine,” he said to the waiter, who later whispered to the cook.');
+});

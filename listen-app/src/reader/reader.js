@@ -28,7 +28,7 @@
 //   of its sentences, so switching the setting re-makes only the sentences
 //   whose delivery really changes (none, in ordinary prose).
 //
-// Any "source" (pasted text today; files, photos, web pages later) just calls
+// Any "source" (pasted text today; files, web pages later) just calls
 // reader.load(sentences).
 //
 // Events (listen with reader.addEventListener):

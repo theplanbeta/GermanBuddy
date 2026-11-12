@@ -6,18 +6,26 @@
 // The rules are the research prototype's (research/expressive-kokoro/
 // director.mjs), which the owner chose by ear, applied to the app's own
 // sentences (so the highlight and the delivery always agree):
-//   - Only quoted speech is ever styled. Narration is read plainly, whatever
-//     words it contains.
-//   - A quote takes its cue from the words that introduce or follow it:
+// Guiding rule: a missed cue is inaudible (the sentence is simply read
+// plainly), a wrong cue is jarring. So every rule prefers precision.
+//   - Only quoted speech is ever styled: a quote whose words end like spoken
+//     words (, . ! ? … — –), or that runs to the end of the paragraph. A
+//     title, a term or scare quotes ("the so-called “experts”") are part of
+//     the narration. Narration is read plainly, whatever words it contains.
+//   - A quote takes its cue from the words that introduce it (the last 8
+//     words before it, ending in , or :) or follow it (the first 6 words,
+//     starting in lower case, and not "who", "which", "and", "was" …):
 //     "she whispered," -> whisper; "someone shouted" -> raised voice;
 //     "deliberately slowing" -> slower; "her voice trembling" -> a little breathy.
 //     A quote with no such words continues the slow or whispered delivery of
 //     the speaker's previous quote.
-//   - "WHAT?!" (capitals ending in ! or ?!) is raised on its own.
+//   - "WHAT?!" (capitals ending in marks with "!") is raised on its own; "OK" never.
 //   - Small cues (laughing, sighing, softly, a plain "!") change the voice too
 //     little to be worth it and are dropped, so those sentences stay whole and plain.
-//   - A quote in German or Spanish is read with German or Spanish sounds;
-//     German and Spanish words inside English (names like "Müller") too.
+//   - Quoted speech in German or Spanish is read with German or Spanish sounds
+//     (only with a clearly German or Spanish word in it, see quoteLanguage in
+//     foreign.js); German and Spanish words inside English (names like
+//     "Müller") too. Narration as a whole is always English.
 // Each sentence gets a delivery:
 //   { parts: [{ text, lang, style, names }], key, spliced, quoted }
 //   parts    what the voice says, in order: `text` in spoken form (see
@@ -31,7 +39,7 @@
 //   quoted   the sentence is entirely quoted speech.
 // With nothing to direct (ordinary prose) every sentence is plain and its
 // text is exactly the sentence, so the reading is the same as without the director.
-import { detectLanguage, hasForeignWords } from './foreign.js';
+import { quoteLanguage, hasForeignWords } from './foreign.js';
 import { spokenForms } from '../text/spoken.js';
 
 // ---- cues -> performance (copied from the prototype) --------------------------
@@ -96,8 +104,9 @@ export function styleKey(style, lang = 'en') {
 // ---- quotes -------------------------------------------------------------------
 
 /**
- * A paragraph as alternating narration / quote spans, with their position
- * (quote marks themselves belong to neither). Handles “ ” and straight " pairs.
+ * A paragraph as alternating narration / quoted-speech spans, with their
+ * position (the marks of a speech quote belong to neither). Handles “ ” and
+ * straight " pairs.
  */
 export function quoteSpans(par) {
   const out = [];
@@ -122,23 +131,47 @@ export function quoteSpans(par) {
     }
   }
   push(inQuote ? 'quote' : 'narr', par.length);
-  return out;
+  // Only speech is a quote here: its words end like spoken words do (or the
+  // quote runs to the end of the paragraph). A title, a term or scare quotes
+  // ("the so-called “experts”") are read as part of the narration around them.
+  const unclosed = inQuote;
+  return out.reduce((spans, s, i) => {
+    const speech = s.kind === 'quote' && ((unclosed && i === out.length - 1) || SPEECH_END.test(s.text));
+    const kind = s.kind === 'quote' && !speech ? 'narr' : s.kind;
+    const last = spans.at(-1);
+    if (kind === 'narr' && last?.kind === 'narr') {
+      last.end = s.end;
+      last.text = par.slice(last.start, last.end);
+    } else spans.push({ ...s, kind });
+    return spans;
+  }, []);
 }
+const SPEECH_END = /[,.!?…—–]$/;
 
-// Cues for each quote, from the narration right before it (ending in , or :)
-// or right after it (starting in lower case: "…,” she whispered.").
+// Cues for each quote, from the narration right before it (ending in , or :,
+// its last 8 words) or right after it (starting in lower case: "…,” she
+// whispered.", its first 6 words). Narration that goes on about something
+// else ("“experts,” who shouted …", "… and the crowd roared") gives no cue.
+const NOT_ATTRIBUTION = /^(?:who|whom|whose|which|that|and|or|but|of|is|are|was|were|has|had)\b/i;
+const lastWords = (t, n) => t.split(/\s+/).slice(-n).join(' ');
+const firstWords = (t, n) => t.split(/\s+/).slice(0, n).join(' ');
+
 function attachCues(spans) {
   let previous = null; // cues of the last quote that had any
   spans.forEach((s, i) => {
     if (s.kind !== 'quote') return;
-    const before = spans[i - 1]?.kind === 'narr' && /[,:]\s*$/.test(spans[i - 1].text) ? spans[i - 1].text : '';
-    const after = spans[i + 1]?.kind === 'narr' && /^\p{Ll}/u.test(spans[i + 1].text) ? spans[i + 1].text.split(/(?<=[.!?])\s/)[0] : '';
-    const attribution = `${before.split(/(?<=[.!?])\s/).pop()} ${after}`;
+    const prev = spans[i - 1];
+    const next = spans[i + 1];
+    const before = prev?.kind === 'narr' && /[,:]\s*$/.test(prev.text) ? lastWords(prev.text.split(/(?<=[.!?])\s/).pop(), 8) : '';
+    const follows = next?.kind === 'narr' && /^\p{Ll}/u.test(next.text) && !NOT_ATTRIBUTION.test(next.text);
+    const after = follows ? firstWords(next.text.split(/(?<=[.!?])\s/)[0], 6) : '';
+    const attribution = `${before} ${after}`;
     let tags = cuesIn(attribution);
     // no attribution: the same speaker goes on, keeping a slow or whispered delivery
     if (!attribution.trim() && previous) tags = previous.filter((t) => ['slow', 'whisper', 'soft'].includes(t));
     s.tags = tags;
-    if (tags.length) previous = tags;
+    // a quote with its own attribution is a new turn: its cues (or none) are what a following bare quote continues
+    if (attribution.trim()) previous = tags.length ? tags : null;
   });
 }
 
@@ -163,26 +196,36 @@ function piecesOf(spans, par, from, to) {
 }
 
 // The prototype's rules inside a quote: "?!" is excited, a lone "!" too, and
-// a run of capitals ending in ! or ?! is raised on its own.
+// a run of capitals ending in ! or ?! ("WHAT?!", not "OK?") is raised on its own.
 function quoteUnits(piece) {
   const t = piece.text;
   const tags = [...piece.tags];
   if (/[!?]!|!\?|\?!/.test(t) && !tags.includes('shout')) tags.push('excited');
   else if (/!$/.test(t) && !tags.length) tags.push('excited');
   const caps = t.match(CAPS_RUN);
-  if (caps && caps[1].trim()) {
-    return [
-      { kind: 'quote', text: caps[1].trim(), tags: tags.filter((x) => x !== 'excited') },
-      { kind: 'quote', text: caps[2].trim().toLowerCase(), tags: [...new Set([...tags, 'shout'])] },
-    ];
+  if (caps && raises(caps[2])) {
+    if (caps[1].trim()) {
+      return [
+        { kind: 'quote', text: caps[1].trim(), tags: tags.filter((x) => x !== 'excited') },
+        { kind: 'quote', text: caps[2].trim().toLowerCase(), tags: [...new Set([...tags, 'shout'])] },
+      ];
+    }
   }
-  if (ALL_CAPS.test(t)) return [{ kind: 'quote', text: lowerCaps(t), tags: [...new Set([...tags, 'shout'])] }];
-  return [{ kind: 'quote', text: caps ? lowerCaps(t) : t, tags }];
+  if (ALL_CAPS.test(t) && raises(t)) return [{ kind: 'quote', text: lowerCaps(t), tags: [...new Set([...tags, 'shout'])] }];
+  return [{ kind: 'quote', text: t, tags }];
 }
 
-// Language of a unit; anything with digits stays English (the German and
-// Spanish rules cannot read numbers).
-const languageOf = (text) => (/\d/.test(text) ? 'en' : detectLanguage(text));
+// A capitals run raises the voice only with "!" in its closing marks, and never when it is just "OK".
+function raises(run) {
+  const words = run.match(/\p{Lu}{2,}/gu) || [];
+  return /!/.test(run.match(/[!?]+$/)?.[0] ?? '') && !words.every((w) => w === 'OK');
+}
+
+// Language of a unit: narration is always English (German or Spanish words
+// in it are read by the word rule); quoted speech by the strict test in
+// foreign.js; anything with digits stays English (the German and Spanish
+// rules cannot read numbers).
+const languageOf = (u) => (u.kind !== 'quote' || /\d/.test(u.text) ? 'en' : quoteLanguage(u.text));
 
 // Neighbouring units that need the same performance become one.
 function mergeUnits(units) {
@@ -245,7 +288,7 @@ export function direct(sentences, { british = false } = {}) {
       const units = pieces.flatMap((p) => (p.kind === 'quote' ? quoteUnits(p) : [p]));
       for (const u of units) {
         if (u.tags.length && u.tags.every((t) => MILD.has(t))) u.tags = [];
-        u.lang = languageOf(u.text);
+        u.lang = languageOf(u);
       }
       const merged = mergeUnits(units);
       const quoted = pieces.length > 0 && pieces.every((p) => p.kind === 'quote');

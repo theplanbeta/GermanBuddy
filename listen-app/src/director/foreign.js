@@ -198,11 +198,15 @@ const FOREIGN_WORD = new RegExp(`(?<![\\p{L}'’])(?:${LISTED}|\\p{L}*[äöüß�
 // The language of a word found by FOREIGN_WORD.
 const wordLanguage = (word) => (/ñ/iu.test(word) || word.toLowerCase() === "cuidado" ? "es" : "de");
 
+// "coöperate", "zoölogy": an English diaeresis, not a German ö.
+const ENGLISH_DIAERESIS = /oö/i;
+
 /** English text cut into pieces: [{ text, lang: null | "de" | "es" }] (null = English). */
 export function foreignWords(text) {
   const out = [];
   let last = 0;
   for (const m of text.matchAll(FOREIGN_WORD)) {
+    if (ENGLISH_DIAERESIS.test(m[0])) continue; // stays in the English text (spoken forms remove the dots)
     if (m.index > last) out.push({ text: text.slice(last, m.index), lang: null });
     out.push({ text: m[0], lang: wordLanguage(m[0]) });
     last = m.index + m[0].length;
@@ -214,6 +218,43 @@ export function foreignWords(text) {
 /** True when English text contains a word that should be read as German or Spanish. */
 export function hasForeignWords(text) {
   return foreignWords(text).some((p) => p.lang);
+}
+
+// ---- the language of a whole quote (app addition, stricter than detectLanguage above) ----
+// A missed German or Spanish line is just read in English; an English line
+// read as German is jarring. So hint words that are also English words, or
+// common in names and titles ("No way", "Die now", "La Bamba"), are "weak":
+// they count, but a line needs at least one strong hint.
+const DE_WEAK = new Set(["die", "war", "mal", "gut", "tag", "es", "wo", "mir", "mit", "ja", "das", "der", "ein", "sie", "hat", "man", "so", "in", "an", "am"]);
+const ES_WEAK = new Set(["no", "es", "el", "la", "los", "las", "como", "a", "me"]);
+const EN_HINTS = new Set(["the", "a", "you", "it", "is", "was", "what", "and", "to", "of", "watch", "out", "i", "me", "my", "that", "this"]);
+
+// Counts strong and all hint words of one language.
+function hints(words, listed, weak, letters) {
+  let strong = 0, all = 0;
+  for (const w of words) {
+    const isListed = listed.has(w);
+    if (!isListed && !letters.test(w)) continue;
+    all++;
+    if (isListed && !weak.has(w)) strong++; // a word that only qualifies by its letters is weak
+  }
+  return { strong, all };
+}
+
+/**
+ * "de", "es" or "en" for a whole quote. Spanish when it has ¡ or ¿;
+ * otherwise German (or Spanish) only with at least one strong hint, when
+ * hint words are more than half of the words and outnumber the English ones.
+ */
+export function quoteLanguage(text) {
+  if (/[¡¿]/.test(text)) return "es";
+  const words = text.toLowerCase().match(/[\p{L}']+/gu) || [];
+  if (!words.length) return "en";
+  const en = words.filter((w) => EN_HINTS.has(w)).length;
+  const decide = ({ strong, all }) => strong >= 1 && all > words.length / 2 && all > en;
+  if (decide(hints(words, DE_HINTS, DE_WEAK, /[äöüß]/))) return "de";
+  if (decide(hints(words, ES_HINTS, ES_WEAK, /[áéíóúñ]/))) return "es";
+  return "en";
 }
 
 /** Sound symbols for one foreign word (the list first, then the rules). */

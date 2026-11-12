@@ -38,17 +38,22 @@ const CODES = { EUR: '€', USD: '$', GBP: '£', JPY: '¥', INR: '₹' };
 const SCALES = { hundred: 'hundred', thousand: 'thousand', million: 'million', billion: 'billion', trillion: 'trillion', k: 'thousand', m: 'million', mn: 'million', bn: 'billion', b: 'billion', tn: 'trillion' };
 // Words after an amount that are not the thing it measures ("€5 in cash", "$5 more").
 const NOT_NOUNS = new Set(['of', 'in', 'and', 'or', 'was', 'is', 'were', 'are', 'to', 'for', 'from', 'on', 'at', 'by', 'with', 'a', 'an', 'the', 'per', 'each', 'that', 'which', 'but', 'more', 'less', 'extra', 'off', 'back', 'up', 'down', 'too', 'so', 'than', 'as', 'if', 'into', 'over', 'under', 'now', 'then', 'only', 'just', 'total', 'altogether', 'apiece', 'worth', 'a', 'will', 'would', 'can', 'could', 'has', 'had', 'have', 'be', 'been', 'not']);
+// "the $5 he owed", "the $2 million raised": the next word starts a clause, not a noun.
+const PRONOUN = new Set(['he', 'she', 'they', 'we', 'i', 'you', 'it', 'who', 'there']);
+const VERBS = new Set(['went', 'came', 'paid', 'spent', 'made', 'got', 'gave', 'given', 'lost', 'won', 'cost', 'left', 'took', 'taken', 'goes', 'comes', 'did', 'does', 'may', 'might', 'must', 'should', 'shall']);
+const looksLikeVerb = (w) => (w.length > 3 && w.endsWith('ed')) || VERBS.has(w);
 // "a €5 note", "the €2.45 million budget": the amount describes a noun, so the unit stays singular.
 const DETERMINER = /\b(?:a|an|the|this|that|its|his|her|their|our|my|your|one|whole|entire)\s+$/i;
 
 // "1,250,000.50" or "2.45" (a comma only between groups of three, so "$5, then" is not an amount)
 const AMOUNT = String.raw`(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)`;
-const SCALE_WORD = String.raw`(?:\s(hundred|thousand|million|billion|trillion)\b|(k|mn|bn|tn|m|b)\b)`;
+// a scale word, or a scale letter straight after the number in either case ("$5M", "$5k", "€3BN")
+const SCALE_WORD = String.raw`(?:\s(hundred|thousand|million|billion|trillion)\b|([bB][nN]|[mM][nN]|[tT][nN]|[kKmMbB])(?!\p{L}))`;
 
 function moneyWords(symbol, amount, scale, before, after) {
   const [one, many, small, smalls] = CURRENCY[symbol];
   const next = (after.match(/^\s+([\p{L}]+)/u) || [])[1] || '';
-  const describes = DETERMINER.test(before) && /^\p{Ll}/u.test(next) && !NOT_NOUNS.has(next.toLowerCase());
+  const describes = DETERMINER.test(before) && /^\p{Ll}/u.test(next) && !NOT_NOUNS.has(next.toLowerCase()) && !PRONOUN.has(next) && !looksLikeVerb(next);
   if (scale) return `${amount} ${SCALES[scale.toLowerCase()]} ${describes ? one : many}`;
   const [whole, fraction] = amount.split('.');
   const unit = (n) => (describes || n === '1' ? one : many);
@@ -62,7 +67,7 @@ function moneyWords(symbol, amount, scale, before, after) {
 
 function money(text) {
   const symbolFirst = new RegExp(String.raw`(?<![\p{L}\d])([€$£¥₹])\s?${AMOUNT}${SCALE_WORD}?`, 'gu');
-  const codeFirst = new RegExp(String.raw`\b(EUR|USD|GBP|JPY|INR)\s?${AMOUNT}${SCALE_WORD}?`, 'g');
+  const codeFirst = new RegExp(String.raw`\b(EUR|USD|GBP|JPY|INR)\s?${AMOUNT}${SCALE_WORD}?`, 'gu');
   const amountFirst = new RegExp(String.raw`(?<![\d.,])${AMOUNT}${SCALE_WORD}?\s?(?:([€£¥₹])|(EUR|USD|GBP|JPY|INR)\b)`, 'gu');
   const replace = (pattern, pick) =>
     (text = text.replace(pattern, (...m) => {
@@ -119,7 +124,8 @@ function dates(text, { british = false } = {}) {
     // "1 March" -> "the 1st of March" ("the" is not doubled)
     .replace(new RegExp(String.raw`(\bthe\s+)?\b([1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s+(${MONTH})\b`, 'g'), (_, the, d, month) => `${the ? the : 'the '}${ordinal(+d)} of ${month}`)
     // "March 3" -> "March 3rd" (not "March 2024", not "March 3rd", not "May 5:30")
-    .replace(new RegExp(String.raw`\b(${MONTH})\s+([1-9]|[12]\d|3[01])(?![\d:.,]\d|\d|st|nd|rd|th)`, 'g'), (_, month, d) => `${month} ${ordinal(+d)}`);
+    // only where the day clearly ends the date ("In May 20 people died" stays as written)
+    .replace(new RegExp(String.raw`\b(${MONTH})\s+([1-9]|[12]\d|3[01])(?=$|[.,;:!?)](?!\d)|,\s*\d{4}\b)`, 'g'), (_, month, d) => `${month} ${ordinal(+d)}`);
 }
 
 // ---- abbreviations, units, fractions -----------------------------------------
@@ -135,6 +141,8 @@ function abbreviations(text) {
   return text
     .replace(/\b[Nn]o\.(?=\s?\d)/g, 'number')
     .replace(/#(?=\d)/g, 'number ')
+    // "123 Main St." is a street (its full stop kept before a new sentence); "St. Paul" a saint
+    .replace(/(?<=\b\d+\s+\p{Lu}\p{L}*(?:\s+\p{Lu}\p{L}*)?\s+)St\.(?=(\s+\p{Lu})?)/gu, (m, capital, offset, all) => (capital || !all.slice(offset + m.length).trim() ? 'Street.' : 'Street'))
     .replace(/\bSt\.(?=\s+\p{Lu})/gu, 'Saint')
     .replace(/\bProf\.(?=\s+\p{Lu})/gu, 'Professor')
     .replace(/\bMt\.(?=\s+\p{Lu})/gu, 'Mount')
@@ -194,7 +202,8 @@ function fractions(text) {
  * (only decides how an ambiguous date such as 03/04/2025 is read).
  */
 export function spokenForms(text, { british = false } = {}) {
-  let s = dates(text, { british });
+  let s = text.replace(/oö/g, 'oo').replace(/Oö/g, 'Oo'); // "coöperate" is English: "cooperate"
+  s = dates(s, { british });
   s = money(s);
   s = times(s);
   s = s
