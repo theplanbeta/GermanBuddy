@@ -87,7 +87,8 @@ function progressReporter() {
   };
 }
 
-async function load(mode, forced) {
+async function load(mode, forced, threads) {
+  if (threads) env.backends.onnx.wasm.numThreads = threads; // tests only
   if (!tts) {
     const { device, dtype } = await choosePlan(mode, forced);
     // A failure here is reported to the page (with gpu: true for WebGPU),
@@ -162,7 +163,7 @@ self.addEventListener('message', ({ data }) => {
   queue = queue.then(async () => {
     try {
       if (data.type === 'probe') postMessage({ type: 'probe', ...(await choosePlan(data.mode, data.dtype)) });
-      else if (data.type === 'load') await load(data.mode, data.dtype);
+      else if (data.type === 'load') await load(data.mode, data.dtype, data.threads);
       else if (data.type === 'phonemize') await phonemizeAll(data);
       else if (data.type === 'render') await render(data);
       else if (data.type === 'warmup') await warmup().catch(() => {});

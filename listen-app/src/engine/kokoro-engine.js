@@ -44,8 +44,10 @@ function failure(message, phase) {
   return error;
 }
 
-// `dtype` forces a model file (tests only, e.g. 'fp32' on the standard engine).
-export function createKokoroEngine({ mode = 'auto', dtype = null } = {}) {
+// Test-only options: `dtype` forces a model file (e.g. 'fp32' on the standard
+// engine), `threads` the number of CPU threads, and `slowdown` (> 1) makes
+// every model call take that many times as long, to imitate a slower device.
+export function createKokoroEngine({ mode = 'auto', dtype = null, threads = null, slowdown = 1 } = {}) {
   let worker = null;
   const pending = new Map(); // id -> { resolve, reject }
   let nextId = 1;
@@ -169,7 +171,7 @@ export function createKokoroEngine({ mode = 'auto', dtype = null } = {}) {
       if (!loading) {
         loading = new Promise((resolve, reject) => {
           loadWaiter = { resolve, reject };
-          worker.postMessage({ type: 'load', mode: engine.mode, dtype });
+          worker.postMessage({ type: 'load', mode: engine.mode, dtype, threads });
         });
         loading.catch(() => (loading = null)); // allow "Try again"
       }
@@ -201,6 +203,10 @@ export function createKokoroEngine({ mode = 'auto', dtype = null } = {}) {
         let problem;
         try {
           result = await ask({ type: 'render', phonemes, voice, speed, row });
+          if (slowdown > 1) {
+            await new Promise((resolve) => setTimeout(resolve, (slowdown - 1) * result.ms));
+            result.ms *= slowdown;
+          }
           problem = engine.check(result.samples, result.sampleRate, text, speed);
         } catch (error) {
           if (!onGpu || error.phase === 'cancelled') throw error;

@@ -91,10 +91,18 @@ if (!supported) {
 
 const MODES = ['auto', 'webgpu', 'webgpu-fp16', 'wasm'];
 const savedMode = settings.get('mode', 'auto');
-// ?debug exposes the reader and engine for tests; ?debug&dtype=fp32 also forces a model file.
+// ?debug exposes the reader and engine for tests. Test-only extras:
+//   &dtype=fp32     force a model file
+//   &threads=2      use this many CPU threads (a slower device)
+//   &slowdown=1.5   pretend preparation takes 1.5 times as long (a slower device)
 const params = new URLSearchParams(location.search);
 const debug = params.has('debug');
-const engine = createKokoroEngine({ mode: MODES.includes(savedMode) ? savedMode : 'auto', dtype: debug ? params.get('dtype') : null });
+const engine = createKokoroEngine({
+  mode: MODES.includes(savedMode) ? savedMode : 'auto',
+  dtype: debug ? params.get('dtype') : null,
+  threads: debug ? Number(params.get('threads')) || null : null,
+  slowdown: debug ? Number(params.get('slowdown')) || 1 : 1,
+});
 const reader = new Reader(engine);
 if (debug) window.listen = { reader, engine };
 
@@ -492,7 +500,9 @@ reader.addEventListener('generated', () => {
 // when each sentence starts. Once the new one works, free the old one's space.
 let previousRemoved = false;
 async function removePreviousModel() {
-  if (previousRemoved) return;
+  // Preview builds published beside the main one set VITE_KEEP_OLD_MODEL=1, so
+  // the main version (which still uses the old model) does not have to download it again.
+  if (previousRemoved || import.meta.env.VITE_KEEP_OLD_MODEL === '1') return;
   previousRemoved = true;
   const freed = await engine.removePreviousModel();
   if (freed > 0 && ui.message.hidden) {
