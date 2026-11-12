@@ -13,9 +13,9 @@ server or an account.
   thought instead of a string of separate announcements. The pause after each
   sentence is set on purpose: a little longer after longer sentences, varied
   slightly, and longer between paragraphs.
-- Preparation starts as soon as you stop typing or pasting. When you press
-  Play and nothing is ready yet, the first sentence is made on its own in the
-  quickest way (as earlier versions did), so the voice starts just as fast; it
+- Preparation starts as soon as you stop typing or pasting. The opening
+  sentence (and any sentence you jump to that is not ready yet) is made on its
+  own in the quickest way (as earlier versions did), so the voice starts just as fast; it
   is re-made in full quality in the background for the download and for
   listening again. (A long first sentence is split at an early comma.) After
   that the pieces grow as large as this device can prepare before the audio

@@ -16,8 +16,8 @@
 //    the silence the model makes at its start and end), so
 //    on a device that only just keeps up, one sentence at a time would fall
 //    further and further behind (see `growthLast`).
-// Exception, "urgent" calls: while the listener waits for the very first
-// sound (after Play or a jump), the sentence is made alone and plainly (no
+// Exception, "urgent" calls: the opening sentence of a text, and any sentence
+// the listener is waiting for (after Play or a jump), is made alone and plainly (no
 // look-ahead, own row), exactly as earlier versions did, because that is the
 // quickest way to start. It is re-made in full quality later, in the
 // background (for the download and for listening again).

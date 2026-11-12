@@ -477,8 +477,11 @@ export class Reader extends EventTarget {
     const nothingYet = start === this.current && !this.segments[start] && !upgrade;
     await this.#ensurePhonemes(lang, start, nothingYet ? 1 : 2);
     if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true; // changed meanwhile: plan again
-    // The listener is waiting for the first sound: make this sentence quickly and plainly.
-    const urgent = nothingYet && this.starting && this.state === 'waiting';
+    // The opening sentence of a text, or the listener is waiting for the first
+    // sound: make this sentence quickly and plainly. (Measured: prepared in
+    // full quality while the listener was still about to press Play, the
+    // opening sentence made the first sound about 1.8 s later.)
+    const urgent = nothingYet && (this.ordinal === 0 || (this.starting && this.state === 'waiting'));
     if (!urgent) {
       await this.#ensurePhonemes(lang, start, 2); // the next sentence: look-ahead and voice row
       if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true;
