@@ -1,0 +1,344 @@
+RESEARCH PAPER  (tracemonkey.pdf, pages 1, 2)
+WHAT TO LOOK FOR: Two-column research paper. Look for: author/e-mail block and copyright box, figure labels and captions skipped; columns read in order; hyphenated words rejoined.
+
+NAIVE EXTRACTION (plain PDF text, as most apps read it)        | HEARSHOT (what will be read aloud)
+---------------------------------------------------------------+---------------------------------------------------------------
+Trace-based Just-in-Time Type Specialization for Dynamic       | Trace-based Just-in-Time Type Specialization for Dynamic
+Languages                                                      | Languages.
+Andreas Gal∗+, Brendan Eich∗, Mike Shaver∗, David Anderson∗,   | 
+David Mandelin∗,                                               | Andreas Gal∗+, Brendan Eich∗, Mike Shaver∗, David Anderson∗,
+Mohammad R. Haghighat$, Blake Kaplan∗, Graydon Hoare∗, Boris   | David Mandelin∗, Mohammad R. Haghighat$, Blake Kaplan∗,
+Zbarsky∗, Jason Orendorff∗,                                    | Graydon Hoare∗, Boris Zbarsky∗, Jason Orendorff∗,
+Jesse Ruderman∗, Edwin Smith#, Rick Reitmaier#, Michael        | 
+Bebenita+, Mason Chang+#, Michael Franz+                       | Jesse Ruderman∗, Edwin Smith#, Rick Reitmaier#, Michael
+Mozilla Corporation∗                                           | Bebenita+, Mason Chang+#, Michael Franz+.
+                                                               | 
+{gal,brendan,shaver,danderson,dmandelin,mrbkap,graydon,bz,jorendorff,jruderman}@mozilla.com | Mozilla Corporation∗
+Adobe Corporation#                                             | {gal,brendan,shaver,danderson,dmandelin,mrbkap,graydon,bz,jorendorff,jruderman}@mozilla.com
+{edwsmith,rreitmai}@adobe.com                                  | 
+Intel Corporation$                                             | Adobe Corporation# {edwsmith,rreitmai}@adobe.com
+{mohammad.r.haghighat}@intel.com                               | 
+University of California, Irvine+                              | Intel Corporation$ {mohammad.r.haghighat}@intel.com
+{mbebenit,changm,franz}@uci.edu                                | 
+Abstract                                                       | University of California, Irvine+
+Dynamic languages such as JavaScript are more difficult to     | {mbebenit,changm,franz}@uci.edu
+com-                                                           | 
+pile than statically typed ones. Since no concrete type        | Abstract.
+information                                                    | 
+is available, traditional compilers need to emit generic code  | Dynamic languages such as JavaScript are more difficult to
+that can                                                       | compile than statically typed ones. Since no concrete type
+handle all possible type combinations at runtime. We present   | information is available, traditional compilers need to emit
+an al-                                                         | generic code that can handle all possible type combinations at
+ternative compilation technique for dynamically-typed          | runtime. We present an alternative compilation technique for
+languages                                                      | dynamically-typed languages that identifies frequently
+that identifies frequently executed loop traces at run-time    | executed loop traces at run-time and then generates machine
+and then                                                       | code on the fly that is specialized for the actual dynamic
+generates machine code on the fly that is specialized for the  | types occurring on each path through the loop. Our method
+ac-                                                            | provides cheap inter-procedural type specialization, and an
+tual dynamic types occurring on each path through the loop.    | elegant and efficient way of incrementally compiling lazily
+Our                                                            | discovered alternative paths through nested loops. We have
+method provides cheap inter-procedural type specialization,    | implemented a dynamic compiler for JavaScript based on our
+and an                                                         | technique and we have measured speedups of 10x and more for
+elegant and efficient way of incrementally compiling lazily    | certain benchmark programs.
+discov-                                                        | 
+ered alternative paths through nested loops. We have           | Categories and Subject Descriptors D.3.4 [Programming
+implemented                                                    | Languages]: Processors - Incremental compilers, code
+a dynamic compiler for JavaScript based on our technique and   | generation.
+we                                                             | 
+have measured speedups of 10x and more for certain benchmark   | General Terms Design, Experimentation, Measurement,
+programs.                                                      | Performance.
+Categories and Subject Descriptors D.3.4 [Programming Lan-     | 
+guages]: Processors — Incremental compilers, code generation.  | Keywords JavaScript, just-in-time compilation, trace trees.
+General Terms Design, Experimentation, Measurement, Perfor-    | 
+mance.                                                         | 1. Introduction.
+Keywords JavaScript, just-in-time compilation, trace trees.    | 
+1. Introduction                                                | Dynamic languages such as JavaScript, Python, and Ruby, are
+Dynamic languages such as JavaScript, Python, and Ruby, are    | popular since they are expressive, accessible to non-experts,
+pop-                                                           | and make deployment as easy as distributing a source file.
+ular since they are expressive, accessible to non-experts, and | They are used for small scripts as well as for complex
+make                                                           | applications. JavaScript, for example, is the de facto
+deployment as easy as distributing a source file. They are     | standard for client-side web programming and is used for the
+used for                                                       | application logic of browser-based productivity applications
+small scripts as well as for complex applications. JavaScript, | such as Google Mail, Google Docs and Zimbra Collaboration
+for                                                            | Suite. In this domain, in order to provide a fluid user
+example, is the de facto standard for client-side web          | experience and enable a new generation of applications,
+programming                                                    | virtual machines must provide a low startup time and high
+Permission to make digital or hard copies of all or part of    | performance.
+this work for personal or                                      | 
+classroom use is granted without fee provided that copies are  | Compilers for statically typed languages rely on type
+not made or distributed                                        | information to generate efficient machine code. In a
+for profit or commercial advantage and that copies bear this   | dynamically typed programming language such as JavaScript, the
+notice and the full citation                                   | types of expressions may vary at runtime. This means that the
+on the first page. To copy otherwise, to republish, to post on | compiler can no longer easily transform operations into
+servers or to redistribute                                     | machine instructions that operate on one specific type.
+to lists, requires prior specific permission and/or a fee.     | Without exact type information, the compiler must emit slower
+PLDI’09, June 15–20, 2009, Dublin, Ireland.                    | generalized machine code that can deal with all potential type
+Copyright c© 2009 ACM 978-1-60558-392-1/09/06. . . $5.00       | combinations. While compile-time static type inference might
+and is used for the application logic of browser-based         | be able to gather type information to generate optimized
+productivity                                                   | machine code, traditional static analysis is very expensive
+applications such as Google Mail, Google Docs and Zimbra Col-  | and hence not well suited for the highly interactive
+laboration Suite. In this domain, in order to provide a fluid  | environment of a web browser.
+user                                                           | 
+experience and enable a new generation of applications,        | Permission to make digital or hard copies of all or part of
+virtual ma-                                                    | this work for personal or classroom use is granted without fee
+chines must provide a low startup time and high performance.   | provided that copies are not made or distributed for profit or
+Compilers for statically typed languages rely on type informa- | commercial advantage and that copies bear this notice and the
+tion to generate efficient machine code. In a dynamically      | full citation on the first page. To copy otherwise, to
+typed pro-                                                     | republish, to post on servers or to redistribute to lists,
+gramming language such as JavaScript, the types of expressions | requires prior specific permission and/or a fee.
+may vary at runtime. This means that the compiler can no       | 
+longer                                                         | PLDI'09, June 15-20, 2009, Dublin, Ireland. Copyright c 2009
+easily transform operations into machine instructions that     | ACM 978-1-60558-392-1/09/06...$5.00
+operate                                                        | 
+on one specific type. Without exact type information, the      | We present a trace-based compilation technique for dynamic
+compiler                                                       | languages that reconciles speed of compilation with excellent
+must emit slower generalized machine code that can deal with   | performance of the generated machine code. Our system uses a
+all                                                            | mixedmode execution approach: the system starts running
+potential type combinations. While compile-time static type    | JavaScript in a fast-starting bytecode interpreter. As the
+infer-                                                         | program runs, the system identifies hot (frequently executed)
+ence might be able to gather type information to generate      | bytecode sequences, records them, and compiles them to fast
+opti-                                                          | native code. We call such a sequence of instructions a trace.
+mized machine code, traditional static analysis is very        | 
+expensive                                                      | Unlike method-based dynamic compilers, our dynamic compiler
+and hence not well suited for the highly interactive           | operates at the granularity of individual loops. This design
+environment of                                                 | choice is based on the expectation that programs spend most of
+a web browser.                                                 | their time in hot loops. Even in dynamically typed languages,
+We present a trace-based compilation technique for dynamic     | we expect hot loops to be mostly type-stable, meaning that the
+languages that reconciles speed of compilation with excellent  | types of values are invariant. (12) For example, we would
+per-                                                           | expect loop counters that start as integers to remain integers
+formance of the generated machine code. Our system uses a      | for all iterations. When both of these expectations hold, a
+mixed-                                                         | trace-based compiler can cover the program execution with a
+mode execution approach: the system starts running JavaScript  | small number of type-specialized, efficiently compiled traces.
+in a                                                           | 
+fast-starting bytecode interpreter. As the program runs, the   | Each compiled trace covers one path through the program with
+system                                                         | one mapping of values to types. When the VM executes a
+identifies hot (frequently executed) bytecode sequences,       | compiled trace, it cannot guarantee that the same path will be
+records                                                        | followed or that the same types will occur in subsequent loop
+them, and compiles them to fast native code. We call such a    | iterations.
+se-                                                            | 
+quence of instructions a trace.                                | Hence, recording and compiling a trace speculates that the
+Unlike method-based dynamic compilers, our dynamic com-        | path and typing will be exactly as they were during recording
+piler operates at the granularity of individual loops. This    | for subsequent iterations of the loop.
+design                                                         | 
+choice is based on the expectation that programs spend most of | Every compiled trace contains all the guards (checks) required
+their time in hot loops. Even in dynamically typed languages,  | to validate the speculation. If one of the guards fails (if
+we                                                             | control flow is different, or a value of a different type is
+expect hot loops to be mostly type-stable, meaning that the    | generated), the trace exits. If an exit becomes hot, the VM
+types of                                                       | can record a branch trace starting at the exit to cover the
+values are invariant. (12) For example, we would expect loop   | new path. In this way, the VM records a trace tree covering
+coun-                                                          | all the hot paths through the loop.
+ters that start as integers to remain integers for all         | 
+iterations. When                                               | Nested loops can be difficult to optimize for tracing VMs. In
+both of these expectations hold, a trace-based compiler can    | a na ̈ıve implementation, inner loops would become hot first,
+cover                                                          | and the VM would start tracing there. When the inner loop
+the program execution with a small number of type-specialized, | exits, the VM would detect that a different branch was taken.
+ef-                                                            | The VM would try to record a branch trace, and find that the
+ficiently compiled traces.                                     | trace reaches not the inner loop header, but the outer loop
+Each compiled trace covers one path through the program with   | header. At this point, the VM could continue tracing until it
+one mapping of values to types. When the VM executes a         | reaches the inner loop header again, thus tracing the outer
+compiled                                                       | loop inside a trace tree for the inner loop. But this requires
+trace, it cannot guarantee that the same path will be followed | tracing a copy of the outer loop for every side exit and type
+or that the same types will occur in subsequent loop           | combination in the inner loop. In essence, this is a form of
+iterations.                                                    | unintended tail duplication, which can easily overflow the
+Hence, recording and compiling a trace speculates that the     | code cache. Alternatively, the VM could simply stop tracing,
+path and                                                       | and give up on ever tracing outer loops.
+typing will be exactly as they were during recording for       | 
+subsequent                                                     | We solve the nested loop problem by recording nested trace
+iterations of the loop.                                        | trees. Our system traces the inner loop exactly as the na ̈ıve
+Every compiled trace contains all the guards (checks) required | version. The system stops extending the inner tree when it
+to validate the speculation. If one of the guards fails (if    | reaches an outer loop, but then it starts a new trace at the
+control                                                        | outer loop header. When the outer loop reaches the inner loop
+flow is different, or a value of a different type is           | header, the system tries to call the trace tree for the inner
+generated), the                                                | loop. If the call succeeds, the VM records the call to the
+trace exits. If an exit becomes hot, the VM can record a       | inner tree as part of the outer trace and finishes the outer
+branch                                                         | trace as normal. In this way, our system can trace any number
+trace starting at the exit to cover the new path. In this way, | of loops nested to any depth without causing excessive tail
+the VM                                                         | duplication.
+records a trace tree covering all the hot paths through the    | 
+loop.                                                          | These techniques allow a VM to dynamically translate a program
+Nested loops can be difficult to optimize for tracing VMs. In  | to nested, type-specialized trace trees. Because traces can
+a na¨ıve implementation, inner loops would become hot first,   | cross function call boundaries, our techniques also achieve
+and                                                            | the effects of inlining. Because traces have no internal
+the VM would start tracing there. When the inner loop exits,   | control-flow joins, they can be optimized in linear time by a
+the                                                            | simple compiler (10). Thus, our tracing VM efficiently
+VM would detect that a different branch was taken. The VM      | performs the same kind of optimizations that would require
+would                                                          | interprocedural analysis in a static optimization setting.
+try to record a branch trace, and find that the trace reaches  | This makes tracing an attractive and effective tool to type
+not the                                                        | specialize even complex function call-rich code.
+inner loop header, but the outer loop header. At this point,   | 
+the VM                                                         | We implemented these techniques for an existing JavaScript
+could continue tracing until it reaches the inner loop header  | interpreter, SpiderMonkey. We call the resulting tracing VM
+again,                                                         | Trace- Monkey. TraceMonkey supports all the JavaScript
+thus tracing the outer loop inside a trace tree for the inner  | features of SpiderMonkey, with a 2x-20x speedup for traceable
+loop.                                                          | programs.
+But this requires tracing a copy of the outer loop for every   | 
+side exit                                                      | This paper makes the following contributions:
+and type combination in the inner loop. In essence, this is a  | 
+form                                                           | We explain an algorithm for dynamically forming trace trees to
+of unintended tail duplication, which can easily overflow the  | 
+code                                                           | cover a program, representing nested loops as nested trace
+cache. Alternatively, the VM could simply stop tracing, and    | trees.
+give up                                                        | 
+on ever tracing outer loops.                                   | We explain how to speculatively generate efficient
+We solve the nested loop problem by recording nested trace     | type-specialized
+trees. Our system traces the inner loop exactly as the na¨ıve  | 
+version.                                                       | code for traces from dynamic language programs.
+The system stops extending the inner tree when it reaches an   | 
+outer                                                          | We validate our tracing techniques in an implementation based
+loop, but then it starts a new trace at the outer loop header. | 
+When                                                           | on the SpiderMonkey JavaScript interpreter, achieving 2x-20x
+the outer loop reaches the inner loop header, the system tries | speedups on many programs.
+to call                                                        | 
+the trace tree for the inner loop. If the call succeeds, the   | The remainder of this paper is organized as follows. Section 3
+VM records                                                     | is a general overview of trace tree based compilation we use
+the call to the inner tree as part of the outer trace and      | to capture and compile frequently executed code regions. In
+finishes                                                       | Section 4 we describe our approach of covering nested loops
+the outer trace as normal. In this way, our system can trace   | using a number of individual trace trees. In Section 5 we
+any                                                            | describe our tracecompilation based speculative type
+number of loops nested to any depth without causing excessive  | specialization approach we use to generate efficient machine
+tail                                                           | code from recorded bytecode traces. Our implementation of a
+duplication.                                                   | dynamic type-specializing compiler for JavaScript is described
+These techniques allow a VM to dynamically translate a pro-    | in Section 6. Related work is discussed in Section 8. In
+gram to nested, type-specialized trace trees. Because traces   | Section 7 we evaluate our dynamic compiler based on
+can                                                            | 
+cross function call boundaries, our techniques also achieve    | Equation.
+the ef-                                                        | 
+fects of inlining. Because traces have no internal             | initialized to an array of 100 false values on entry to this
+control-flow joins,                                            | code snippet.
+they can be optimized in linear time by a simple compiler      | 
+(10).                                                          | a set of industry benchmarks. The paper ends with conclusions
+Thus, our tracing VM efficiently performs the same kind of op- | in Section 9 and an outlook on future work is presented in
+timizations that would require interprocedural analysis in a   | Section 10.
+static                                                         | 
+optimization setting. This makes tracing an attractive and     | 2. Overview: Example Tracing Run.
+effective                                                      | 
+tool to type specialize even complex function call-rich code.  | This section provides an overview of our system by describing
+We implemented these techniques for an existing JavaScript in- | how TraceMonkey executes an example program. The example
+terpreter, SpiderMonkey. We call the resulting tracing VM      | program, shown in Figure 1, computes the first 100 prime
+Trace-                                                         | numbers with nested loops. The narrative should be read along
+Monkey. TraceMonkey supports all the JavaScript features of    | with Figure 2, which describes the activities TraceMonkey
+Spi-                                                           | performs and when it transitions between the loops.
+derMonkey, with a 2x-20x speedup for traceable programs.       | 
+This paper makes the following contributions:                  | TraceMonkey always begins executing a program in the bytecode
+• We explain an algorithm for dynamically forming trace trees  | interpreter. Every loop back edge is a potential trace point.
+to                                                             | When the interpreter crosses a loop edge, TraceMonkey invokes
+cover a program, representing nested loops as nested trace     | the trace monitor, which may decide to record or execute a
+trees.                                                         | native trace. At the start of execution, there are no compiled
+• We explain how to speculatively generate efficient           | traces yet, so the trace monitor counts the number of times
+type-specialized                                               | each loop back edge is executed until a loop becomes hot,
+code for traces from dynamic language programs.                | currently after 2 crossings. Note that the way our loops are
+• We validate our tracing techniques in an implementation      | compiled, the loop edge is crossed before entering the loop,
+based                                                          | so the second crossing occurs immediately after the first
+on the SpiderMonkey JavaScript interpreter, achieving 2x-20x   | iteration.
+speedups on many programs.                                     | 
+The remainder of this paper is organized as follows. Section 3 | Here is the sequence of events broken down by outer loop
+is                                                             | iteration:
+a general overview of trace tree based compilation we use to   | 
+cap-                                                           | 
+ture and compile frequently executed code regions. In Section  | 
+4                                                              | 
+we describe our approach of covering nested loops using a num- | 
+ber of individual trace trees. In Section 5 we describe our    | 
+trace-                                                         | 
+compilation based speculative type specialization approach we  | 
+use                                                            | 
+to generate efficient machine code from recorded bytecode      | 
+traces.                                                        | 
+Our implementation of a dynamic type-specializing compiler for | 
+JavaScript is described in Section 6. Related work is          | 
+discussed in                                                   | 
+Section 8. In Section 7 we evaluate our dynamic compiler based | 
+on                                                             | 
+1 for (var i = 2; i < 100; ++i) {                              | 
+2 if (!primes[i])                                              | 
+3 continue;                                                    | 
+4 for (var k = i + i; i < 100; k += i)                         | 
+5 primes[k] = false;                                           | 
+6 }                                                            | 
+Figure 1. Sample program: sieve of Eratosthenes. primes is     | 
+initialized to an array of 100 false values on entry to this   | 
+code                                                           | 
+snippet.Interpret                                              | 
+Bytecodes                                                      | 
+Monitor                                                        | 
+Record                                                         | 
+LIR Trace                                                      | 
+Execute                                                        | 
+Compiled Trace                                                 | 
+Enter                                                          | 
+Compiled Trace                                                 | 
+Compile                                                        | 
+LIR Trace                                                      | 
+Leave                                                          | 
+Compiled Trace                                                 | 
+loop                                                           | 
+edge                                                           | 
+hot                                                            | 
+loop/exit                                                      | 
+abort                                                          | 
+recording                                                      | 
+finish at                                                      | 
+loop header                                                    | 
+cold/blacklisted                                               | 
+loop/exit                                                      | 
+compiled trace                                                 | 
+ready                                                          | 
+loop edge with                                                 | 
+same types                                                     | 
+side exit to                                                   | 
+existing trace                                                 | 
+side exit,                                                     | 
+no existing trace                                              | 
+Overhead                                                       | 
+Interpreting                                                   | 
+Native                                                         | 
+Symbol Key                                                     | 
+Figure 2. State machine describing the major activities of     | 
+Trace-                                                         | 
+Monkey and the conditions that cause transitions to a new      | 
+activ-                                                         | 
+ity. In the dark box, TM executes JS as compiled traces. In    | 
+the                                                            | 
+light gray boxes, TM executes JS in the standard interpreter.  | 
+White                                                          | 
+boxes are overhead. Thus, to maximize performance, we need to  | 
+maximize time spent in the darkest box and minimize time spent | 
+in                                                             | 
+the white boxes. The best case is a loop where the types at    | 
+the loop                                                       | 
+edge are the same as the types on entry–then TM can stay in    | 
+native                                                         | 
+code until the loop is done.                                   | 
+a set of industry benchmarks. The paper ends with conclusions  | 
+in                                                             | 
+Section 9 and an outlook on future work is presented in        | 
+Section 10.                                                    | 
+2. Overview: Example Tracing Run                               | 
+This section provides an overview of our system by describing  | 
+how TraceMonkey executes an example program. The example       | 
+program, shown in Figure 1, computes the first 100 prime       | 
+numbers                                                        | 
+with nested loops. The narrative should be read along with     | 
+Figure 2,                                                      | 
+which describes the activities TraceMonkey performs and when   | 
+it                                                             | 
+transitions between the loops.                                 | 
+TraceMonkey always begins executing a program in the byte-     | 
+code interpreter. Every loop back edge is a potential trace    | 
+point.                                                         | 
+When the interpreter crosses a loop edge, TraceMonkey invokes  | 
+the trace monitor, which may decide to record or execute a     | 
+native                                                         | 
+trace. At the start of execution, there are no compiled traces | 
+yet, so                                                        | 
+the trace monitor counts the number of times each loop back    | 
+edge is                                                        | 
+executed until a loop becomes hot, currently after 2           | 
+crossings. Note                                                | 
+that the way our loops are compiled, the loop edge is crossed  | 
+before                                                         | 
+entering the loop, so the second crossing occurs immediately   | 
+after                                                          | 
+the first iteration.                                           | 
+Here is the sequence of events broken down by outer loop       | 
+iteration:                                                     | 

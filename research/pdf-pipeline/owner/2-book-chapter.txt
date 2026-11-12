@@ -1,0 +1,188 @@
+BOOK CHAPTER  (freeculture.pdf, pages 50, 51, 52)
+WHAT TO LOOK FOR: Book pages. Look for: the running head "36 FREE CULTURE" and the download URL at the foot disappear; note numbers glued to words ("generally,10") are removed; the sentence that runs over the page break is read as one sentence.
+
+NAIVE EXTRACTION (plain PDF text, as most apps read it)        | HEARSHOT (what will be read aloud)
+---------------------------------------------------------------+---------------------------------------------------------------
+“Media literacy,” as Dave Yanofsky, the executive director of  | "Media literacy," as Dave Yanofsky, the executive director of
+Just                                                           | Just Think!, puts it, "is the ability... to understand,
+Think!, puts it, “is the ability . . . to understand, analyze, | analyze, and deconstruct media images. Its aim is to make
+and decon-                                                     | [kids] literate about the way media works, the way it's
+struct media images. Its aim is to make [kids] literate about  | constructed, the way it's delivered, and the way people access
+the way                                                        | it."
+media works, the way it’s constructed, the way it’s delivered, | 
+and the                                                        | This may seem like an odd way to think about "literacy." For
+way people access it.”                                         | most people, literacy is about reading and writing. Faulkner
+This may seem like an odd way to think about “literacy.” For   | and Hemingway and noticing split infinitives are the things
+most                                                           | that "literate" people know about.
+people, literacy is about reading and writing. Faulkner and    | 
+Hemingway                                                      | Maybe. But in a world where children see on average 390 hours
+and noticing split infinitives are the things that “literate”  | of television commercials per year, or between 20,000 and
+people know                                                    | 45,000 commercials generally, it is increasingly important to
+about.                                                         | understand the "grammar" of media. For just as there is a
+Maybe. But in a world where children see on average 390 hours  | grammar for the written word, so, too, is there one for media.
+of                                                             | And just as kids learn how to write by writing lots of
+television commercials per year, or between 20,000 and 45,000  | terrible prose, kids learn how to write media by constructing
+com-                                                           | lots of (at least at first) terrible media.
+mercials generally,10 it is increasingly important to          | 
+understand the                                                 | A growing field of academics and activists sees this form of
+“grammar” of media. For just as there is a grammar for the     | literacy as crucial to the next generation of culture. For
+written                                                        | though anyone who has written understands how difficult
+word, so, too, is there one for media. And just as kids learn  | writing is-how difficult it is to sequence the story, to keep
+how to write                                                   | a reader's attention, to craft language to be
+by writing lots of terrible prose, kids learn how to write     | understandable-few of us have any real sense of how difficult
+media by con-                                                  | media is. Or more fundamentally, few of us have a sense of how
+structing lots of (at least at first) terrible media.          | media works, how it holds an audience or leads it through a
+A growing field of academics and activists sees this form of   | story, how it triggers emotion or builds suspense.
+literacy                                                       | 
+as crucial to the next generation of culture. For though       | It took filmmaking a generation before it could do these
+anyone who has                                                 | things well. But even then, the knowledge was in the filming,
+written understands how difficult writing is—how difficult it  | not in writing about the film. The skill came from
+is to se-                                                      | experiencing the making of a film, not from reading a book
+quence the story, to keep a reader’s attention, to craft       | about it. One learns to write by writing and then reflecting
+language to be                                                 | upon what one has written. One learns to write with images by
+understandable—few of us have any real sense of how difficult  | making them and then reflecting upon what one has created.
+media                                                          | 
+is. Or more fundamentally, few of us have a sense of how media | This grammar has changed as media has changed. When it was
+works,                                                         | just film, as Elizabeth Daley, executive director of the
+how it holds an audience or leads it through a story, how it   | University of Southern California's Annenberg Center for
+triggers                                                       | Communication and dean of the USC School of Cinema-Television,
+emotion or builds suspense.                                    | explained to me, the grammar was about "the placement of
+It took filmmaking a generation before it could do these       | objects, color, rhythm, pacing, and texture." But as computers
+things well.                                                   | open up an interactive space where a story is "played" as well
+But even then, the knowledge was in the filming, not in        | as experienced, that grammar changes. The simple control of
+writing about                                                  | narrative is lost, and so other techniques are necessary.
+the film. The skill came from experiencing the making of a     | Author Michael Crichton had mastered the narrative of science
+film, not                                                      | fiction. But when he tried to design a computer game based on
+from reading a book about it. One learns to write by writing   | one of his works, it was a new craft he had to learn. How to
+and then                                                       | lead people through a game without their feeling they have
+reflecting upon what one has written. One learns to write with | been led was not obvious, even to a wildly successful author.
+images                                                         | 
+by making them and then reflecting upon what one has created.  | This skill is precisely the craft a filmmaker learns. As Daley
+This grammar has changed as media has changed. When it was     | describes, "people are very surprised about how they are led
+just                                                           | through a film. [I]t is perfectly constructed to keep you from
+film, as Elizabeth Daley, executive director of the University | seeing it, so you have no idea. If a filmmaker succeeds you do
+of South-                                                      | not know how you were led." If you know you were led through a
+ern California’s Annenberg Center for Communication and dean   | film, the film has failed.
+of the                                                         | 
+36 FREE CULTURE<http://free-culture.org/get-it>                | Yet the push for an expanded literacy-one that goes beyond
+USC School of Cinema-Television, explained to me, the grammar  | text to include audio and visual elements-is not about making
+was                                                            | better film directors. The aim is not to improve the
+about “the placement of objects, color, . . . rhythm, pacing,  | profession of filmmaking at all. Instead, as Daley explained,
+and tex-                                                       | 
+ture.”11 But as computers open up an interactive space where a | From my perspective, probably the most important digital
+story is                                                       | divide is not access to a box. It's the ability to be
+“played” as well as experienced, that grammar changes. The     | empowered with the language that that box works in. Otherwise
+simple                                                         | only a very few people can write with this language, and all
+control of narrative is lost, and so other techniques are      | the rest of us are reduced to being read-only.
+necessary. Au-                                                 | 
+thor Michael Crichton had mastered the narrative of science    | "Read-only." Passive recipients of culture produced elsewhere.
+fiction.                                                       | Couch potatoes. Consumers. This is the world of media from the
+But when he tried to design a computer game based on one of    | twentieth century.
+his                                                            | 
+works, it was a new craft he had to learn. How to lead people  | The twenty-first century could be different. This is the
+through                                                        | crucial point: It could be both read and write. Or at least
+a game without their feeling they have been led was not        | reading and better understanding the craft of writing. Or
+obvious, even                                                  | best, reading and understanding the tools that enable the
+to a wildly successful author.12                               | writing to lead or mislead. The aim of any literacy, and this
+This skill is precisely the craft a filmmaker learns. As Daley | literacy in particular, is to "empower people to choose the
+de-                                                            | appropriate language for what they need to create or express."
+scribes, “people are very surprised about how they are led     | It is to enable students "to communicate in the language of
+through a                                                      | the twenty-first century."
+film. [I]t is perfectly constructed to keep you from seeing    | 
+it, so you                                                     | As with any language, this language comes more easily to some
+have no idea. If a filmmaker succeeds you do not know how you  | than to others. It doesn't necessarily come more easily to
+were                                                           | those who excel in written language. Daley and Stephanie
+led.” If you know you were led through a film, the film has    | Barish, director of the Institute for Multimedia Literacy at
+failed.                                                        | the Annenberg Center, describe one particularly poignant
+Yet the push for an expanded literacy—one that goes beyond     | example of a project they ran in a high school. The high
+text to                                                        | school was a very poor inner-city Los Angeles school. In all
+include audio and visual elements—is not about making better   | the traditional measures of success, this school was a
+film di-                                                       | failure. But Daley and Barish ran a program that gave kids an
+rectors. The aim is not to improve the profession of           | opportunity to use film to express meaning about something the
+filmmaking at all.                                             | students know something about-gun violence.
+Instead, as Daley explained,                                   | 
+From my perspective, probably the most important digital       | The class was held on Friday afternoons, and it created a
+divide                                                         | relatively new problem for the school. While the challenge in
+is not access to a box. It’s the ability to be empowered with  | most classes was getting the kids to come, the challenge in
+the                                                            | this class was keeping them away. The "kids were showing up at
+language that that box works in. Otherwise only a very few     | 6 A.M. and leaving at 5 at night," said Barish. They were
+people                                                         | working harder than in any other class to do what education
+can write with this language, and all the rest of us are       | should be about-learning how to express themselves.
+reduced to                                                     | 
+being read-only.                                               | Using whatever "free web stuff they could find," and
+“Read-only.” Passive recipients of culture produced elsewhere. | relatively simple tools to enable the kids to mix "image,
+Couch potatoes. Consumers. This is the world of media from the | sound, and text," Barish said this class produced a series of
+twentieth century.                                             | projects that showed something about gun violence that few
+The twenty-first century could be different. This is the       | would otherwise understand. This was an issue close to the
+crucial point:                                                 | lives of these students. The project "gave them a tool and
+It could be both read and write. Or at least reading and       | empowered them to be able to both understand it and talk about
+better under-                                                  | it," Barish explained. That tool succeeded in creating
+standing the craft of writing. Or best, reading and            | expression-far more successfully and powerfully than could
+understanding the                                              | have been created using only text. "If you had said to these
+tools that enable the writing to lead or mislead. The aim of   | students, 'you have to do it in text,' they would've just
+any literacy,                                                  | thrown their hands up and gone and done something else,"
+“PIRACY” 37                                                    | Barish described, in part, no doubt, because expressing
+and this literacy in particular, is to “empower people to      | themselves in text is not something these students can do
+choose the appro-                                              | well. Yet neither is text a form in which these ideas can be
+priate language for what they need to create or express.”13 It | expressed well. The power of this message depended upon its
+is to enable                                                   | connection to this form of expression.
+students “to communicate in the language of the twenty-first   | 
+century.”14                                                    | 
+As with any language, this language comes more easily to some  | 
+than to others. It doesn’t necessarily come more easily to     | 
+those who ex-                                                  | 
+cel in written language. Daley and Stephanie Barish, director  | 
+of the In-                                                     | 
+stitute for Multimedia Literacy at the Annenberg Center,       | 
+describe one                                                   | 
+particularly poignant example of a project they ran in a high  | 
+school.                                                        | 
+The high school was a very poor inner-city Los Angeles school. | 
+In all                                                         | 
+the traditional measures of success, this school was a         | 
+failure. But Daley                                             | 
+and Barish ran a program that gave kids an opportunity to use  | 
+film                                                           | 
+to express meaning about something the students know something | 
+about—gun violence.                                            | 
+The class was held on Friday afternoons, and it created a      | 
+relatively                                                     | 
+new problem for the school. While the challenge in most        | 
+classes was                                                    | 
+getting the kids to come, the challenge in this class was      | 
+keeping them                                                   | 
+away. The “kids were showing up at 6 A.M. and leaving at 5 at  | 
+night,”                                                        | 
+said Barish. They were working harder than in any other class  | 
+to do                                                          | 
+what education should be about—learning how to express         | 
+themselves.                                                    | 
+Using whatever “free web stuff they could find,” and           | 
+relatively sim-                                                | 
+ple tools to enable the kids to mix “image, sound, and text,”  | 
+Barish said                                                    | 
+this class produced a series of projects that showed something | 
+about                                                          | 
+gun violence that few would otherwise understand. This was an  | 
+issue                                                          | 
+close to the lives of these students. The project “gave them a | 
+tool and                                                       | 
+empowered them to be able to both understand it and talk about | 
+it,”                                                           | 
+Barish explained. That tool succeeded in creating              | 
+expression—far more                                            | 
+successfully and powerfully than could have been created using | 
+only                                                           | 
+text. “If you had said to these students, ‘you have to do it   | 
+in text,’ they                                                 | 
+would’ve just thrown their hands up and gone and done          | 
+something                                                      | 
+else,” Barish described, in part, no doubt, because expressing | 
+them-                                                          | 
+selves in text is not something these students can do well.    | 
+Yet neither                                                    | 
+is text a form in which these ideas can be expressed well. The | 
+power of                                                       | 
+this message depended upon its connection to this form of      | 
+expression.                                                    | 
+38 FREE CULTURE<http://free-culture.org/get-it>                | 

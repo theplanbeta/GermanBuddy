@@ -1,0 +1,27 @@
+HEARSHOT DOCUMENT READER - WHAT TO LOOK AT
+
+Each file 1-5 shows the same pages twice, side by side:
+left  = plain PDF text, the way most reader apps get it;
+right = what Hearshot would read aloud with the default settings.
+The first line of each file says what to look for.
+
+WHERE IT STILL FAILS (honest list, from the measurements)
+- Scientific papers with many tables, formulas and figure labels: some table notes and labels
+  are still read, and a few body lines get skipped as if they were captions (scores 68-82 of 100).
+- Exam sheets and worksheets with answer boxes, multiple-choice grids and maths: up to a quarter
+  of the text is lost or read out of order (scores 59-92).
+- Magazine layouts: a subtitle that runs across two columns can come out jumbled, and boxed
+  sidebars ("At a glance", "Did you know?") are read in the middle of the story.
+- Slide decks: the words are right, but bullet points are often merged into one long paragraph.
+- Newspaper pages with several stories: stories that jump between columns are sometimes joined
+  in the wrong order; the app shows a "reading order may be wrong" warning on such pages, but the
+  warning also appears on some pages that are fine.
+- Long dashes become short hyphens ("writing is-how difficult" instead of "writing is - how"),
+  so the voice may run those words together.
+- Scanned pages need a separate "recognise text" step (a few seconds per page on a computer,
+  slower on a phone). Very blurry or low-resolution scans can still come out with errors.
+- Formulas are not read; they are replaced by the word "Equation." Tables are replaced by
+  "Table omitted." (a setting can turn table reading on).
+- German documents: works, but compound words split over two lines are rejoined using the
+  document itself only; no German dictionary yet.
+- Not yet tried on the phone at all.

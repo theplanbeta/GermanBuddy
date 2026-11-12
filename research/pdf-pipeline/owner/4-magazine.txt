@@ -1,0 +1,140 @@
+MAGAZINE  (syn-magazine.pdf, page 1)
+WHAT TO LOOK FOR: Magazine page (made for this test). Look for: the big pull quotes (which repeat sentences) are skipped; the drop capital letter is joined to its word; the photo caption and the magazine footer are skipped. Known gap: the "At a glance" sidebar is still read in the middle of the story.
+
+NAIVE EXTRACTION (plain PDF text, as most apps read it)        | HEARSHOT (what will be read aloud)
+---------------------------------------------------------------+---------------------------------------------------------------
+H O R I Z O N S M A G A Z I N E | N O V E M B E R 2 0 2 6 1    | The Long Story of Josepha Petrick Kemarre.
+J                                                              | 
+F E A T U R E · H I S T O R Y                                  | Indigenous Australian from Central Australia. works of
+The Long Story of Josepha Petrick                              | contemporary.
+Kemarre                                                        | 
+Josepha Petrick Kemarre (born ca. 1945 or ca. 1953, date       | By Jonas Whitfield · Photographs By Ana Lucía Prieto
+uncertain) is an Anmatyerre-speaking                           | 
+Indigenous Australian from Central Australia. Since first      | Josepha Petrick Kemarre is an Anmatyerre-speaking Indigenous
+taking up painting around 1990, her                            | Australian, born around 1945 or 1953 at the Santa Teresa
+works of contemporary.                                         | Mission, near Alice Springs in Australia's Northern Territory.
+BY JONAS WHITFIELD · PHOTOGRAPHS BY ANA LUCÍA PRIETO           | 
+osepha Petrick Kemarre is an An‐                               | When Josepha Petrick began painting for Mbantua Gallery in
+matyerre-speaking Indigenous Aus‐                              | central Australia, she indicated that her name was Josepha
+tralian, born around 1945 or 1953 at                           | rather than Josie, and that this was how she henceforth wished
+the Santa Teresa Mission, near Alice                           | to be known; however Mbantua's biography is the only source
+Springs in Australia's Northern Territory.                     | that has used that version of her name.
+When Josepha Petrick began painting for                        | 
+Mbantua Gallery in central Australia, she                      | After marrying Robin Petyarre, brother of artist Gloria
+indicated that her name was Josepha rather                     | Petyarre, Josepha Petrick moved to the region of Utopia,
+than Josie, and that this was how she hence‐                   | north-east of Alice Springs, which is where she was living
+forth wished to be known; however Mban‐                        | when she began painting around 1990. They had seven children,
+tua's biography is the only source that has                    | one of whom, Damien Petrick, went on to become an artist like
+used that version of her name.                                 | his mother. By 2008, Josie Petrick's husband had died, and
+After marrying Robin Petyarre, brother                         | Petrick was dividing her time between Alice Springs and Harts
+of artist Gloria Petyarre, Josepha Petrick                     | Range, to its north-east.
+moved to the region of Utopia, north-east of                   | 
+Alice Springs, which is where she was liv‐                     | Josepha Petrick Kemarre (born ca. 1945 or ca. 1953, date
+ing when she began painting around 1990.                       | uncertain) is an Anmatyerre-speaking Since first taking up
+They had seven children, one of whom,                          | painting around 1990, her.
+Damien Petrick, went on to become an                           | 
+artist like his mother. By 2008, Josie Pet‐                    | in 1983. By the 1980s and ' 90s, such work was being exhibited
+rick's husband had died, and Petrick was di‐                   | internationally. The first artists, including all of the
+viding her time between Alice Springs and                      | founders of the Papunya Tula artists ' company, were men, and
+Harts Range, to its north-east.                                | there was resistance among the Pintupi men of central
+“After marrying Robin                                          | Australia to women also painting. However.
+Petyarre, brother of                                           | 
+artist Gloria Petyarre,                                        | Josepha Petrick began painting about 1990 or 1992 as part of
+Josepha Petrick moved                                          | the contemporary Indigenous art movement that had begun at
+to the region of Utopia,                                       | Papunya in the 1970s. By 1998 her work was being collected by
+north-east of Alice                                            | both private and public institutions, such as Charles Sturt
+Springs, which.”                                               | 
+Contemporary Indigenous art of the                             | University, and in 2005 a work was purchased by the National
+western desert began in 1971 when Indige‐                      | Gallery of Victoria. Her career received a significant boost
+nous men at Papunya created murals and                         | when her work was included in the National Gallery of
+canvases using western art materials, assist‐                  | Victoria's 2006 Landmarks exhibition and its catalogue; her
+ed by teacher Geoffrey Bardon. Their work,                     | painting was printed opposite that of Yannima Tommy Watson,
+which used acrylic paints to create designs                    | who was by this time famous, particularly for his contribution
+representing body painting and ground                          | to the design of a new building for the Musée du quai.
+sculptures, rapidly spread across Indigenous                   | 
+communities of central Australia, particu‐                     | Central Australian artists frequently paint particular
+larly after the introduction of a government-                  | "dreamings", or stories, for which they have responsibility or
+sanctioned art program in central Australia                    | rights. These stories are used to pass "important knowledge,
+in 1983. By the 1980s and ' 90s, such work                     | cultural values and belief systems" from generation to
+was being exhibited internationally. The                       | generation. Paintings by Petrick portray two different groups
+first artists, including all of the founders of                | of dreamings, rendered in two distinct styles. Bush plum
+the Papunya Tula artists ' company, were                       | dreaming represents a plant of the central Australian desert
+men, and there was resistance among the                        | which is "a source of physical and spiritual sustenance,
+Pintupi men of central Australia to women                      | reminding [the local Indigenous people] of the sacredness of
+also painting. However.                                        | [their] country". These paintings are undertaken with red,
+Josepha Petrick began painting about                           | blue and orange dots that represent the fruit at different
+1990 or 1992 as part of the contemporary                       | stages in its development. She also paints women ' s
+Indigenous art movement that had begun at                      | ceremonies (Awelye) and dreamings, and these.
+Papunya in the 1970s. By 1998 her work                         | 
+was being collected by both private and                        | Springs, which.".
+public institutions, such as Charles Sturt                     | 
+University, and in 2005 a work was pur‐                        | Contemporary Indigenous art of the western desert began in
+chased by the National Gallery of Victoria.                    | 1971 when Indigenous men at Papunya created murals and
+Her career received a significant boost                        | canvases using western art materials, assisted by teacher
+when her work was included in the National                     | Geoffrey Bardon. Their work, which used acrylic paints to
+Gallery of Victoria's 2006 Landmarks exhi‐                     | create designs representing body painting and ground
+bition and its catalogue; her painting was                     | sculptures, rapidly spread across Indigenous communities of
+printed opposite that of Yannima Tommy                         | central Australia, particularly after the introduction of a
+Watson, who was by this time famous, par‐                      | governmentsanctioned art program in central Australia
+ticularly for his contribution to the design                   | 
+of a new building for the Musée du quai.                       | Head VI is an oil-on-canvas painting by the Irish-born English
+AT A GLANCE                                                    | figurative artist Francis Bacon, the last of six panels making
+Head VI is an oil-on-canvas painting by                        | up his "1949 Head" series. It shows a bust view of a single
+the Irish-born English figurative artist                       | figure, modeled on Diego Velázquez's Portrait of Innocent X.
+Francis Bacon, the last of six panels                          | Bacon applies forceful, expressive brush strokes, and places
+making up his "1949 Head" series. It                           | the figure within a glass cage structure, behind curtain-like
+shows a bust view of a single figure,                          | drapery..
+modeled on Diego Velázquez's Portrait                          | 
+of Innocent X. Bacon applies forceful,                         | In 2006 a commissioned work by Petrick was exhibited at Shalom
+expressive brush strokes, and places                           | College at the University of New South Wales as part of a
+the figure within a glass cage structure,                      | charity fundraising exhibition. It sold for A $ 22,000. As of
+behind curtain-like drapery..                                  | the end of 2008, the highest recorded auction price for an
+In 2006 a commissioned work by Petrick                         | item of Petrick's work was $ 22,800, set in May 2007. An image
+was exhibited at Shalom College at the Uni‐                    | based on a triptych by Petrick, Bush Berries, appears on the
+versity of New South Wales as part of a                        | cover of a book on the visual perception of motion, Motion
+charity fundraising exhibition. It sold for A                  | Vision.
+$ 22,000. As of the end of 2008, the highest                   | 
+recorded auction price for an item of Pet‐                     | The old harbour wall at low tide. Much of the original stone
+rick's work was $ 22,800, set in May 2007.                     | was reused in later buildings.
+An image based on a triptych by Petrick,                       | 
+Bush Berries, appears on the cover of a                        | A turning point.
+book on the visual perception of motion,                       | 
+Motion Vision.                                                 | Journalist Zelda Cawthorne described Petrick as one of the
+Central Australian artists frequently paint                    | "finest contemporary Aboriginal artists". Art consultant
+particular "dreamings", or stories, for which                  | Adrian Newstead has ranked her as amongst the country's top
+they have responsibility or rights. These                      | 200 Indigenous artists, noting that she has become "known for
+stories are used to pass "important knowl‐                     | innovative works that create a sense of visual harmony through
+edge, cultural values and belief systems"                      | fine variegated fields of immaculately applied dotting". Her
+from generation to generation. Paintings by                    | style is described by Indigenous art writers Birnberg and
+Petrick portray two different groups of                        | Kreczmanski as an "interesting, modern interpretation of
+dreamings, rendered in two distinct styles.                    | landscape".
+Bush plum dreaming represents a plant of                       | 
+the central Australian desert which is "a                      | Petrick's work is held in a variety of public and private
+source of physical and spiritual sustenance,                   | collections, including Artbank, the Charles Sturt University
+reminding [the local Indigenous people] of                     | Collection, the Holmes a Court Collection, and the National
+the sacredness of [their] country". These                      | Gallery of Victoria.
+paintings are undertaken with red, blue and                    | 
+orange dots that represent the fruit at differ‐                | 
+ent stages in its development. She also                        | 
+paints women ’ s ceremonies (Awelye) and                       | 
+dreamings, and these.                                          | 
+The old harbour wall at low tide. Much of the                  | 
+original stone was reused in later buildings.                  | 
+A turning point                                                | 
+Journalist Zelda Cawthorne described                           | 
+Petrick as one of the "finest contemporary                     | 
+Aboriginal artists". Art consultant Adrian                     | 
+Newstead has ranked her as amongst the                         | 
+country's top 200 Indigenous artists, noting                   | 
+that she has become "known for innovative                      | 
+works that create a sense of visual harmony                    | 
+through fine variegated fields of immacu‐                      | 
+lately applied dotting". Her style is de‐                      | 
+scribed by Indigenous art writers Birnberg                     | 
+and Kreczmanski as an "interesting, modern                     | 
+interpretation of landscape".                                  | 
+Petrick's work is held in a variety of pub‐                    | 
+lic and private collections, including Art‐                    | 
+bank, the Charles Sturt University Collec‐                     | 
+tion, the Holmes a Court Collection, and the                   | 
+National Gallery of Victoria.                                  | 

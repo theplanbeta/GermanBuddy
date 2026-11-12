@@ -1,0 +1,233 @@
+GOVERNMENT 3 COLUMN  (federal-register-2020-17221.pdf, page 2)
+WHAT TO LOOK FOR: Three-column government notice. Look for: the long small-print footnotes are no longer read in the middle of the text; the printer line "VerDate ..." at the bottom is gone; footnote numbers are removed from sentences.
+
+NAIVE EXTRACTION (plain PDF text, as most apps read it)        | HEARSHOT (what will be read aloud)
+---------------------------------------------------------------+---------------------------------------------------------------
+47699Federal Register / Vol. 85, No. 152 / Thursday, August 6, | Hatta International Airport in Jakarta, Indonesia, resulting
+2020 / Proposed Rules                                          | in 189 fatalities. Investigation of the accident has been
+1 Preliminary KNKT.18.10.35.04 Aircraft                        | completed by the Indonesian authorities (Komite Nasional
+Accident Investigation Report, dated November                  | Keselamatan Transportasi (KNKT)) with assistance from the
+2018, and Final KNKT.18.10.35.04 Aircraft                      | National Transportation Safety Board (NTSB) and the FAA of the
+Accident Investigation Report, dated October 2019,             | United States, the manufacturer, and the operator. Reports
+can be found in the AD docket.                                 | from the accident investigation indicate that the airplane's
+2 The flight control system for 737 MAX airplanes              | flight control system generated repeated airplane nose-down
+includes two flight control computers, FCC A and               | horizontal stabilizer trim commands contributing to the
+FCC B, which process inputs from the pilots and                | accident.
+aircraft sensors to move the airplane’s control                | 
+surfaces.                                                      | Following the Lion Air Flight 610 accident on October 29,
+3 An airplane’s nose-up or nose-down attitude is               | 2018, data from the flight data recorder, which is contained
+known as its ‘‘pitch attitude.’’ On the 737 MAX, the           | in the Indonesian accident report (link to knkt.dephub.go.id
+airplane’s pitch attitude is primarily controlled by           | ntsc_aviation/baru/2018%20- %20035%20-%20PK-
+a combination of two movable surfaces on the tail              | LQP%20Final%20Report.pdf), indicated that a single erroneously
+of the airplane: The horizontal stabilizer, which is           | high angle of attack (AOA) sensor input to the flight control
+controlled by electric and manual (pilot) trim                 | system while the flaps are retracted can cause repeated
+inputs, and the elevator, which is controlled by               | airplane nose-down trim of the horizontal stabilizer and
+moving the control columns. ‘‘Pitch trim’’                     | multiple flightdeck effects.
+commands move the horizontal stabilizer. Pilots use            | 
+pitch trim to adjust the position of the horizontal            | These effects include stall warning activation, airspeed
+stabilizer to achieve the desired flight path and to           | disagree alert, and altitude disagree alert, and may affect
+manage the forces necessary to keep the airplane in            | the flightcrew's ability to accomplish continued safe flight
+stable flight.                                                 | and landing.
+4 The angle of attack (or AOA) is the angle at                 | 
+which the airplane wing meets the oncoming air.                | On November 7, 2018, the FAA issued Emergency AD 2018-23-51 as
+On the current 737 MAX, AOA is measured by two                 | an interim corrective action. The FAA sent Emergency AD
+independent AOA sensors, which are small vanes                 | 2018-23-51 to all known U.S. owners and operators of Boeing
+mounted on either side of the forward exterior of              | Model 737 MAX airplanes to require revising certificate
+the fuselage. For the purposes of this NPRM, ‘‘high’’          | limitations and operating procedures of the AFM to provide the
+AOA is a relatively large angle (associated with               | flightcrew with runaway horizontal stabilizer trim procedures
+flight conditions outside of the normal flight                 | to follow under certain conditions. The FAA sent Emergency AD
+envelope), and ‘‘low’’ AOA is a relatively small               | 2018-23-51 to all affected civil aviation authorities (CAAs)
+angle (associated with flight conditions within the            | at the same time. AD 2018-23- 51, Amendment 39-19512 (83 FR
+normal flight envelope). Although wing lift                    | 62697, December 6, 2018; corrected December 11, 2018 (83 FR
+increases with increased AOA, an excessively high              | 63561)), was published in the Federal Register as an amendment
+airplane nose-up AOA can be hazardous, since                   | to 14 CFR 39.13.
+eventually lift can be lost, causing the airplane to           | 
+stall. A stall occurs when the airflow around the              | On March 10, 2019, a Boeing Model 737-8 airplane operated by
+wing is sufficiently disrupted to cause the wing to            | Ethiopian Airlines (Ethiopian Airlines Flight 302) was
+no longer generate lift. To warn of an impending               | involved in an accident after takeoff from Addis Ababa Bole
+stall, the 737 MAX is equipped with a ‘‘stick                  | International Airport in Addis Ababa, Ethiopia, resulting in
+shaker,’’ which vibrates the control column,                   | 157 fatalities. The accident is under investigation by the
+providing tactile annunciation to the pilot.                   | Ethiopian Accident Investigation Bureau (EAIB) with assistance
+5 Stall warning indication is the activation of the            | from the NTSB and the FAA of the United States, the French
+stick shaker and other warnings. An airspeed                   | Bureau of Enquiry and Analysis for Civil Aviation Safety
+disagree alert, or ‘‘IAS (indicated airspeed)                  | (BEA), the European Union Aviation Safety Agency (EASA), the
+DISAGREE’’ on the 737 MAX, is a visual alert on                | manufacturer, the operator,
+the airplane’s primary flight displays (PFDs) that             | 
+the airspeed displayed on the captain’s and first              | The data from the flight data recorders, as summarized in
+officer’s PFDs, as sensed by the pitot tubes on either         | reports of the Ethiopian Airlines Flight 302 accident and the
+side of the airplane, disagree by more than 5 knots            | Lion Air Flight 610 accident, indicated that if a single
+for more than 5 seconds. An altitude disagree alert,           | erroneously high AOA sensor input is received by the flight
+or ‘‘ALT (altitude) DISAGREE’’ on the 737 MAX, is              | control system, the maneuvering characteristics augmentation
+a visual alert on the PFDs that the altitude, as               | system (MCAS) can command repeated airplane nose-down trim of
+sensed by the static ports on either side of the               | the horizontal stabilizer. This unsafe condition, if not
+airplane, disagree by more than 200 feet for more              | addressed, could cause the flightcrew to have difficulty
+than 5 seconds.                                                | controlling the airplane, and lead to excessive airplane
+6 Flight data recorder (FDR) data from the Lion                | nose-down attitude, significant altitude loss, and impact with
+Air Flight 610 accident airplane indicated that on             | terrain.
+the flight just prior to the accident flight (Lion Air         | 
+Flight 043), the airplane experienced the same                 | To address the unsafe condition, the FAA proposes to require
+single erroneously high AOA sensor failure                     | four design changes: (1) Installing updated flight control
+condition upon takeoff that the Lion Air Flight 610            | software (with new control laws) for the FCC operational
+crew encountered. The flightcrew on Lion Air                   | program software (OPS), (2) installing updated MDS display
+Flight 043 was able to maintain continued safe                 | processing computer (DPC) software to generate an AOA disagree
+flight and land at their planned destination airport           | alert, (3) revising certain AFM flightcrew operating
+in Jakarta. The flightcrew on Lion Air Flight 043              | procedures, and (4) changing the routing of horizontal
+had no prior awareness of this type of failure or              | stabilizer trim wires. The first design change is intended to
+how to respond to it. The FAA’s review of these                | prevent erroneous MCAS activation. The second design change
+flights and associated risk assessments provided the           | alerts the pilots that the airplane's two AOA sensors are
+basis for the revised pilot procedures contained in            | disagreeing by a certain amount indicating a potential AOA
+the interim action of the FAA’s emergency AD;                  | sensor failure. The third design change is intended to ensure
+specifically, the rationale was that if pilots were            | that the flightcrew has the means to recognize and respond to
+provided awareness of the airplane and flightdeck              | erroneous stabilizer movement and the effects of a potential
+effects of this specific failure scenario and were             | AOA sensor failure. The fourth design change is intended to
+provided appropriate instructions via the                      | restore compliance with the FAA's latest wire separation
+emergency AD, this would enable appropriate pilot              | safety standards.
+response to the erroneously high AOA failure                   | 
+scenario for the period of time needed to fully                | In addition to these four design changes, the FAA also
+eliminate this unsafe condition with a software                | proposes to
+revision to the flight control computers.                      | 
+7 Ethiopian Aircraft Accident Investigation                    | 
+Preliminary Report AI–01/19, dated March 2019,                 | 
+and the Ethiopian Interim Investigation Report of              | 
+accident MAX–8 ET–AVJ, ET–302, dated March                     | 
+2020, can be found in the AD docket.                           | 
+8 MCAS is a function of the Speed Trim System                  | 
+(STS), which is part of the airplane’s flight control          | 
+system. The STS provides automatic trim inputs to              | 
+the horizontal stabilizer during manual flight. The            | 
+STS uses data from a variety of sources, such as               | 
+pitot tubes and the AOA sensors, to calculate when             | 
+to make commands. MCAS is activated only during                | 
+manual flight, with flaps up, and when the AOA                 | 
+sensors detect that the airplane is flying with a high         | 
+AOA, such as when climbing aggressively or                     | 
+performing excessively tight turns with high bank              | 
+angles. MCAS makes pitch trim commands to the                  | 
+horizontal stabilizer during a high AOA event so               | 
+that the 737 MAX handling qualities are compliant              | 
+with FAA regulations (including 14 CFR 25.173).                | 
+9 An AOA disagree alert, or ‘‘AOA DISAGREE’’ on                | 
+the 737 MAX, is a visual alert on the airplane’s               | 
+PFDs that alerts the flightcrew of a disagreement              | 
+between the angles of attack measured by each of               | 
+the airplane’s two AOA sensors.                                | 
+Hatta International Airport in Jakarta,                        | 
+Indonesia, resulting in 189 fatalities.                        | 
+Investigation of the accident has been                         | 
+completed by the Indonesian authorities                        | 
+(Komite Nasional Keselamatan                                   | 
+Transportasi (KNKT)) with assistance                           | 
+from the National Transportation Safety                        | 
+Board (NTSB) and the FAA of the                                | 
+United States, the manufacturer, and the                       | 
+operator. Reports 1 from the accident                          | 
+investigation indicate that the airplane’s                     | 
+flight control system 2 generated                              | 
+repeated airplane nose-down horizontal                         | 
+stabilizer trim 3 commands contributing                        | 
+to the accident.                                               | 
+Following the Lion Air Flight 610                              | 
+accident on October 29, 2018, data from                        | 
+the flight data recorder, which is                             | 
+contained in the Indonesian accident                           | 
+report (http://knkt.dephub.go.id/knkt/                         | 
+ntsc_aviation/baru/2018%20-                                    | 
+%20035%20-%20PK-                                               | 
+LQP%20Final%20Report.pdf), indicated                           | 
+that a single erroneously high angle of                        | 
+attack (AOA) sensor 4 input to the flight                      | 
+control system while the flaps are                             | 
+retracted can cause repeated airplane                          | 
+nose-down trim of the horizontal                               | 
+stabilizer and multiple flightdeck                             | 
+effects.                                                       | 
+These effects include stall warning                            | 
+activation, airspeed disagree alert, and                       | 
+altitude disagree alert,5 and may affect                       | 
+the flightcrew’s ability to accomplish                         | 
+continued safe flight and landing.                             | 
+On November 7, 2018, the FAA issued                            | 
+Emergency AD 2018–23–51 as an                                  | 
+interim corrective action.6 The FAA                            | 
+sent Emergency AD 2018–23–51 to all                            | 
+known U.S. owners and operators of                             | 
+Boeing Model 737 MAX airplanes to                              | 
+require revising certificate limitations                       | 
+and operating procedures of the AFM to                         | 
+provide the flightcrew with runaway                            | 
+horizontal stabilizer trim procedures to                       | 
+follow under certain conditions. The                           | 
+FAA sent Emergency AD 2018–23–51 to                            | 
+all affected civil aviation authorities                        | 
+(CAAs) at the same time. AD 2018–23–                           | 
+51, Amendment 39–19512 (83 FR                                  | 
+62697, December 6, 2018; corrected                             | 
+December 11, 2018 (83 FR 63561)), was                          | 
+published in the Federal Register as an                        | 
+amendment to 14 CFR 39.13.                                     | 
+On March 10, 2019, a Boeing Model                              | 
+737–8 airplane operated by Ethiopian                           | 
+Airlines (Ethiopian Airlines Flight 302)                       | 
+was involved in an accident after takeoff                      | 
+from Addis Ababa Bole International                            | 
+Airport in Addis Ababa, Ethiopia,                              | 
+resulting in 157 fatalities. The accident                      | 
+is under investigation by the Ethiopian                        | 
+Accident Investigation Bureau (EAIB)                           | 
+with assistance from the NTSB and the                          | 
+FAA of the United States, the French                           | 
+Bureau of Enquiry and Analysis for                             | 
+Civil Aviation Safety (BEA), the                               | 
+European Union Aviation Safety Agency                          | 
+(EASA), the manufacturer, the operator,                        | 
+and the Ethiopian Civil Aviation                               | 
+Authority (ECAA).                                              | 
+The data from the flight data                                  | 
+recorders, as summarized in reports 7 of                       | 
+the Ethiopian Airlines Flight 302                              | 
+accident and the Lion Air Flight 610                           | 
+accident, indicated that if a single                           | 
+erroneously high AOA sensor input is                           | 
+received by the flight control system,                         | 
+the maneuvering characteristics                                | 
+augmentation system (MCAS) 8 can                               | 
+command repeated airplane nose-down                            | 
+trim of the horizontal stabilizer. This                        | 
+unsafe condition, if not addressed,                            | 
+could cause the flightcrew to have                             | 
+difficulty controlling the airplane, and                       | 
+lead to excessive airplane nose-down                           | 
+attitude, significant altitude loss, and                       | 
+impact with terrain.                                           | 
+To address the unsafe condition, the                           | 
+FAA proposes to require four design                            | 
+changes: (1) Installing updated flight                         | 
+control software (with new control laws)                       | 
+for the FCC operational program                                | 
+software (OPS), (2) installing updated                         | 
+MDS display processing computer                                | 
+(DPC) software to generate an AOA                              | 
+disagree alert,9 (3) revising certain AFM                      | 
+flightcrew operating procedures, and (4)                       | 
+changing the routing of horizontal                             | 
+stabilizer trim wires. The first design                        | 
+change is intended to prevent erroneous                        | 
+MCAS activation. The second design                             | 
+change alerts the pilots that the                              | 
+airplane’s two AOA sensors are                                 | 
+disagreeing by a certain amount                                | 
+indicating a potential AOA sensor                              | 
+failure. The third design change is                            | 
+intended to ensure that the flightcrew                         | 
+has the means to recognize and respond                         | 
+to erroneous stabilizer movement and                           | 
+the effects of a potential AOA sensor                          | 
+failure. The fourth design change is                           | 
+intended to restore compliance with the                        | 
+FAA’s latest wire separation safety                            | 
+standards.                                                     | 
+In addition to these four design                               | 
+changes, the FAA also proposes to                              | 
+VerDate Sep<11>2014 16:21 Aug 05, 2020 Jkt 250001 PO 00000 Frm | 
+00002 Fmt 4702 Sfmt 4702 E:\FR\FM\06AUP1.SGM 06AUP1            | 
+jbell on DSKJLSW7X2PROD with PROPOSALS                         | 
