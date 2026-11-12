@@ -11,8 +11,9 @@
 //    audio already waiting ahead of the listener runs out, judged from this
 //    device's measured preparation speed; never less than one sentence.
 //    (A fixed ramp of 1, 2, 4, then full calls is kept for testing.)
-//    But never smaller than a group that prepares clearly faster than it
-//    plays: every call has a fixed cost (about 1.3 s on a 4-core laptop), so
+//    But never smaller than a group that prepares at least as fast as it
+//    plays: every call has a fixed cost (about 1.3 s on a 4-core laptop, mostly
+//    the silence the model makes at its start and end), so
 //    on a device that only just keeps up, one sentence at a time would fall
 //    further and further behind (see `growthLast`).
 // Exception, "urgent" calls: while the listener waits for the very first
@@ -34,7 +35,10 @@ export const TOKEN_LIMIT = 510; // the model reads at most 510 phonemes per call
 export const LAST_ROW = 509; // the voice file has rows 0..509
 export const RAMP = [1, 2, 4];
 const SAFETY = 0.8; // plan to finish with 20% of the waiting audio to spare
-export const GROWTH = 1.15; // a call should prepare at least this much faster than it plays
+// A call should prepare at least as fast as it plays. (Measured in the browser:
+// asking for 15% to spare made the first groups so large that the wait before
+// them grew to 20 s on a device that only just keeps up; 1.0 kept it under 9 s.)
+export const GROWTH = 1.0;
 
 /** The look-ahead text: the first two words of a sentence, without trailing punctuation. */
 export function firstWords(text, count = 2) {

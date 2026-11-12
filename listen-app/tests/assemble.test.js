@@ -1,7 +1,7 @@
 // Cutting one model call into sentences, with designed pauses (src/flow/assemble.js).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { tokenStarts, assembleCall, designedPause, sentenceAt, KEEP, PARAGRAPH_PAUSE, CLAUSE_PAUSE } from '../src/flow/assemble.js';
+import { tokenStarts, assembleCall, plainClip, designedPause, sentenceAt, KEEP, PARAGRAPH_PAUSE, CLAUSE_PAUSE } from '../src/flow/assemble.js';
 import { silentEdges, findGaps } from '../src/flow/signal.js';
 
 const RATE = 24000;
@@ -112,4 +112,12 @@ test('which sentence a playback position is in', () => {
   assert.equal(sentenceAt(offsets, 100), 1);
   assert.equal(sentenceAt(offsets, 399), 2);
   assert.equal(sentenceAt(offsets, 9999), 2); // past the end: the last sentence
+});
+
+test('a plain (urgent) clip keeps the model audio as it is, then the designed pause', () => {
+  const { audio } = fakeCall(['abc.']);
+  const out = plainClip(audio, 0.4);
+  assert.equal(out.samples.length, audio.length + Math.round(0.4 * RATE));
+  assert.deepEqual(out.offsets, [0, out.samples.length]);
+  assert.equal(silentEdges(out.samples).lead, silentEdges(audio).lead); // edge silence kept
 });

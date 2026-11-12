@@ -20,8 +20,9 @@ server or an account.
   listening again. (A long first sentence is split at an early comma.) After
   that the pieces grow as large as this device can prepare before the audio
   already waiting runs out, and never smaller than a group that prepares
-  clearly faster than it plays: every piece costs a fixed amount of work
-  (about 1.3 s on a 4-core laptop), so a slow device does better with fewer,
+  at least as fast as it plays: every piece costs extra work for the
+  silence the voice model makes at its start and end (about 1.3 s on a 4-core
+  laptop), so a slow device does better with fewer,
   larger pieces. Long texts keep playing while the rest is prepared.
 - 28 English voices (American and British, female and male). Default: Heart.
   Changing the voice never interrupts the reading: the sentence you are

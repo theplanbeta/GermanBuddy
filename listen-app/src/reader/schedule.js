@@ -57,9 +57,10 @@ export function listenPerToken(stats, window = 8) {
 /**
  * Predicts how long a model call of `tokens` phonemes will take (ms), from
  * recent calls ({ tokens, ms }). Every call has a fixed cost (measured about
- * 1 s on a 4-core laptop) plus a cost per phoneme, so a straight line is
- * fitted through recent calls when their sizes differ enough; otherwise the
- * plain average per phoneme is used. Returns null before the first call.
+ * 1.3 s on a 4-core laptop) plus a cost per phoneme, so a straight line is
+ * fitted through recent calls when their sizes differ enough; otherwise a
+ * quarter of an average call is taken as the fixed part (as measured for a
+ * one-sentence call). Returns null before the first call.
  */
 export function predictMs(stats, tokens, window = 8) {
   const recent = stats.slice(-window).filter((s) => s.tokens > 0);
@@ -73,5 +74,6 @@ export function predictMs(stats, tokens, window = 8) {
     const fixed = my - slope * mx;
     if (slope > 0 && fixed >= 0) return fixed + slope * tokens;
   }
-  return (my / mx) * tokens;
+  const fixed = 0.25 * my;
+  return fixed + ((my - fixed) / mx) * tokens;
 }

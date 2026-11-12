@@ -190,3 +190,18 @@ export function sentenceAt(offsets, sample) {
   while (k < offsets.length - 2 && sample >= offsets[k + 1]) k++;
   return k;
 }
+
+/**
+ * A clip for a quick "urgent" call (one sentence, made plainly): the model's
+ * audio as it is, edge silence included (as earlier versions played it; the
+ * extra fraction of a second gives the next call more time), with short
+ * fades and the designed pause after it. Same shape as assembleCall's result.
+ */
+export function plainClip(audio, pause, seed = 12345) {
+  const piece = cosFade(audio.slice(), 0.004, 0.004);
+  const tone = roomTone(pause, makeRandom(seed));
+  const samples = new Float32Array(piece.length + tone.length);
+  for (let i = 0; i < piece.length; i++) samples[i] = limit(piece[i]);
+  samples.set(tone, piece.length);
+  return { samples, offsets: [0, samples.length], method: 'plain' };
+}

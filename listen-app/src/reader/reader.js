@@ -31,7 +31,7 @@
 import { toInt16, wavBlob, silentWav } from './audio.js';
 import { bakedSpeedFor, speedFactor, prepRatio, predictMs, listenPerToken } from './schedule.js';
 import { chooseStart, planCall, sizeRule, freshAhead, takeoverStart, firstWords, callLength, MAX_SENTENCES } from '../flow/plan.js';
-import { assembleCall, designedPause, sentenceAt } from '../flow/assemble.js';
+import { assembleCall, plainClip, designedPause, sentenceAt } from '../flow/assemble.js';
 
 const SPEED_SETTLE_MS = 1000; // wait for the tempo slider to rest before re-preparing at a new speed
 // On the graphics chip (WebGPU) one model call occupies the chip until it is
@@ -471,14 +471,20 @@ export class Reader extends EventTarget {
     }
     if (start < 0) return false;
     const lang = voice[0] === 'b' ? 'b' : 'a';
-    // Only this sentence and the next are needed for a one-sentence call
-    // (phonemes for 28 texts take about half a second, which would delay the first audio).
-    await this.#ensurePhonemes(lang, start, 2);
+    // Only this sentence and the next are needed for a one-sentence call, and
+    // only this one for an urgent call (phonemes for 28 texts take about half
+    // a second, which would delay the first audio).
+    const nothingYet = start === this.current && !this.segments[start] && !upgrade;
+    await this.#ensurePhonemes(lang, start, nothingYet ? 1 : 2);
     if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true; // changed meanwhile: plan again
+    // The listener is waiting for the first sound: make this sentence quickly and plainly.
+    const urgent = nothingYet && this.starting && this.state === 'waiting';
+    if (!urgent) {
+      await this.#ensurePhonemes(lang, start, 2); // the next sentence: look-ahead and voice row
+      if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true;
+    }
     const phonemes = this.phonemes.get(lang);
     const measured = this.stats.length > 0;
-    // The listener is waiting for the first sound: make this sentence quickly and plainly.
-    const urgent = this.starting && this.state === 'waiting' && start === this.current && !upgrade;
     const predict = (tokens) => predictMs(this.stats, tokens) ?? 0;
     const seconds = sentences.map((_, i) => this.#seconds(i));
 
@@ -512,7 +518,10 @@ export class Reader extends EventTarget {
       await this.#ensurePhonemes(lang, start); // the call may grow: know its neighbours
       if (epoch !== this.epoch || voice !== this.voice || speed !== this.speed) return true;
     }
-    const options = { sentences, phonemes, fresh, start, rule, predict, single: this.single, listenPerToken: listenPerToken(this.stats) / this.tempo, maxPhonemes: this.#maxPhonemes() };
+    // The growth floor (see flow/plan.js) only when nothing at all is playable
+    // there yet; while old-voice audio can fill in, small calls take over sooner.
+    const growth = this.segments[start] ? 0 : listenPerToken(this.stats) / this.tempo;
+    const options = { sentences, phonemes, fresh, start, rule, predict, single: this.single, listenPerToken: growth, maxPhonemes: this.#maxPhonemes() };
     let call = planCall({ ...options, plain: urgent });
     // Early in a reading, if the full-quality call cannot be ready before the
     // listener needs it, a wait is coming anyway: keep it short with a plain call.
@@ -547,7 +556,7 @@ export class Reader extends EventTarget {
     // Pauses are shortened for faster clips so they sound right when played slower.
     const pauses = indices.map((i) => designedPause(sentences[i], endsParagraph(i)) / speedFactor(speed));
     const joinedInside = indices.map((i) => i < call.last && Boolean(sentences[i].joined));
-    const built = assembleCall({
+    const built = call.plain ? plainClip(result.samples, pauses[0], call.first + 1) : assembleCall({
       audio: result.samples,
       durations: result.durations,
       members,

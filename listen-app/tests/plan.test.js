@@ -199,14 +199,16 @@ test('growth floor: the smallest group that prepares clearly faster than it play
   const cost = (n) => 1300 + 60 * n;
   const canExtend = (last) => last < 9;
   const at = (n) => ({ start: 0, canExtend, cost: (l) => cost(n * (l + 1)), listen: (l) => 0.07 * n * (l + 1) });
-  // 100-phoneme sentences: 1 -> 7 s / 7.3 s (0.96); 2 -> 1.05; 3 -> 1.09; 4 -> 1.107; 5 -> 1.118 ... 10 -> 1.142;
-  // none reaches 1.15, so the smallest group within 3% of the best (1.142 * 0.97 = 1.108): 5 sentences
-  assert.equal(growthLast(at(100)), 4);
+  // 100-phoneme sentences: 1 -> 7 s / 7.3 s (0.96); 2 -> 14 s / 13.3 s (1.05): two sentences keep up
+  assert.equal(growthLast(at(100)), 1);
+  // a slower device (+50%): 1 -> 0.64 ... 10 -> 0.76; none keeps up, so the smallest group within 3% of the
+  // best (0.76 * 0.97 = 0.737): 5 sentences
+  assert.equal(growthLast({ ...at(100), cost: (l) => 1.5 * cost(100 * (l + 1)) }), 4);
   // a fast device: one sentence is already enough
   assert.equal(growthLast({ ...at(100), cost: (l) => 10 * 100 * (l + 1) }), 0);
-  assert.ok(GROWTH > 1);
+  assert.equal(GROWTH, 1);
   // with a budget-limited rule the floor still applies
   const d = doc(Array(8).fill(0), 100);
   const call = planCall({ ...d, start: 0, rule: { maxSentences: 12, maxMs: 0 }, predict: (t) => 1300 + 60 * t, listenPerToken: 0.07 });
-  assert.ok(call.last >= 2);
+  assert.equal(call.last, 1); // 2 sentences + look-ahead: 14.07 s of listening for 13.8 s of work
 });

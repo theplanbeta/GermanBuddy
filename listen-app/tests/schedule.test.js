@@ -37,15 +37,16 @@ test('prepRatio compares preparation with playback speed', () => {
 
 test('predictMs: a fixed cost per call plus a cost per phoneme', () => {
   assert.equal(predictMs([], 100), null);
-  // calls of similar size: the plain average per phoneme
-  assert.equal(predictMs([{ tokens: 100, ms: 5000 }, { tokens: 110, ms: 5500 }], 200), 10000);
+  // calls of similar size: a quarter of an average call is fixed, the rest per phoneme
+  // (average 105 phonemes, 5250 ms: 1312.5 ms + 37.5 ms per phoneme)
+  assert.equal(predictMs([{ tokens: 100, ms: 5000 }, { tokens: 110, ms: 5500 }], 200), 1312.5 + 37.5 * 200);
   // calls of different sizes (measured in the browser: ~1.1 s + 58 ms per phoneme)
   const stats = [59, 214, 294, 468].map((tokens) => ({ tokens, ms: 1100 + 58 * tokens }));
   assert.ok(Math.abs(predictMs(stats, 70) - (1100 + 58 * 70)) < 1);
   assert.ok(Math.abs(predictMs(stats, 480) - (1100 + 58 * 480)) < 1);
   // only recent calls count
   const old = Array.from({ length: 10 }, () => ({ tokens: 100, ms: 99999 }));
-  assert.equal(predictMs([...old, ...Array(8).fill({ tokens: 50, ms: 1000 })], 100), 2000);
+  assert.equal(predictMs([...old, ...Array(8).fill({ tokens: 50, ms: 1000 })], 100), 250 + 15 * 100);
 });
 
 test('listenPerToken: listening seconds per phoneme kept, at normal speed', () => {
