@@ -129,14 +129,21 @@ export function freshAhead({ fresh, seconds, current, elapsed = 0, start }) {
  *   seconds[i]    listening time of the audio already there for sentence i (null = none)
  *   predictMs(i)  expected preparation time of sentence i made alone
  *   fresh[i]      sentence i is already made in the new voice (never redone)
- * Returns `start` unchanged when no later sentence fits either.
+ * When none fits (a slow device), the one that comes closest, so that the
+ * new voice arrives late rather than never (chasing the listener forever).
  */
 export function takeoverStart({ start, current, remaining, seconds, predictMs, fresh = [] }) {
   let ahead = remaining; // seconds until the listener reaches sentence k
+  let best = start;
+  let bestSlack = -Infinity;
   for (let k = current + 1; k < seconds.length; k++) {
-    if (k >= start && !fresh[k] && predictMs(k) <= ahead * 1000) return k;
+    if (k >= start && !fresh[k]) {
+      const slack = ahead * 1000 - predictMs(k);
+      if (slack >= 0) return k;
+      if (slack > bestSlack) [best, bestSlack] = [k, slack];
+    }
     if (seconds[k] == null) break; // nothing to play there: the listener waits anyway
     ahead += seconds[k];
   }
-  return start;
+  return best;
 }

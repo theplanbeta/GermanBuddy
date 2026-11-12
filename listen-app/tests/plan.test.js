@@ -168,8 +168,8 @@ test('takeover starts at the first sentence the new voice can be ready for', () 
   // a sentence already made in the new voice is skipped, never redone
   const fresh = [false, false, false, false, false, true, false, false];
   assert.equal(takeoverStart({ start: 4, current: 3, remaining: 1, seconds, predictMs: takes(1500), fresh }), 6);
-  // nothing fits before the end: unchanged
-  assert.equal(takeoverStart({ start: 4, current: 3, remaining: 0, seconds, predictMs: takes(99999) }), 4);
+  // nothing fits before the end: the sentence that comes closest (here the last one)
+  assert.equal(takeoverStart({ start: 4, current: 3, remaining: 0, seconds, predictMs: takes(99999) }), 7);
   // a sentence with nothing to play yet: the listener will wait there, so start there at the latest
   assert.equal(takeoverStart({ start: 4, current: 3, remaining: 0.5, seconds: [3, 3, 3, 3, null, 3], predictMs: takes(5000) }), 4);
 });

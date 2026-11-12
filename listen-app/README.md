@@ -136,7 +136,10 @@ Everything else, including the speech engine itself, is served by the app.
   from the next sentence that has been re-made in it. If a large piece was
   being prepared at the moment of the change, it is finished first (it cannot
   be interrupted), so on a slow device the old voice can carry on for a few
-  sentences. The download needs everything re-made.
+  sentences. On a device that prepares more slowly than it plays, the old
+  voice can also come back for a sentence after the new one has started
+  (Hearshot never leaves a silence while it has something to play). The
+  download needs everything re-made.
 - **Fast tempos:** Kokoro's own speed setting is not exact, so prepared-fast
   sentences are played at a rate measured on average (±6% per sentence); the
   difference is not noticeable as a tempo change. Moving the tempo across 1.5×
