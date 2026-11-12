@@ -84,6 +84,13 @@ Use a branch of your own, for example `feature/colab-studio`, cut from
    google-colab-cli` or `pip install google-colab-cli`, then the tool's
    sign-in. `colab new`, `colab exec`, `colab run --gpu T4 script.py`,
    `colab stop`. Always stop sessions: they spend the owner's compute units.
+   Right after signing in, run `colab usage` (it prints the compute-unit
+   balance, the current usage rate per hour and the number of active
+   machines) and tell the owner the balance. Run it again before and after
+   every test and report what each test cost. The owner believes new units
+   arrive monthly through their Google AI Pro subscription; this is not
+   confirmed, so say what the balance shows and where the subscription page
+   states the monthly amount (`colab pay` opens it), rather than assuming.
 2. **Chatterbox on a T4.** Render the H1 lines of the scene. Line selection,
    tags and gains: `research/dialogue-hybrid/models/hybrid/` (`build_plan.py`,
    `cb_render.py`, `assemble.py`, `guard_check.py`). Measure seconds of
