@@ -69,4 +69,53 @@ The laugh rule of the guard was widened: this Whisper build writes a laugh as on
 Gains found by `assemble.py`: af_aoede +5.7 dB (from two lines only, 8.1 and 3.3 dB apart),
 am_fenrir +4.2 dB. The earlier CPU test had +6.3 and +4.9 dB.
 
-Not yet judged by ear at the time of writing.
+Owner's verdict by ear on `out/runs/t4/prank_H1_hybrid_minimal.wav`: "good, with expressions".
+The session cost 0.19 units once the meter settled (539.84 -> 539.65).
+
+## Correction: model load on a fresh machine
+
+The "23 s with the download" above is wrong. Both figures were taken after an earlier attempt
+in the same session had already fetched the model. On a fresh machine the load took 190 s:
+`from_pretrained` fetches 4.1 GB (t3_turbo_v1 1.9 GB, s3gen_meanflow 1.06 GB, and
+s3gen.safetensors 1.06 GB, which Turbo never loads), at about 24 MB/s without a Hugging
+Face token.
+
+## Light install (second session, fresh T4)
+
+Keeps Colab's own torch 2.14 and transformers 5.22, so none of the three clashes occur:
+
+```
+uv pip install --system -q --no-deps chatterbox-tts
+uv pip install --system -q s3tokenizer conformer pyloudnorm omegaconf resemble-perth spacy-pkuseg pykakasi
+```
+
+9 s. Same guard result as the pinned install (50 ok, 2 ok on retry, 0 fallbacks), 0.62 s of
+compute per second of audio, 3.7 GB peak card memory.
+
+Cold start, fresh T4, light install, nothing cached:
+
+| Step | Time |
+|---|---|
+| `colab new --gpu T4` | 4 s |
+| Install | 9 s |
+| `import` of the package | 31 s |
+| Model load including the 4.1 GB download | 190 s |
+| First voice sample (second: 0.2 s) | 21 s |
+| Whisper load including its 290 MB download | 40 s |
+| Whole script (52 jobs and the guard included) | 352 s |
+
+`colab exec` gives up after 30 s without output; use `--timeout 600` for this script.
+
+## Can a web page start a Colab machine?
+
+No. The preflight a browser must send first (`OPTIONS /tun/m/assign` with an `Origin` and the
+`authorization`, `x-goog-colab-token`, `x-colab-client-agent` request headers) is answered
+401 with no `Access-Control-Allow-Origin`. Tested with curl, not in a browser. A machine can
+be started from the Colab page itself or by the signed-in command-line tool.
+
+## Drive
+
+`colab drivemount` prints a consent link and then waits for Enter on a real terminal; run
+without one it fails ("Error propagating: 400", "mount failed"). The owner has to run it in
+the Terminal app. The consent covers the whole Drive (Google's standard list for Colab).
+Not yet measured: model files read from Drive instead of Hugging Face.
