@@ -119,3 +119,66 @@ be started from the Colab page itself or by the signed-in command-line tool.
 without one it fails ("Error propagating: 400", "mount failed"). The owner has to run it in
 the Terminal app. The consent covers the whole Drive (Google's standard list for Colab).
 Not yet measured: model files read from Drive instead of Hugging Face.
+
+## Card prices and sizes (read from the machines, 2026-11-13)
+
+| Card | Units per hour | Card memory | Machine memory |
+|---|---|---|---|
+| T4 | 1.15 | 15 GB | |
+| L4 | 1.94 | 22.5 GB (23034 MiB) | 52 GB |
+| A100 | 6.73 | 40 GB (A100-SXM4-40GB) | 83 GB |
+
+Desk check of stronger models (makers' own pages, nothing run): Orpheus dropped (no whisper or
+shout, preset voices, dormant since May 2025); IndexTTS-2.5 second (emotion dial per line, no
+sound tags, fits a T4); Fish Audio Drama 3 needs at least 48 GB, more than Colab's A100.
+
+## Fish Audio S2-Pro (first run A100, laugh test L4)
+
+Licence: Fish Audio Research License, non-commercial use only. Not gated; 11 GB.
+The maker pins Python 3.12, torch 2.8.0, transformers 5.19.0, so `s2_setup.sh` builds a
+separate environment with `uv sync` beside Colab's Python 3.13. No clash occurred.
+
+```
+colab new -s s2 --gpu L4
+echo '!mkdir -p /content/studio/refs' | colab exec -s s2
+colab upload -s s2 out/hyb/plan.json /content/studio/plan.json      # and both refs, s2_setup.sh, colab_render_s2.py
+echo '!nohup bash /content/studio/s2_setup.sh > /content/studio/setup.log 2>&1 &' | colab exec -s s2
+echo '!nohup python /content/studio/colab_render_s2.py > /content/studio/render.log 2>&1 &' | colab exec -s s2
+colab download -s s2 /content/studio/run.tgz out/runs/s2/run.tgz ; colab stop -s s2
+python3 assemble.py s2 out/runs/s2/plan_s2.json
+```
+
+Long steps are started with `nohup` and polled, because `colab exec` loses its connection on
+long silent commands. Port 8080 is taken on Colab; the scripts use 18080. The server answers
+msgpack unless asked for JSON (`accept: application/json`).
+
+| | S2-Pro | Chatterbox Turbo (T4) |
+|---|---|---|
+| Install on a fresh machine | 35 to 55 s | 9 s |
+| Model download | 11 GB in about 30 s | 4.1 GB in about 190 s |
+| Server ready after start | 80 s (A100), 96 s (L4) | |
+| Compute per second of audio, no `--compile` | 2.9 s on the A100, about the same on the L4 | 0.6 s |
+| Card memory | 19.7 GB (A100), 19.4 GB (L4): fits the L4 | 3.7 GB |
+| Guard, 43 jobs | 38 ok, 2 ok on retry, 3 fallback | 50 ok, 2 retry, 0 fallback of 52 |
+
+The three guard fallbacks were set aside by hand for the listening files: Whisper invents words
+for breathing ("Phew", "Thank you"), so the guard cannot judge "[panting]" and "[inhale]"; and
+the whisper "Daniel… I need you…" had a 0.82 s pause against a 0.8 s limit. The breaths are
+very quiet and `assemble.py` raises them 16 to 19 dB.
+
+Laughs: "[laughing] Hahaha!" is read aloud as words (owner: "like hahaha read aloud"). The tag
+alone ("[laughing]", "[chuckle]") gives a laugh sound; "[bursts out laughing]" is unreliable
+(breath or noise in 4 of 6); one tag-only request returned a server error 500 (cause not found).
+`colab_laughs_s2.py` renders the 23 variants; `out/runs/s2laughs/laugh_audition.wav`.
+
+Owner's verdicts by ear:
+- `out/runs/s2/prank_H1_hybrid_minimal.wav` (S2-Pro for the acted lines): "good", laughs excepted.
+- Of S2-Pro lines with tag-only S2-Pro laughs (`s2b`), with Chatterbox laughs (`s2cb`) and the
+  audition: "s2cb was better". Current best: Kokoro narration and whispers, S2-Pro acted
+  lines, Chatterbox laughs.
+
+Both models together need about 23.1 GB, just over the L4 (arithmetic, not tested). Idea, not
+tested: make a small library of Chatterbox laughs once per voice, so only S2-Pro runs on Colab.
+
+Costs: S2-Pro on the A100, 13 minutes, about 1.2 units; laugh test on the L4, 9 minutes, about
+0.2 to 0.3 units.

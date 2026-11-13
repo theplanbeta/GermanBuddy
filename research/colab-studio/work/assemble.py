@@ -12,7 +12,8 @@ RUN = sys.argv[1]
 D = f"{HERE}/out"
 H = f"{D}/hyb"; SR = 24000
 W = f"{D}/runs/{RUN}"
-plan = json.load(open(f"{H}/plan.json"))["plan"]
+# optional second argument: another plan file (the S2-Pro run adds two breathing inserts to it)
+plan = json.load(open(sys.argv[2] if len(sys.argv) > 2 else f"{H}/plan.json"))["plan"]
 jobs = {j["name"]: j for j in json.load(open(f"{W}/cb_jobs.json"))["jobs"]}
 for j in jobs.values():  # the paths in cb_jobs.json are the Colab machine's; point them at the download
     if j["use"]: j["use"] = f"{W}/cb/{os.path.basename(j['use'])}"
@@ -103,9 +104,9 @@ def build(name, mode, inserts):
     return dict(file=f"{W}/{name}.wav", dur=round(len(full) / SR, 2), peak=round(pk, 3), clipped=int((np.abs(full) >= 0.999).sum()), rows=rows)
 res = dict(lead=LEAD, tail=TAIL, gains=G, gain_rows=gain_rows,
            H1=build("prank_H1_hybrid_minimal", "H1", True), H1n=build("prank_H1_hybrid_minimal_nolaughs", "H1", False),
-           H2=build("prank_H2_hybrid_dialogue", "H2", False), C=dict(dur=round(len(C) / SR, 2)))
+           H2=build("prank_H2_hybrid_dialogue", "H2", False), H2i=build("prank_H2_hybrid_dialogue_laughs", "H2", True), C=dict(dur=round(len(C) / SR, 2)))
 json.dump(res, open(f"{W}/assembly.json", "w"), indent=1, default=float)
 print("margins lead/tail", round(LEAD, 3), round(TAIL, 3), "gains", {k: round(v, 2) for k, v in G.items()})
 for v, d in gain_rows.items(): print(v, [(i, round(k, 1), round(c, 1)) for i, k, c in d])
-for k in ("H1", "H1n", "H2"): print(k, res[k]["file"].split("/")[-1], res[k]["dur"], "peak", res[k]["peak"], "clipped", res[k]["clipped"])
+for k in ("H1", "H1n", "H2", "H2i"): print(k, res[k]["file"].split("/")[-1], res[k]["dur"], "peak", res[k]["peak"], "clipped", res[k]["clipped"])
 print("C", res["C"]["dur"])
