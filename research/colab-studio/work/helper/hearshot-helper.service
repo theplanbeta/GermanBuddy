@@ -12,6 +12,8 @@ ExecStart=/usr/bin/python3 %h/hearshot-helper/helper.py
 Restart=always
 RestartSec=5
 Environment=HS_IDLE_MIN=10
+# The app's web address; browsers may call the helper only from there.
+Environment=HS_ORIGIN=https://hearshot.app
 
 [Install]
 WantedBy=default.target
