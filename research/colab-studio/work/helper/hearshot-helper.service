@@ -1,0 +1,17 @@
+# The Hearshot helper as a background service of the ubuntu user.
+#   mkdir -p ~/.config/systemd/user && cp hearshot-helper.service ~/.config/systemd/user/
+#   sudo loginctl enable-linger ubuntu        (lets it run with nobody logged in)
+#   systemctl --user daemon-reload && systemctl --user enable --now hearshot-helper
+[Unit]
+Description=Hearshot helper (starts the Colab studio for the app)
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/hearshot-helper
+ExecStart=/usr/bin/python3 %h/hearshot-helper/helper.py
+Restart=always
+RestartSec=5
+Environment=HS_IDLE_MIN=10
+
+[Install]
+WantedBy=default.target

@@ -297,3 +297,19 @@ Not yet tried: one kept-open connection.
 Chosen route for the app to reach it: Tailscale Funnel plus the secret key (owner, 2026-11-13).
 Tailscale's pages: Funnel is on all plans, beta, public ports 443/8443/10000, the relay does not
 decrypt, bandwidth limits exist without numbers.
+
+### Reachable by the app: Funnel (2026-11-13)
+
+Tailscale on the server (`sudo tailscale up`, owner signs in), then
+`sudo tailscale funnel --bg http://127.0.0.1:8787` (the owner enables Funnel once through the
+link the command prints). Close it with `sudo tailscale funnel reset`. The helper runs as a
+user service (`helper/hearshot-helper.service`).
+
+From the Mac over the public address: no key, a wrong key, and unknown pages all get 401; with
+the key `/status` answers in 0.4 s (the very first request took 17 s).
+
+`helper/internet_test.py`, one run as the app would do it: start asked at 3 s, ready at 145 s,
+three lines back as audio (12.7 s, 6.2 s, 9.9 s with one retry), stopped at 178 s.
+
+Open: per-line time (a kept-open connection is untried), the app side (the helper needs
+`HS_ORIGIN` set to the app's address for browsers), where the app keeps the key.
