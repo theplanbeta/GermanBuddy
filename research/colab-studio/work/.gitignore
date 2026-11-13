@@ -6,3 +6,4 @@ out/
 *.wav
 __pycache__/
 hearshot_studio.ipynb
+helper/studio_helper.py

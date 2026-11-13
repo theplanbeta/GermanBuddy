@@ -229,3 +229,48 @@ Drive quotas and folders over about 10,000 items.
 
 Still unproven: the notebook started on the phone and left in the background for 30 minutes;
 a start from Drive on a truly fresh machine.
+
+## Zero taps: a helper outside the browser (2026-11-13)
+
+The owner's aim is that the app starts Colab itself. A web page cannot (see "Can a web page
+start a Colab machine?"), and in the notebook version every new machine asks for the Drive
+approval again. Counted honestly, the notebook version is about six taps per listening session:
+Studio, Run, three for the Drive approval, and back to the app.
+
+A program that holds the Colab sign-in can do all of it with no tap. Proven from one of the
+owner's small cloud servers (Ubuntu 24.04, x86_64, 1 GB of memory), with no Mac in the chain:
+
+```
+uv tool install google-colab-cli==0.8.0 --with keyrings.alt   # 14 s
+mkdir -p ~/.local/share/python_keyring && chmod 700 ~/.local/share/python_keyring
+colab usage        # once, by the owner in a terminal: the copy-paste Google sign-in
+```
+
+On a server the tool has no password store and would ask for the sign-in at every command;
+`keyrings.alt` gives it a file store. The sign-in then sits unencrypted in
+`~/.local/share/python_keyring/keyring_pass.cfg` (owner-only). Its scopes, from the tool's code:
+Colab, e-mail, and broad Google Cloud access. The owner accepted this on 2026-11-13.
+
+`helper/proof.sh` is the whole job once: start a T4, upload and start the cell
+(`helper/make_helper_cell.py` makes its no-Drive copy), wait for `status/ready.json`, upload one
+request into `jobs/`, wait for the result, download the audio, stop the machine.
+
+| Step | Seconds from start |
+|---|---|
+| Machine started | 6 |
+| Cell started | 13 |
+| Cell ready (model from Hugging Face) | 130 |
+| Request sent | 132 |
+| Audio ready (render 1 s; the rest is the script's polling) | 141 |
+| Audio fetched | 146 |
+| Machine stopped | 152 |
+
+No Drive is involved, so no Drive approval. About 610 MB of the server's memory stayed free.
+
+Tried and dropped: a spare Android phone (Galaxy A14, Termux) as the helper. Termux and Python
+installed, but the Colab tool needs parts built on the phone (Rust; first attempt failed with
+"Failed to determine Android API level", retried with `ANDROID_API_LEVEL=33`, result not
+awaited). A server installs it in seconds, stays on, and can have a proper secure address.
+
+Not built yet: a listening program on the server that the app can call (secure address, its own
+password), and use over a real listening session.
