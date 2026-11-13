@@ -191,3 +191,41 @@ the 43 short lines went from 2.9 to 2.55 s of compute per second of audio. The o
 compile made the server take 426 s to become ready instead of 96 s. Guard: 41 ok, 2 fallback
 (the two breaths, as before). Card memory unchanged at 19.4 GB. Not tried: the maker's SGLang
 engine, which is what its published speed figures use.
+
+## The studio notebook and Drive as the mailbox (2026-11-13)
+
+`studio_cell.py` is the one cell; `python3 build_notebook.py` wraps it into
+`hearshot_studio.ipynb` (git-ignored: it carries the two Kokoro-made voice samples as text, so
+it needs nothing uploaded beforehand). It uses only `MyDrive/Hearshot Studio/`:
+`jobs/` (requests), `audio/` (`<id>.wav` and `<id>.json`), `refs/`, `models/`, `status/`
+(`ready.json`, `heartbeat.json`, `log.txt` with one line a minute). It releases the machine
+after `IDLE_MIN` quiet minutes. A request is a JSON file:
+`{"id","voice","text","kind":"speech"|"laugh","expect","seed","created"}`.
+
+Measured on a T4 with the owner's real Drive:
+
+| | |
+|---|---|
+| Fresh start to ready (model from Hugging Face, 3 GB, `s3gen.safetensors` skipped) | 123 s (114 s in a trial without Drive) |
+| Start with the model from the Drive folder | 73 s (same machine, soon after writing: Drive may have served a local copy; a fresh machine is untested) |
+| Copying the model into the Drive folder (background) | 46 s for Chatterbox, 11 s for Whisper; 3.4 GB |
+| Request created in Drive from outside -> machine sees it | about 7 s (one clean sample) |
+| Render and check of that line | 1.7 s |
+| Audio written by the machine -> visible through the Drive API | under 1 s |
+
+Running it from the Mac: `colab drivemount` waits for Enter after the browser consent. Give it
+a pipe and send the newline once the owner has approved:
+`mkfifo f; (sleep 900 > f &); colab drivemount -s NAME < f` and later `echo > f`. The cell is
+then run as a script with the `drive.mount` line replaced (the folder is already mounted) and
+the `runtime.unassign()` replaced by `break`. `pkill -f` inside `colab exec` kills its own shell
+if the pattern also appears elsewhere in the same command.
+
+Colab's rules (FAQ and terms, read by a helper, wording approximate): nothing found forbids one
+person on a paid plan running a hand-started notebook against their own Drive. Always banned:
+file hosting or media serving unrelated to interactive compute, proxies, mining. Free-tier-only
+restrictions (remote shells, bypassing the notebook UI) lift with a positive unit balance. Named
+risks: idle timeouts with unpublished limits; "background execution" only on higher plans;
+Drive quotas and folders over about 10,000 items.
+
+Still unproven: the notebook started on the phone and left in the background for 30 minutes;
+a start from Drive on a truly fresh machine.
