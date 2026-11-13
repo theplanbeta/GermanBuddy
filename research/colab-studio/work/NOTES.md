@@ -274,3 +274,26 @@ awaited). A server installs it in seconds, stays on, and can have a proper secur
 
 Not built yet: a listening program on the server that the app can call (secure address, its own
 password), and use over a real listening session.
+
+### The listening program (2026-11-13)
+
+`helper/helper.py` runs on the server and listens on 127.0.0.1 only: `/start`, `/status`,
+`/line`, `/stop`, each needing the secret key. Limits: one machine, released after quiet
+minutes, a session limit and a daily limit of machine minutes.
+
+Session test on the server (`helper/session_test.sh`, 19 acted lines of the prank scene):
+
+| | |
+|---|---|
+| Requests with no key or a wrong key | refused (401) |
+| Start to ready | 123 s |
+| Lines back as audio | 19 of 19 (17 first try, 2 on the retry) |
+| Request to audio in hand | median 5.4 s, slowest 12.3 s (the first) |
+| Released by the helper after 2 quiet minutes | yes; 6.3 machine minutes, about 0.1 units |
+
+The render is about 1 s; most of the 5.4 s is the Colab tool opening a new connection per line.
+Not yet tried: one kept-open connection.
+
+Chosen route for the app to reach it: Tailscale Funnel plus the secret key (owner, 2026-11-13).
+Tailscale's pages: Funnel is on all plans, beta, public ports 443/8443/10000, the relay does not
+decrypt, bandwidth limits exist without numbers.

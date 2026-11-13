@@ -1,0 +1,154 @@
+[
+{
+"id": "s04laugh",
+"voice": "am_fenrir",
+"text": "[laugh]",
+"kind": "laugh",
+"expect": "",
+"seed": 47
+},
+{
+"id": "s05p0",
+"voice": "am_fenrir",
+"text": "Oh, come on, Sarah!",
+"kind": "speech",
+"expect": "Oh, come on, Sarah!",
+"seed": 51
+},
+{
+"id": "s06p0",
+"voice": "am_fenrir",
+"text": "What is it this time?",
+"kind": "speech",
+"expect": "What is it this time?",
+"seed": 61
+},
+{
+"id": "s07p0",
+"voice": "am_fenrir",
+"text": "Another one of your ridiculous conspiracy theories?",
+"kind": "speech",
+"expect": "Another one of your ridiculous conspiracy theories?",
+"seed": 71
+},
+{
+"id": "s08p0",
+"voice": "af_aoede",
+"text": "[fear] No.",
+"kind": "speech",
+"expect": "No.",
+"seed": 81
+},
+{
+"id": "s09p0",
+"voice": "af_aoede",
+"text": "[fear] I'm serious.",
+"kind": "speech",
+"expect": "I'm serious.",
+"seed": 91
+},
+{
+"id": "s27p0",
+"voice": "af_aoede",
+"text": "[angry] Oh my god!",
+"kind": "speech",
+"expect": "OH MY GOD!",
+"seed": 271
+},
+{
+"id": "s28p0",
+"voice": "am_fenrir",
+"text": "[angry] Run, Sarah!",
+"kind": "speech",
+"expect": "RUN, SARAH!",
+"seed": 281
+},
+{
+"id": "s29p0",
+"voice": "am_fenrir",
+"text": "[angry] Run!",
+"kind": "speech",
+"expect": "RUN!",
+"seed": 291
+},
+{
+"id": "s36p0",
+"voice": "am_fenrir",
+"text": "[fear] Sarah?",
+"kind": "speech",
+"expect": "Sarah?",
+"seed": 361
+},
+{
+"id": "s38p0",
+"voice": "am_fenrir",
+"text": "[fear] Sarah, please\u2026 say something.",
+"kind": "speech",
+"expect": "Sarah, please\u2026 say something.",
+"seed": 381
+},
+{
+"id": "s40laugh",
+"voice": "af_aoede",
+"text": "[laugh]",
+"kind": "laugh",
+"expect": "",
+"seed": 407
+},
+{
+"id": "s41laugh",
+"voice": "af_aoede",
+"text": "[laugh]",
+"kind": "laugh",
+"expect": "",
+"seed": 417
+},
+{
+"id": "s42laugh",
+"voice": "af_aoede",
+"text": "[laugh] [laugh]",
+"kind": "laugh",
+"expect": "",
+"seed": 427
+},
+{
+"id": "s43p0",
+"voice": "af_aoede",
+"text": "[angry] Oh, Daniel!",
+"kind": "speech",
+"expect": "OH, DANIEL!",
+"seed": 431
+},
+{
+"id": "s44p0",
+"voice": "af_aoede",
+"text": "[happy] You should have heard yourself!",
+"kind": "speech",
+"expect": "You should have HEARD yourself!",
+"seed": 441
+},
+{
+"id": "s46p0",
+"voice": "am_fenrir",
+"text": "[angry] Wait\u2026 what?",
+"kind": "speech",
+"expect": "Wait\u2026 WHAT?",
+"seed": 461
+},
+{
+"id": "s55laugh",
+"voice": "af_aoede",
+"text": "[laugh] [laugh]",
+"kind": "laugh",
+"expect": "",
+"seed": 557
+},
+{
+"id": "s56laugh",
+"voice": "am_fenrir",
+"text": "[laugh]",
+"kind": "laugh",
+"expect": "",
+"seed": 567
+}
+]
