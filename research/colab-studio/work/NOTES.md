@@ -182,3 +182,12 @@ tested: make a small library of Chatterbox laughs once per voice, so only S2-Pro
 
 Costs: S2-Pro on the A100, 13 minutes, about 1.2 units; laugh test on the L4, 9 minutes, about
 0.2 to 0.3 units.
+
+## S2-Pro with `--compile` on the L4 (S2_COMPILE=1)
+
+Not worth it as run here. The model's own rate doubled (about 7 to 14 tokens a second, 21.5
+tokens per second of audio), but each request also carries about 1.3 s that does not shrink, so
+the 43 short lines went from 2.9 to 2.55 s of compute per second of audio. The one-time
+compile made the server take 426 s to become ready instead of 96 s. Guard: 41 ok, 2 fallback
+(the two breaths, as before). Card memory unchanged at 19.4 GB. Not tried: the maker's SGLang
+engine, which is what its published speed figures use.
