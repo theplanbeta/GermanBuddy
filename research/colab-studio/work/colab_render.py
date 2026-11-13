@@ -65,7 +65,9 @@ def words(s):
     s = s.lower().replace("’", "'")
     s = re.sub(r"\[[^\]]*\]|\([^)]*\)|\*[^*]*\*", " ", s)
     return re.findall(r"[a-z0-9']+", s)
-LAUGHY = re.compile(r"^(h+[aeiou]+h*|ah+|eh+|heh|hah|ha|he|hm+|mm+|oh|uh|you)$")
+# cb_render.py's list, with one change: this Whisper build writes a laugh as one run ("hahahaha",
+# "hehehe…") where the earlier one wrote separate syllables, so a run of h+vowel counts as laughter too.
+LAUGHY = re.compile(r"^((h+[aeiou]+)+h*|ah+|eh+|heh|hah|ha|he|hm+|mm+|oh|uh|you)$")
 def guard(j, path, asr):
     a, sr = read_wav(path); dur = len(a) / sr; db = frame_db(a, sr, 0.02); act = db > db.max() - 40
     idx = np.where(act)[0]; core = (idx[-1] - idx[0] + 1) * 0.02 if idx.size else 0
@@ -98,6 +100,10 @@ def guard(j, path, asr):
 torch.cuda.reset_peak_memory_stats()
 t0 = time.time(); m = ChatterboxTurboTTS.from_pretrained(device=DEV); load_s = time.time() - t0
 vram_model = torch.cuda.max_memory_allocated() / 2**20
+# With NumPy 2 the package's loudness step turns the voice sample into 64-bit numbers, which its own
+# tokenizer then rejects ("expected scalar type Double but found Float"). Same step, result kept 32-bit.
+_norm = m.norm_loudness
+m.norm_loudness = lambda wav, sr, target_lufs=-27: np.asarray(_norm(wav, sr, target_lufs), dtype=np.float32)
 conds = {}; cond_s = {}
 for v in ("af_aoede", "am_fenrir"):  # one voice sample per character, prepared once and kept
     t0 = time.time(); m.prepare_conditionals(f"{S}/refs/{v}.wav"); conds[v] = m.conds; cond_s[v] = round(time.time() - t0, 2)
@@ -128,7 +134,8 @@ def run_asr(paths):
     out = {}
     for p in paths:
         a, _ = librosa.load(p, sr=16000)
-        out[p] = asr_pipe({"raw": a, "sampling_rate": 16000})["text"].strip()
+        # the longest line is about 12 words; the cap stops the endless "hehehe…" it wrote for laughs
+        out[p] = asr_pipe({"raw": a, "sampling_rate": 16000}, generate_kwargs={"max_new_tokens": 48})["text"].strip()
     return out
 t0 = time.time(); asr = run_asr([j["attempts"][0]["path"] for j in jobs]); asr1_s = time.time() - t0
 for j in jobs: j["attempts"][0]["guard"] = guard(j, j["attempts"][0]["path"], asr[j["attempts"][0]["path"]])
