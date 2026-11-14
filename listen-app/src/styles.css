@@ -514,6 +514,16 @@ input[type='range'] {
 .prefs p + .field {
   margin-top: 12px;
 }
+.prefs input[type='password'] {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
 
 .foot {
   text-align: center;

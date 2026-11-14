@@ -1,0 +1,19 @@
+{
+  "name": "hearshot-colab-studio-work",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Workbench for the Colab studio-voice tests. Same package versions as listen-app.",
+  "scripts": {
+    "setup": "node setup.mjs",
+    "kokoro-c": "BACKEND=web node render_scene.mjs C",
+    "refs": "node kokoro_refs.mjs af_aoede am_fenrir",
+    "plan": "python3 build_plan.py",
+    "kok-parts": "BACKEND=web node kok_parts.mjs out/hyb/kok_jobs.json out/hyb/kok"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "3.8.1",
+    "kokoro-js": "1.2.1",
+    "phonemizer": "1.2.1"
+  }
+}

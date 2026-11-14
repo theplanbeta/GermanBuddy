@@ -7,6 +7,7 @@ import { speedFactor } from './reader/schedule.js';
 import { VOICE_GROUPS, ALL_VOICES, DEFAULT_VOICE, voiceLabel, voiceName } from './voices.js';
 import { createWaitRing } from './ui/ring.js';
 import { isRepeatTap } from './ui/wait.js';
+import { Studio, parseLink } from './studio/studio.js';
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -43,6 +44,10 @@ const ui = {
   downloadText: $('download-text'),
   mode: $('mode'),
   expressive: $('expressive'),
+  studio: $('studio'),
+  studioSetup: $('studio-setup'),
+  studioLink: $('studio-link'),
+  studioStatus: $('studio-status'),
 };
 
 // ---- remembered settings (quietly ignored if the browser blocks storage) ---
@@ -484,6 +489,7 @@ for (const group of VOICE_GROUPS) {
 }
 ui.voice.addEventListener('change', () => {
   reader.setVoice(ui.voice.value); // cheap: nothing is thrown away or re-drawn
+  studio.voiceChanged();
   settings.set('voice', ui.voice.value);
   updateMoreText();
 });
@@ -505,9 +511,46 @@ ui.expressive.addEventListener('change', () => {
   settings.set('expressive', ui.expressive.checked ? 'on' : 'off');
 });
 
+// "Studio voice" (off unless switched on): an acted voice from the owner's own
+// cloud machine (src/studio/studio.js). The link holds the address and the key;
+// it is kept in this browser's storage and never shown again in full.
+const studio = new Studio(reader);
+const STUDIO_TEXT = {
+  unset: 'Paste your studio link to use the studio voice.',
+  idle: 'The studio starts when you press Play.',
+  starting: 'The studio is starting (about two minutes). The voice on this device reads meanwhile.',
+  error: 'The studio is not available. The voice on this device reads.',
+};
+function updateStudio() {
+  const on = ui.studio.checked;
+  ui.studioSetup.hidden = !on;
+  ui.studioStatus.hidden = !on;
+  const made = reader.studioCount;
+  const ready = made ? `Studio voice ready · ${made} of ${reader.sentences.length} sentences acted` : 'Studio voice ready.';
+  ui.studioStatus.textContent = studio.note || (studio.state === 'ready' ? ready : STUDIO_TEXT[studio.state] ?? '');
+}
+function configureStudio() {
+  const link = parseLink(ui.studioLink.value); // the field, so it works for this visit even when storage is blocked
+  studio.configure({ on: ui.studio.checked, url: link?.url, key: link?.key });
+  updateStudio();
+}
+ui.studio.checked = settings.get('studio', 'off') === 'on';
+ui.studioLink.value = settings.get('studioLink', '');
+ui.studio.addEventListener('change', () => {
+  settings.set('studio', ui.studio.checked ? 'on' : 'off');
+  configureStudio();
+});
+ui.studioLink.addEventListener('change', () => {
+  settings.set('studioLink', ui.studioLink.value.trim());
+  configureStudio();
+});
+studio.addEventListener('change', updateStudio);
+reader.addEventListener('generated', updateStudio);
+
 const savedVoice = settings.get('voice', DEFAULT_VOICE);
 ui.voice.value = ALL_VOICES.includes(savedVoice) ? savedVoice : DEFAULT_VOICE;
 reader.setVoice(ui.voice.value);
+configureStudio();
 setTempo(settings.get('tempo', 1));
 
 // ---- download --------------------------------------------------------------
@@ -566,8 +609,9 @@ function updateProgress() {
     ui.preparedText.textContent = reader.complete ? 'All prepared' : `Prepared ${ready} of ${n}`;
   }
   const complete = reader.complete;
-  ui.download.disabled = !complete;
+  ui.download.disabled = !complete || reader.mixedSpeeds;
   if (!n) ui.downloadText.textContent = '';
+  else if (complete && reader.mixedSpeeds) ui.downloadText.textContent = 'No file at this tempo with the studio voice';
   else if (!complete) ui.downloadText.textContent = `Preparing file: ${Math.floor((ready / n) * 100)}%`;
   else ui.downloadText.textContent = fileSpeed() ? `File plays at about ${fileSpeed()}× speed` : '';
 }
