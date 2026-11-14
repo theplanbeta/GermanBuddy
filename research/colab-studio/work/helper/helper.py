@@ -15,13 +15,15 @@ minutes a day, short texts, known voices only, a ceiling on requests per minute.
 It listens on 127.0.0.1 only. Whatever makes it reachable from outside sits in front of it.
 Run:  python3 helper.py     (settings through the environment, see below)
 """
-import os, re, sys, json, time, hmac, base64, secrets, threading, subprocess
+import os, re, sys, json, time, hmac, base64, select, secrets, threading, subprocess
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HOME = os.path.expanduser("~")
 DIR = os.environ.get("HS_DIR", f"{HOME}/hearshot-helper")
 COLAB = os.environ.get("HS_COLAB", f"{HOME}/.local/bin/colab")
 CELL = os.environ.get("HS_CELL", f"{DIR}/studio_helper.py")
+TOOL_PY = os.environ.get("HS_TOOL_PY", f"{HOME}/.local/share/uv/tools/google-colab-cli/bin/python")
+CONN = os.environ.get("HS_CONN", f"{DIR}/conn.py")
 PORT = int(os.environ.get("HS_PORT", "8787"))
 GPU = os.environ.get("HS_GPU", "T4")
 SESSION = "hearshot"
@@ -31,7 +33,7 @@ DAILY_MIN = float(os.environ.get("HS_DAILY_MIN", "180"))
 MAX_TEXT = 400
 VOICES = {"af_aoede", "am_fenrir"}          # the voice samples the cell carries
 RATE_PER_MIN = 120
-ORIGIN = os.environ.get("HS_ORIGIN", "")    # the app's web address, for the browser's cross-site rule
+ORIGINS = {o.strip() for o in os.environ.get("HS_ORIGIN", "").split(",") if o.strip()}   # the app's web address(es), for the browser's cross-site rule
 KEY_FILE = f"{DIR}/key"; LEDGER = f"{DIR}/usage.json"; LOG = f"{DIR}/helper.log"
 os.makedirs(DIR, exist_ok=True); os.chmod(DIR, 0o700)
 
@@ -54,6 +56,43 @@ def colab(*args, code=None, timeout=120):
 def on_machine(code, timeout=90):
     return colab("exec", "-s", SESSION, "--timeout", str(timeout), code=code, timeout=timeout + 30)
 
+class Conn:
+    """The kept-open connection (conn.py). run() returns (ok, output); any trouble closes it,
+    and the next call opens a new one."""
+    def __init__(self): self.p = None
+    def _read(self, deadline):
+        buf = b""
+        while time.time() < deadline:
+            if self.p.poll() is not None: return None
+            if select.select([self.p.stdout], [], [], 0.5)[0]:
+                chunk = os.read(self.p.stdout.fileno(), 1 << 20)
+                if not chunk: return None
+                buf += chunk
+                while b"\n" in buf:
+                    line, buf = buf.split(b"\n", 1)
+                    if line.startswith(b"HSCONN "): return json.loads(line[7:])
+        return None
+    def open(self):
+        self.close()
+        self.p = subprocess.Popen([TOOL_PY, CONN, SESSION], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        r = self._read(time.time() + 60)
+        if not (r and r["ok"]): self.close(); return False
+        return True
+    def close(self):
+        if self.p:
+            try: self.p.kill(); self.p.wait(timeout=5)
+            except Exception: pass
+        self.p = None
+    def run(self, code, timeout=90):
+        if (self.p is None or self.p.poll() is not None) and not self.open(): return False, "no connection"
+        try:
+            self.p.stdin.write((json.dumps(dict(code=code, timeout=timeout)) + "\n").encode()); self.p.stdin.flush()
+        except Exception:
+            self.close(); return False, "connection lost"
+        r = self._read(time.time() + timeout + 15)
+        if r is None: self.close(); return False, "timeout"
+        return r["ok"], r["out"]
+
 # ---------- today's use ----------
 def ledger():
     try: d = json.load(open(LEDGER))
@@ -69,9 +108,10 @@ class Machine:
     def __init__(self):
         self.state = "idle"; self.lock = threading.RLock(); self.line_lock = threading.Lock()
         self.started = self.last_work = self.ready_at = 0.0; self.error = None; self.lines = 0; self.stamps = {}
+        self.conn = Conn(); self.slow_path = 0
     def status(self):
         d = ledger(); now = time.time()
-        return dict(state=self.state, error=self.error, lines=self.lines,
+        return dict(state=self.state, error=self.error, lines=self.lines, slow_path=self.slow_path,
                     up_s=round(now - self.started) if self.started else 0,
                     ready_after_s=round(self.ready_at - self.started) if self.ready_at else None,
                     quiet_s=round(now - self.last_work) if self.state == "ready" else None,
@@ -103,13 +143,14 @@ class Machine:
             else: raise RuntimeError("cell not ready after 420 s")
             with self.lock:
                 if self.state == "starting": self.state = "ready"; self.ready_at = self.last_work = time.time()
-            ledger_add(starts=1); log(f"ready after {self.ready_at - self.started:.0f} s")
+            ledger_add(starts=1); log(f"ready after {self.ready_at - self.started:.0f} s; kept-open connection: {self.conn.open()}")
         except Exception as e:
             self.error = str(e)[:300]; log(f"start failed: {self.error}"); self.stop("start failed")
     def stop(self, why="asked"):
         with self.lock:
             if self.state in ("idle", "stopping"): return
             self.state = "stopping"
+        self.conn.close()
         ok, out = colab("stop", "-s", SESSION, timeout=120)
         mins = self._running_min()
         with self.lock: self.state = "idle"; self.started = 0.0; self.ready_at = 0.0
@@ -117,16 +158,23 @@ class Machine:
     def line(self, j):
         """Hands one request to the cell and waits for its answer. One at a time."""
         code = ("import json,os,time,base64\nD='/content/studio'\nj=json.loads(" + repr(json.dumps(j)) + ")\n"
-                "p=f\"{D}/jobs/{j['id']}.json\"; open(p+'.tmp','w').write(json.dumps(j)); os.replace(p+'.tmp',p)\n"
-                "r=f\"{D}/audio/{j['id']}.json\"\nfor _ in range(240):\n    if os.path.exists(r): break\n    time.sleep(0.25)\n"
+                "p=f\"{D}/jobs/{j['id']}.json\"; r=f\"{D}/audio/{j['id']}.json\"\n"
+                "if not os.path.exists(r) and not os.path.exists(p): open(p+'.tmp','w').write(json.dumps(j)); os.replace(p+'.tmp',p)\n"
+                "for _ in range(600):\n    if os.path.exists(r): break\n    time.sleep(0.1)\n"
                 "out={'rec':None,'wav':None}\n"
                 "if os.path.exists(r):\n    time.sleep(0.05); out['rec']=json.load(open(r)); w=f\"{D}/audio/{j['id']}.wav\"\n"
                 "    if os.path.exists(w): out['wav']=base64.b64encode(open(w,'rb').read()).decode()\n"
                 "print('HSRESULT'+json.dumps(out))")
         with self.line_lock:
             if self.state != "ready": return None, dict(error=f"not ready ({self.state})")
-            t = time.time(); ok, out = on_machine(code, timeout=90); self.last_work = time.time()
-        m = re.search(r"HSRESULT(\{.*\})", out)
+            t = time.time(); m = None
+            for attempt in (1, 2, 3):   # twice over the kept-open connection, then the slow way
+                ok, out = self.conn.run(code, timeout=75) if attempt < 3 else on_machine(code, timeout=90)
+                m = re.search(r"HSRESULT(\{.*\})", out or "")
+                if m: break
+                log(f"line {j['id']}: attempt {attempt} got no answer ({str(out)[-80:]})")
+            if m and attempt == 3: self.slow_path += 1
+            self.last_work = time.time()
         if not m: return None, dict(error="no answer from the machine", detail=out[-200:])
         res = json.loads(m.group(1)); rec = res["rec"] or dict(error="no result in 60 s")
         rec["helper_s"] = round(time.time() - t, 2); self.lines += 1; ledger_add(lines=1)
@@ -149,8 +197,9 @@ class H(BaseHTTPRequestHandler):
     server_version = "hearshot-helper"; sys_version = ""
     def log_message(self, *a): pass
     def _cors(self):
-        if ORIGIN and self.headers.get("Origin") == ORIGIN:
-            self.send_header("Access-Control-Allow-Origin", ORIGIN); self.send_header("Vary", "Origin")
+        origin = self.headers.get("Origin")
+        if origin in ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin); self.send_header("Vary", "Origin")
             self.send_header("Access-Control-Allow-Headers", "authorization, content-type")
             self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
             self.send_header("Access-Control-Expose-Headers", "X-Hearshot-Result")

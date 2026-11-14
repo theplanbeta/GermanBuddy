@@ -313,3 +313,27 @@ three lines back as audio (12.7 s, 6.2 s, 9.9 s with one retry), stopped at 178 
 
 Open: per-line time (a kept-open connection is untried), the app side (the helper needs
 `HS_ORIGIN` set to the app's address for browsers), where the app keeps the key.
+
+### Kept-open connection, and the Studio switch in the app (2026-11-14)
+
+`helper/conn.py` keeps one connection to the machine open (it runs with the Colab tool's own
+Python); the helper sends each line through it, tries twice, then falls back to `colab exec`.
+The cell on the machine looks for new lines every 0.15 s. Same 19-line session test:
+
+| | new connection per line | kept-open |
+|---|---|---|
+| Request to audio, median | 5.4 s | 1.6 s |
+| Lines back | 19 of 19 | 19 of 19 |
+
+Before this, two of 18 lines of a listening file got no answer (connection timeouts).
+Start to ready varies with the model download: 123 to 260 s seen.
+
+The owner judged a one-speaker paragraph (delight turning to alarm) by ear: the studio voice
+with a mood per sentence was good, in both voices. So the app's Studio switch reads **every**
+sentence with the studio voice, not only quoted dialogue: `listen-app/src/studio/` (`moods.js`
+picks the mood, `studio.js` talks to the helper, `reader.adopt` swaps a sentence in before it
+is heard). The device's own voice reads until the studio is ready and whenever a line is late.
+Tested in a browser against the live helper with the voice model download blocked: 7 of 7
+sentences acted and played. Not tested: the hand-over from the device's voice mid-text.
+
+`HS_ORIGIN` may list several addresses, separated by commas.

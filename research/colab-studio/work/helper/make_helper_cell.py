@@ -9,7 +9,8 @@ src = "".join(json.load(open(f"{HERE}/../hearshot_studio.ipynb"))["cells"][0]["s
 for a, b in [('drive.mount("/content/drive")', 'pass  # helper run: a plain folder on the machine, no Drive'),
              ('D = "/content/drive/MyDrive/Hearshot Studio"', 'D = "/content/studio"'),
              ('SELF_TEST = True', 'SELF_TEST = False'),
-             ('drive.flush_and_unmount()\n        from google.colab import runtime; runtime.unassign()', 'print("IDLE END"); break')]:
+             ('drive.flush_and_unmount()\n        from google.colab import runtime; runtime.unassign()', 'print("IDLE END"); break'),
+             ('    time.sleep(2)\n', '    time.sleep(0.15)\n')]:  # look for new lines more often than the Drive version
     assert a in src, a
     src = src.replace(a, b)
 open(f"{HERE}/studio_helper.py", "w").write(src)

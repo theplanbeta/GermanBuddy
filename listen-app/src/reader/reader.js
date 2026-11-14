@@ -109,6 +109,7 @@ export class Reader extends EventTarget {
     this.tempo = 1;
     this.speed = 1; // the speed new clips are made at (follows the tempo, see schedule.js)
     this.expressive = true; // "Expressive reading": the director's styles and foreign sounds
+    this.studioVoice = null; // the studio voice in use (src/studio/studio.js), or null: studio clips count only while it matches
     this.directed = new Map(); // 'a' | 'b' + on/off -> { deliveries, sigs } per sentence
     this.sizing = 'adaptive'; // or 'ramp' (fixed 1, 2, 4, full calls; for tests)
     this.failedCount = 0;
@@ -212,6 +213,39 @@ export class Reader extends EventTarget {
     this.#pump();
   }
 
+  // ---- studio voice ---------------------------------------------------------
+
+  /**
+   * Which studio voice may be heard (null: none). Studio clips made in another
+   * voice, or all of them when it is switched off, are replaced by the device's
+   * own voice from the next sentence on, like after a voice change.
+   */
+  setStudioVoice(voice) {
+    if (voice === this.studioVoice) return;
+    this.studioVoice = voice;
+    this.#emit('generated');
+    this.#pump();
+  }
+
+  /**
+   * Takes one sentence made by the studio voice (16-bit samples at 24 kHz,
+   * without the pause after it). Returns false when it is not wanted any more:
+   * other text was loaded, the studio voice changed, or the sentence is being
+   * heard right now (it is never swapped under the listener).
+   */
+  adopt(index, pcm, { epoch, voice }) {
+    if (epoch !== this.epoch || voice !== this.studioVoice || !this.sentences[index]) return false;
+    const active = this.state === 'playing' || this.state === 'paused';
+    if (active && this.#holdsCurrent() && index === this.current) return false;
+    const n = this.sentences.length;
+    const endsParagraph = index === n - 1 || this.sentences[index + 1].para !== this.sentences[index].para;
+    const pause = Math.round(designedPause(this.sentences[index], endsParagraph) * RATE);
+    const whole = new Int16Array(pcm.length + pause);
+    whole.set(pcm);
+    this.#store({ pcm: whole, offsets: [0, whole.length], first: index, last: index, voice: this.voice, speed: 1, studio: voice });
+    return true;
+  }
+
   // ---- delivery -----------------------------------------------------------
 
   // 'a' (American) or 'b' (British): the voice's accent.
@@ -244,6 +278,7 @@ export class Reader extends EventTarget {
 
   // True when a clip no longer matches the current voice, speed or delivery of its sentences.
   #outdated(clip) {
+    if (clip.studio) return clip.studio !== this.studioVoice;
     if (clip.voice !== this.voice || clip.speed !== this.speed) return true;
     const { sigs } = this.#directed();
     return clip.sigs ? clip.sigs.some((s, k) => s !== sigs[clip.first + k]) : false;
@@ -319,6 +354,7 @@ export class Reader extends EventTarget {
   /** True when sentence i is prepared in the current voice and speed. */
   isFresh(i) {
     const clip = this.segments[i]?.clip;
+    if (clip?.studio) return clip.studio === this.studioVoice;
     if (!clip || clip.voice !== this.voice || clip.speed !== this.speed) return false;
     return !clip.sigs || clip.sigs[i - clip.first] === this.#directed().sigs[i];
   }
@@ -326,6 +362,13 @@ export class Reader extends EventTarget {
   /** True when sentence i is prepared in full quality (not a quick "urgent" version) in the current voice and speed. */
   isFinal(i) {
     return this.isFresh(i) && !this.segments[i].clip.plain;
+  }
+
+  /** How many sentences the studio voice has made (in the studio voice in use). */
+  get studioCount() {
+    let n = 0;
+    for (let i = 0; i < this.sentences.length; i++) if (this.segments[i]?.clip.studio && this.isFresh(i)) n++;
+    return n;
   }
 
   /** How many sentences are prepared in full quality in the current voice and speed. */
@@ -342,7 +385,7 @@ export class Reader extends EventTarget {
 
   /** True while the old voice is still heard after a voice change. */
   get switching() {
-    return this.state !== 'idle' && this.loaded !== null && this.loaded.voice !== this.voice;
+    return this.state !== 'idle' && this.loaded !== null && !this.loaded.studio && this.loaded.voice !== this.voice;
   }
 
   /** Preparation speed compared with playback (above 1 keeps ahead), or null. */
@@ -803,6 +846,8 @@ export class Reader extends EventTarget {
   #store(clip) {
     const current = !this.#outdated(clip);
     for (let i = clip.first; i <= clip.last; i++) {
+      // A sentence the studio voice already made stays, whatever the device's own voice makes later.
+      if (!clip.studio && this.segments[i]?.clip.studio && this.isFresh(i)) continue;
       if (current || !this.segments[i]) this.segments[i] = { clip, k: i - clip.first };
     }
     this.#emit('generated');

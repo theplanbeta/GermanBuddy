@@ -51,6 +51,21 @@
           Spanish words and phrases with German or Spanish sounds. Off: everything is read as plain narration.
           Money, times and dates are read in their spoken form either way (“€2.5 million” as “2.5 million euros”).
         </p>
+        <div class="field check">
+          <input id="studio" type="checkbox" aria-describedby="studio-help" />
+          <label for="studio">Studio voice</label>
+        </div>
+        <div id="studio-setup" class="field" hidden>
+          <label for="studio-link">Studio link</label>
+          <input id="studio-link" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your studio link here" />
+        </div>
+        <p id="studio-status" class="muted small" role="status" hidden></p>
+        <p id="studio-help" class="muted small">
+          An acted voice (frightened, delighted, urgent) made on your own cloud machine instead of on this
+          device. Needs your private studio link, which stays in this browser only. The studio takes about
+          two minutes to start after you press Play; until then, and whenever a sentence is late, the voice
+          on this device reads. With the switch off, nothing ever leaves this device.
+        </p>
         <div class="field">
           <label for="mode">Voice engine</label>
           <select id="mode">
