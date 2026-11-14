@@ -22,6 +22,8 @@ const POLL_MS = 3000;
 const LINE_TIMEOUT_MS = 90_000;
 const AHEAD = 40; // sentences ahead of the listener to ask for, at most
 const KEEP = 600; // sentences kept in memory for this visit
+const TRIES = 2; // a line that got no answer is asked for once more, then left to the device's voice
+const RETRY_MS = 8000; // after trouble on the way (no network, helper busy): wait, then carry on
 
 /** 16-bit mono WAV bytes -> samples, or null when it is something else. */
 export function wavSamples(buffer) {
@@ -61,6 +63,8 @@ export class Studio extends EventTarget {
     this.note = '';
     this.made = new Map(); // line id -> samples (this visit)
     this.failed = new Set(); // line ids that were refused: not asked again
+    this.tries = new Map(); // line id -> times it got no answer
+    this.retryTimer = null;
     this.busy = false;
     this.timer = null;
     this.wanted = false; // the listener pressed Play since the page opened
@@ -76,6 +80,7 @@ export class Studio extends EventTarget {
     this.url = url ?? '';
     this.key = key ?? '';
     clearTimeout(this.timer);
+    clearTimeout(this.retryTimer);
     if (!this.on) this.#set('off');
     else if (!this.url || !this.key) this.#set('unset');
     else {
@@ -95,6 +100,18 @@ export class Studio extends EventTarget {
   listen() {
     this.wanted = true;
     if (this.state === 'idle' || this.state === 'error') this.#poll(true);
+  }
+
+  #listening() {
+    return this.reader.state === 'playing' || this.reader.state === 'waiting';
+  }
+
+  // Trouble that may pass (no network for a moment, the helper busy): try again a little later while someone listens.
+  #later(task, ms = RETRY_MS) {
+    clearTimeout(this.retryTimer);
+    this.retryTimer = setTimeout(() => {
+      if (this.on && this.#listening()) task();
+    }, ms);
   }
 
   #voice() {
@@ -123,7 +140,12 @@ export class Studio extends EventTarget {
       const response = await this.#call(start ? '/start' : '/status', { method: start ? 'POST' : 'GET' });
       if (url !== this.url || key !== this.key || !this.on) return;
       if (response.status === 401) return this.#set('error', 'The studio key was not accepted.');
-      if (response.status === 429) return this.#set('error', 'The studio has reached its limit for today.');
+      if (response.status === 429) {
+        const limit = (await response.json().catch(() => ({}))).error === 'daily limit reached';
+        this.#set('error', limit ? 'The studio has reached its limit for today.' : 'The studio is busy.');
+        if (!limit) this.#later(() => this.#poll(true), 30_000);
+        return;
+      }
       const status = await response.json();
       if (status.state === 'ready') {
         this.#set('ready');
@@ -134,12 +156,14 @@ export class Studio extends EventTarget {
       if (status.state === 'idle' && !start) {
         // It stopped (a quiet spell, or it failed to start): start again only when the listener plays.
         this.#set(status.error ? 'error' : 'idle', status.error ? 'The studio could not start.' : '');
+        if (!status.error) this.#later(() => this.#poll(true)); // it was just stopping: start it again
         return;
       }
       this.#set('starting');
     } catch {
       if (url !== this.url || !this.on) return;
       this.#set('error', 'The studio cannot be reached.');
+      this.#later(() => this.#poll(true));
       return;
     }
     this.timer = setTimeout(() => this.#poll(), POLL_MS);
@@ -155,16 +179,22 @@ export class Studio extends EventTarget {
     const active = reader.state === 'playing' || reader.state === 'paused';
     const from = reader.current + (active ? 1 : 0);
     for (let i = from; i < Math.min(reader.sentences.length, from + AHEAD); i++) {
-      if (reader.segments[i]?.clip.studio === voice) continue;
+      if (reader.segments[i]?.clip.studio === voice && reader.isFresh(i)) continue;
       const parts = deliveries[i].parts;
       if (parts.some((p) => p.lang !== 'en')) continue; // German and Spanish stay with the device's voice
       const line = studioLine(parts.map((p) => p.text).join(' '));
       if (!line) continue;
       const id = lineId(voice, line.text);
       if (this.failed.has(id)) continue;
-      return { index: i, id, voice, line };
+      return { index: i, id, voice, line, sig: reader.signature(i) };
     }
     return null;
+  }
+
+  #noAnswer(id) {
+    const n = (this.tries.get(id) ?? 0) + 1;
+    this.tries.set(id, n);
+    if (n >= TRIES) this.failed.add(id);
   }
 
   async #work() {
@@ -179,11 +209,17 @@ export class Studio extends EventTarget {
       if (!pcm) {
         const response = await this.#call('/line', { method: 'POST', timeout: LINE_TIMEOUT_MS, body: { id: job.id, voice: job.voice, text: job.line.text, expect: job.line.expect, kind: 'speech', seed: 1 } });
         if (response.status === 200) pcm = wavSamples(await response.arrayBuffer());
-        else if (response.status === 503) {
-          // The studio is not running any more: find out, and start it again at the next Play.
+        else if (response.status !== 422) {
+          // Not an answer about this line (the studio stopped, the helper is busy, the key
+          // changed): the line is asked for again later, a second time at most.
           this.busy = false;
-          this.#set('idle');
-          if (reader.state === 'playing') this.#poll(true);
+          this.#noAnswer(job.id);
+          if (response.status === 401) this.#set('error', 'The studio key was not accepted.');
+          else if (response.status === 503) {
+            this.#set('idle');
+            if (this.#listening()) this.#poll(true);
+            else this.#later(() => this.#poll(true));
+          } else this.#later(() => this.#work(), response.status === 429 ? 30_000 : RETRY_MS);
           return;
         }
         if (pcm) {
@@ -193,9 +229,14 @@ export class Studio extends EventTarget {
       }
       if (!pcm) this.failed.add(job.id);
       // Too late for this sentence (it is being heard)? Then it stays in memory for a second listen.
-      else reader.adopt(job.index, pcm, { epoch, voice: job.voice });
+      else reader.adopt(job.index, pcm, { epoch, voice: job.voice, sig: job.sig });
     } catch {
-      this.failed.add(job.id); // lost on the way: the device's own voice reads it
+      // Lost on the way (no network, or no answer in time): wait a little instead of
+      // running through every sentence ahead; the device's own voice reads meanwhile.
+      this.busy = false;
+      this.#noAnswer(job.id);
+      this.#later(() => this.#work());
+      return;
     }
     this.busy = false;
     this.dispatchEvent(new Event('change'));

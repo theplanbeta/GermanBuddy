@@ -233,8 +233,9 @@ export class Reader extends EventTarget {
    * other text was loaded, the studio voice changed, or the sentence is being
    * heard right now (it is never swapped under the listener).
    */
-  adopt(index, pcm, { epoch, voice }) {
+  adopt(index, pcm, { epoch, voice, sig }) {
     if (epoch !== this.epoch || voice !== this.studioVoice || !this.sentences[index]) return false;
+    if (sig !== this.signature(index)) return false; // what is said changed meanwhile (setting, accent)
     const active = this.state === 'playing' || this.state === 'paused';
     if (active && this.#holdsCurrent() && index === this.current) return false;
     const n = this.sentences.length;
@@ -242,7 +243,7 @@ export class Reader extends EventTarget {
     const pause = Math.round(designedPause(this.sentences[index], endsParagraph) * RATE);
     const whole = new Int16Array(pcm.length + pause);
     whole.set(pcm);
-    this.#store({ pcm: whole, offsets: [0, whole.length], first: index, last: index, voice: this.voice, speed: 1, studio: voice });
+    this.#store({ pcm: whole, offsets: [0, whole.length], first: index, last: index, voice: this.voice, speed: 1, studio: voice, sigs: [sig] });
     return true;
   }
 
@@ -278,7 +279,7 @@ export class Reader extends EventTarget {
 
   // True when a clip no longer matches the current voice, speed or delivery of its sentences.
   #outdated(clip) {
-    if (clip.studio) return clip.studio !== this.studioVoice;
+    if (clip.studio) return clip.studio !== this.studioVoice || clip.sigs[0] !== this.#directed().sigs[clip.first];
     if (clip.voice !== this.voice || clip.speed !== this.speed) return true;
     const { sigs } = this.#directed();
     return clip.sigs ? clip.sigs.some((s, k) => s !== sigs[clip.first + k]) : false;
@@ -354,7 +355,7 @@ export class Reader extends EventTarget {
   /** True when sentence i is prepared in the current voice and speed. */
   isFresh(i) {
     const clip = this.segments[i]?.clip;
-    if (clip?.studio) return clip.studio === this.studioVoice;
+    if (clip?.studio) return clip.studio === this.studioVoice && clip.sigs[0] === this.#directed().sigs[i];
     if (!clip || clip.voice !== this.voice || clip.speed !== this.speed) return false;
     return !clip.sigs || clip.sigs[i - clip.first] === this.#directed().sigs[i];
   }
@@ -362,6 +363,20 @@ export class Reader extends EventTarget {
   /** True when sentence i is prepared in full quality (not a quick "urgent" version) in the current voice and speed. */
   isFinal(i) {
     return this.isFresh(i) && !this.segments[i].clip.plain;
+  }
+
+  /** What decides how sentence i is said (changes with the setting and the voice's accent). */
+  signature(index) {
+    return this.#directed().sigs[index];
+  }
+
+  /**
+   * True when studio sentences (always made at normal speed) sit beside device
+   * sentences made at a faster speed: one file of both would change speed from
+   * sentence to sentence, so there is no download then.
+   */
+  get mixedSpeeds() {
+    return this.speed !== 1 && this.studioCount > 0;
   }
 
   /** How many sentences the studio voice has made (in the studio voice in use). */
@@ -461,7 +476,7 @@ export class Reader extends EventTarget {
 
   /** The whole reading as one WAV file (one voice, one speed), or null if not finished. */
   toWav() {
-    if (!this.complete) return null;
+    if (!this.complete || this.mixedSpeeds) return null;
     const parts = this.segments.map(({ clip, k }) => clip.pcm.subarray(clip.offsets[k], clip.offsets[k + 1]));
     return wavBlob(parts, RATE);
   }

@@ -530,7 +530,7 @@ function updateStudio() {
   ui.studioStatus.textContent = studio.note || (studio.state === 'ready' ? ready : STUDIO_TEXT[studio.state] ?? '');
 }
 function configureStudio() {
-  const link = parseLink(settings.get('studioLink', ''));
+  const link = parseLink(ui.studioLink.value); // the field, so it works for this visit even when storage is blocked
   studio.configure({ on: ui.studio.checked, url: link?.url, key: link?.key });
   updateStudio();
 }
@@ -609,8 +609,9 @@ function updateProgress() {
     ui.preparedText.textContent = reader.complete ? 'All prepared' : `Prepared ${ready} of ${n}`;
   }
   const complete = reader.complete;
-  ui.download.disabled = !complete;
+  ui.download.disabled = !complete || reader.mixedSpeeds;
   if (!n) ui.downloadText.textContent = '';
+  else if (complete && reader.mixedSpeeds) ui.downloadText.textContent = 'No file at this tempo with the studio voice';
   else if (!complete) ui.downloadText.textContent = `Preparing file: ${Math.floor((ready / n) * 100)}%`;
   else ui.downloadText.textContent = fileSpeed() ? `File plays at about ${fileSpeed()}× speed` : '';
 }

@@ -105,7 +105,7 @@ def render(j):
         torch.manual_seed(seed); torch.cuda.manual_seed_all(seed); m.conds = voice(j["voice"])
         t = time.time(); w = m.generate(j["text"]).squeeze(0).cpu().numpy().astype(np.float32); dt = time.time() - t
         a16 = librosa.resample(w, orig_sr=m.sr, target_sr=16000)
-        heard = asr_pipe({"raw": a16, "sampling_rate": 16000}, generate_kwargs={"max_new_tokens": 48})["text"].strip()
+        heard = asr_pipe({"raw": a16, "sampling_rate": 16000}, generate_kwargs={"max_new_tokens": 160})["text"].strip()
         g = guard(j, w, m.sr, heard); tries.append(dict(attempt=attempt, seed=seed, compute_s=round(dt, 2), audio_s=round(len(w) / m.sr, 2), **g))
         if g["ok"]: return w, tries
     return None, tries

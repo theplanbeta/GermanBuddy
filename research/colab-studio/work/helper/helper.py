@@ -32,7 +32,7 @@ MAX_SESSION_MIN = float(os.environ.get("HS_MAX_SESSION_MIN", "90"))
 DAILY_MIN = float(os.environ.get("HS_DAILY_MIN", "180"))
 MAX_TEXT = 400
 VOICES = {"af_aoede", "am_fenrir"}          # the voice samples the cell carries
-RATE_PER_MIN = 120
+RATE_PER_MIN = 240
 ORIGINS = {o.strip() for o in os.environ.get("HS_ORIGIN", "").split(",") if o.strip()}   # the app's web address(es), for the browser's cross-site rule
 KEY_FILE = f"{DIR}/key"; LEDGER = f"{DIR}/usage.json"; LOG = f"{DIR}/helper.log"
 os.makedirs(DIR, exist_ok=True); os.chmod(DIR, 0o700)
@@ -160,7 +160,7 @@ class Machine:
         code = ("import json,os,time,base64\nD='/content/studio'\nj=json.loads(" + repr(json.dumps(j)) + ")\n"
                 "p=f\"{D}/jobs/{j['id']}.json\"; r=f\"{D}/audio/{j['id']}.json\"\n"
                 "if not os.path.exists(r) and not os.path.exists(p): open(p+'.tmp','w').write(json.dumps(j)); os.replace(p+'.tmp',p)\n"
-                "for _ in range(600):\n    if os.path.exists(r): break\n    time.sleep(0.1)\n"
+                "for _ in range(350):\n    if os.path.exists(r): break\n    time.sleep(0.1)\n"
                 "out={'rec':None,'wav':None}\n"
                 "if os.path.exists(r):\n    time.sleep(0.05); out['rec']=json.load(open(r)); w=f\"{D}/audio/{j['id']}.wav\"\n"
                 "    if os.path.exists(w): out['wav']=base64.b64encode(open(w,'rb').read()).decode()\n"
@@ -168,15 +168,18 @@ class Machine:
         with self.line_lock:
             if self.state != "ready": return None, dict(error=f"not ready ({self.state})")
             t = time.time(); m = None
-            for attempt in (1, 2, 3):   # twice over the kept-open connection, then the slow way
-                ok, out = self.conn.run(code, timeout=75) if attempt < 3 else on_machine(code, timeout=90)
+            # Twice over the kept-open connection; the slow way only when that connection cannot
+            # be opened at all. Kept under the app's own patience (90 s), so requests do not pile up.
+            for attempt in (1, 2):
+                ok, out = self.conn.run(code, timeout=38)
+                if out == "no connection":
+                    self.slow_path += 1; ok, out = on_machine(code, timeout=45)
                 m = re.search(r"HSRESULT(\{.*\})", out or "")
                 if m: break
                 log(f"line {j['id']}: attempt {attempt} got no answer ({str(out)[-80:]})")
-            if m and attempt == 3: self.slow_path += 1
-            self.last_work = time.time()
+        if m and json.loads(m.group(1))["rec"]: self.last_work = time.time()   # only real work keeps the machine
         if not m: return None, dict(error="no answer from the machine", detail=out[-200:])
-        res = json.loads(m.group(1)); rec = res["rec"] or dict(error="no result in 60 s")
+        res = json.loads(m.group(1)); rec = res["rec"] or dict(error="no result in 35 s")
         rec["helper_s"] = round(time.time() - t, 2); self.lines += 1; ledger_add(lines=1)
         return (base64.b64decode(res["wav"]) if res["wav"] else None), rec
     def watch(self):
@@ -210,10 +213,11 @@ class H(BaseHTTPRequestHandler):
         for k, v in (extra or {}).items(): self.send_header(k, v)
         self.end_headers(); self.wfile.write(data)
     def _allowed(self):
-        if too_fast(): self._send(429, dict(error="too many requests")); return False
         got = self.headers.get("Authorization", "")
         if not hmac.compare_digest(got.encode(), f"Bearer {KEY}".encode()):
             time.sleep(0.5); self._send(401, dict(error="key missing or wrong")); return False
+        # Only requests with the key count, so strangers knocking cannot lock the owner out.
+        if too_fast(): self._send(429, dict(error="too many requests")); return False
         return True
     def do_OPTIONS(self):
         self.send_response(204); self._cors(); self.send_header("Content-Length", "0"); self.end_headers()

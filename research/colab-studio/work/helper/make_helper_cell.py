@@ -10,6 +10,7 @@ for a, b in [('drive.mount("/content/drive")', 'pass  # helper run: a plain fold
              ('D = "/content/drive/MyDrive/Hearshot Studio"', 'D = "/content/studio"'),
              ('SELF_TEST = True', 'SELF_TEST = False'),
              ('drive.flush_and_unmount()\n        from google.colab import runtime; runtime.unassign()', 'print("IDLE END"); break'),
+             ('IDLE_MIN = 10\n', 'IDLE_MIN = 10 ** 6  # the helper stops the machine; the cell never stops by itself\n'),
              ('    time.sleep(2)\n', '    time.sleep(0.15)\n')]:  # look for new lines more often than the Drive version
     assert a in src, a
     src = src.replace(a, b)
