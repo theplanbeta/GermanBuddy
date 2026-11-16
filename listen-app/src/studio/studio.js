@@ -24,6 +24,7 @@ const AHEAD = 40; // sentences ahead of the listener to ask for, at most
 const KEEP = 600; // sentences kept in memory for this visit
 const TRIES = 2; // a line that got no answer is asked for once more, then left to the device's voice
 const RETRY_MS = 8000; // after trouble on the way (no network, helper busy): wait, then carry on
+const MISSES = 40; // unanswered questions in a row to the helper before giving up until the next Play
 
 /** 16-bit mono WAV bytes -> samples, or null when it is something else. */
 export function wavSamples(buffer) {
@@ -68,11 +69,20 @@ export class Studio extends EventTarget {
     this.busy = false;
     this.timer = null;
     this.wanted = false; // the listener pressed Play since the page opened
+    this.misses = 0; // questions to the helper in a row that got no answer
+    this.pollRun = 0; // only the newest round of questions to the helper carries on
     reader.addEventListener('sentence', () => this.#work());
     reader.addEventListener('generated', () => this.#work());
     reader.addEventListener('state', () => {
       if (reader.state === 'playing' || reader.state === 'waiting') this.listen();
     });
+    // A phone stops a page's timers and requests while the screen is off or another app is in
+    // front. Back in view: pick up where it stopped.
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') this.wake();
+      });
+    }
   }
 
   configure({ on, url, key }) {
@@ -102,15 +112,27 @@ export class Studio extends EventTarget {
     if (this.state === 'idle' || this.state === 'error') this.#poll(true);
   }
 
+  /**
+   * Carries on after a pause (the page was hidden, a request was lost): asks the helper how
+   * things stand. It never starts the studio; only Play does that.
+   */
+  wake() {
+    if (!this.on || !this.wanted || this.state === 'off' || this.state === 'unset') return;
+    if (this.state === 'ready') this.#work();
+    else this.#poll();
+  }
+
   #listening() {
     return this.reader.state === 'playing' || this.reader.state === 'waiting';
   }
 
-  // Trouble that may pass (no network for a moment, the helper busy): try again a little later while someone listens.
-  #later(task, ms = RETRY_MS) {
+  // Trouble that may pass (no network for a moment, the helper busy): try again a little later.
+  // Tasks that could start the studio run only while someone listens; `always` is for the ones
+  // that cannot (asking how things stand, asking again for a line of a studio that is running).
+  #later(task, ms = RETRY_MS, always = false) {
     clearTimeout(this.retryTimer);
     this.retryTimer = setTimeout(() => {
-      if (this.on && this.#listening()) task();
+      if (this.on && (always || this.#listening())) task();
     }, ms);
   }
 
@@ -135,10 +157,12 @@ export class Studio extends EventTarget {
   // Asks the helper how things stand (and, with `start`, to start the studio), until it is ready.
   async #poll(start = false) {
     clearTimeout(this.timer);
+    const run = ++this.pollRun;
     const { url, key } = this;
     try {
       const response = await this.#call(start ? '/start' : '/status', { method: start ? 'POST' : 'GET' });
-      if (url !== this.url || key !== this.key || !this.on) return;
+      if (run !== this.pollRun || url !== this.url || key !== this.key || !this.on) return;
+      this.misses = 0;
       if (response.status === 401) return this.#set('error', 'The studio key was not accepted.');
       if (response.status === 429) {
         const limit = (await response.json().catch(() => ({}))).error === 'daily limit reached';
@@ -161,9 +185,12 @@ export class Studio extends EventTarget {
       }
       this.#set('starting');
     } catch {
-      if (url !== this.url || !this.on) return;
+      if (run !== this.pollRun || url !== this.url || !this.on) return;
       this.#set('error', 'The studio cannot be reached.');
-      this.#later(() => this.#poll(true));
+      // Ask again, also when the text has ended meanwhile (the studio may be starting, and
+      // nobody else would notice it getting ready). Starting it stays tied to listening.
+      if (++this.misses < MISSES) this.#later(() => this.#poll(this.#listening()), RETRY_MS, true);
+      else this.#later(() => this.#poll(true));
       return;
     }
     this.timer = setTimeout(() => this.#poll(), POLL_MS);
@@ -216,10 +243,11 @@ export class Studio extends EventTarget {
           this.#noAnswer(job.id);
           if (response.status === 401) this.#set('error', 'The studio key was not accepted.');
           else if (response.status === 503) {
+            // The studio did not answer, or it has stopped. While someone listens: start it
+            // again. Otherwise only ask how it stands, and carry on if it is still running.
             this.#set('idle');
-            if (this.#listening()) this.#poll(true);
-            else this.#later(() => this.#poll(true));
-          } else this.#later(() => this.#work(), response.status === 429 ? 30_000 : RETRY_MS);
+            this.#poll(this.#listening());
+          } else this.#later(() => this.#work(), response.status === 429 ? 30_000 : RETRY_MS, true);
           return;
         }
         if (pcm) {
@@ -235,7 +263,7 @@ export class Studio extends EventTarget {
       // running through every sentence ahead; the device's own voice reads meanwhile.
       this.busy = false;
       this.#noAnswer(job.id);
-      this.#later(() => this.#work());
+      this.#later(() => this.#work(), RETRY_MS, true); // each line is asked for twice at most, so this ends
       return;
     }
     this.busy = false;

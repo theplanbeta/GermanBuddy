@@ -58,14 +58,17 @@ def on_machine(code, timeout=90):
 
 class Conn:
     """The kept-open connection (conn.py). run() returns (ok, output); any trouble closes it,
-    and the next call opens a new one."""
-    def __init__(self): self.p = None
-    def _read(self, deadline):
+    and the next call opens a new one. open() and run() take turns (one lock): a request that
+    arrives while the connection is still being opened waits for it instead of reading its greeting.
+    close() does not wait, so stopping the machine is never held up by a request in flight."""
+    def __init__(self): self.p = None; self.turn = threading.RLock()
+    @staticmethod
+    def _read(p, deadline):
         buf = b""
         while time.time() < deadline:
-            if self.p.poll() is not None: return None
-            if select.select([self.p.stdout], [], [], 0.5)[0]:
-                chunk = os.read(self.p.stdout.fileno(), 1 << 20)
+            if p.poll() is not None: return None
+            if select.select([p.stdout], [], [], 0.5)[0]:
+                chunk = os.read(p.stdout.fileno(), 1 << 20)
                 if not chunk: return None
                 buf += chunk
                 while b"\n" in buf:
@@ -73,25 +76,32 @@ class Conn:
                     if line.startswith(b"HSCONN "): return json.loads(line[7:])
         return None
     def open(self):
-        self.close()
-        self.p = subprocess.Popen([TOOL_PY, CONN, SESSION], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-        r = self._read(time.time() + 60)
-        if not (r and r["ok"]): self.close(); return False
-        return True
+        with self.turn:
+            self.close()
+            p = self.p = subprocess.Popen([TOOL_PY, CONN, SESSION], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            r = self._read(p, time.time() + 60)
+            if not (r and r["ok"]): self._drop(p); return False
+            return True
+    def _drop(self, p):
+        """Ends this one connection; leaves a newer one alone."""
+        try: p.kill(); p.wait(timeout=5)
+        except Exception: pass
+        if self.p is p: self.p = None
     def close(self):
-        if self.p:
-            try: self.p.kill(); self.p.wait(timeout=5)
-            except Exception: pass
-        self.p = None
+        p = self.p
+        if p: self._drop(p)
     def run(self, code, timeout=90):
-        if (self.p is None or self.p.poll() is not None) and not self.open(): return False, "no connection"
-        try:
-            self.p.stdin.write((json.dumps(dict(code=code, timeout=timeout)) + "\n").encode()); self.p.stdin.flush()
-        except Exception:
-            self.close(); return False, "connection lost"
-        r = self._read(time.time() + timeout + 15)
-        if r is None: self.close(); return False, "timeout"
-        return r["ok"], r["out"]
+        with self.turn:
+            if (self.p is None or self.p.poll() is not None) and not self.open(): return False, "no connection"
+            p = self.p
+            if p is None: return False, "connection lost"   # closed meanwhile (the machine is being stopped)
+            try:
+                p.stdin.write((json.dumps(dict(code=code, timeout=timeout)) + "\n").encode()); p.stdin.flush()
+            except Exception:
+                self._drop(p); return False, "connection lost"
+            r = self._read(p, time.time() + timeout + 15)
+            if r is None: self._drop(p); return False, "timeout"
+            return r["ok"], r["out"]
 
 # ---------- today's use ----------
 def ledger():
@@ -141,9 +151,13 @@ class Machine:
                 if ok and "HSREADY" in out: break
                 if ok and "Traceback" in out: raise RuntimeError("cell failed: " + out[-300:])
             else: raise RuntimeError("cell not ready after 420 s")
+            # The connection first, "ready" after: the app asks for its first line the moment it
+            # sees "ready", and that line must not meet a connection that is still being opened.
+            opened = self.conn.open()
             with self.lock:
-                if self.state == "starting": self.state = "ready"; self.ready_at = self.last_work = time.time()
-            ledger_add(starts=1); log(f"ready after {self.ready_at - self.started:.0f} s; kept-open connection: {self.conn.open()}")
+                if self.state != "starting": self.conn.close(); return   # stopped meanwhile
+                self.state = "ready"; self.ready_at = self.last_work = time.time()
+            ledger_add(starts=1); log(f"ready after {self.ready_at - self.started:.0f} s; kept-open connection: {opened}")
         except Exception as e:
             self.error = str(e)[:300]; log(f"start failed: {self.error}"); self.stop("start failed")
     def stop(self, why="asked"):
@@ -171,6 +185,7 @@ class Machine:
             # Twice over the kept-open connection; the slow way only when that connection cannot
             # be opened at all. Kept under the app's own patience (90 s), so requests do not pile up.
             for attempt in (1, 2):
+                if self.state != "ready": out = "the machine is being stopped"; break
                 ok, out = self.conn.run(code, timeout=38)
                 if out == "no connection":
                     self.slow_path += 1; ok, out = on_machine(code, timeout=45)
