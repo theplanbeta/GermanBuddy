@@ -66,6 +66,14 @@
           two minutes to start after you press Play; until then, and whenever a sentence is late, the voice
           on this device reads. With the switch off, nothing ever leaves this device.
         </p>
+        <div id="studio-only-field" class="field check" hidden>
+          <input id="studio-only" type="checkbox" aria-describedby="studio-only-help" />
+          <label for="studio-only">Studio only</label>
+        </div>
+        <p id="studio-only-help" class="muted small" hidden>
+          Saves this device’s power and memory by not using its own voice at all; nothing plays until the
+          studio is ready (about 2 to 5 minutes after the first Play), and it needs a connection.
+        </p>
         <div class="field">
           <label for="mode">Voice engine</label>
           <select id="mode">

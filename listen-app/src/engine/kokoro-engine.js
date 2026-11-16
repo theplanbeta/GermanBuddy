@@ -12,10 +12,14 @@
 //                                 `style` replaces the voice row (256 numbers), `shift` is added to it
 //   prefetchVoice(voice)       -> starts fetching a voice's small data file (optional)
 //   removePreviousModel()      -> deletes the model files of earlier versions; resolves to the bytes freed
+//   release()                  -> stops the engine and frees its memory; waiting requests fail
+//                                 as 'cancelled'. probe() / load() start it again.
 //
 // phonemize() and render() wait until load() has been called and has
 // finished; they never start the model download by themselves (the page asks
-// the listener first).
+// the listener first). The engine's worker itself only starts with the first
+// probe() or load(), so a page that never needs the device's voice ("Studio
+// only", src/studio/studio.js) never starts it.
 //
 // Kokoro-specific extras:
 //   mode / setMode(mode)   'auto' | 'webgpu' | 'webgpu-fp16' | 'wasm'. setMode restarts
@@ -62,8 +66,10 @@ export function createKokoroEngine({ mode = 'auto', dtype = null, threads = null
   let strikes = 0;
   let waiting = 0; // requests waiting for the model to load
 
-  function startWorker() {
+  // Ends the worker (if any): everything waiting for it fails as 'cancelled'.
+  function stopWorker() {
     worker?.terminate();
+    worker = null;
     const cancelled = failure('The voice engine was restarted.', 'cancelled');
     for (const job of pending.values()) job.reject(cancelled);
     pending.clear();
@@ -74,6 +80,19 @@ export function createKokoroEngine({ mode = 'auto', dtype = null, threads = null
     ready = deferred();
     engine.device = null;
     strikes = 0;
+  }
+
+  function startWorker() {
+    stopWorker();
+    createWorker();
+  }
+
+  // The worker starts with the first probe() or load(), not before.
+  function needWorker() {
+    if (!worker) createWorker();
+  }
+
+  function createWorker() {
     worker = new Worker(new URL('./kokoro.worker.js', import.meta.url), { type: 'module' });
     worker.addEventListener('message', onMessage);
     worker.addEventListener('error', (event) => {
@@ -147,6 +166,7 @@ export function createKokoroEngine({ mode = 'auto', dtype = null, threads = null
     } finally {
       waiting--;
     }
+    if (!worker) throw failure('The voice engine was stopped.', 'cancelled'); // released meanwhile
     return new Promise((resolve, reject) => {
       const id = nextId++;
       pending.set(id, { resolve, reject });
@@ -163,6 +183,7 @@ export function createKokoroEngine({ mode = 'auto', dtype = null, threads = null
     check: checkAudio, // replaceable in tests to imitate a misbehaving graphics chip
 
     probe() {
+      needWorker();
       return new Promise((resolve, reject) => {
         probeWaiter = { resolve, reject };
         worker.postMessage({ type: 'probe', mode: engine.mode, dtype });
@@ -172,6 +193,7 @@ export function createKokoroEngine({ mode = 'auto', dtype = null, threads = null
     load(onProgress) {
       if (onProgress) progressListener = onProgress;
       if (!loading) {
+        needWorker();
         loading = new Promise((resolve, reject) => {
           loadWaiter = { resolve, reject };
           worker.postMessage({ type: 'load', mode: engine.mode, dtype, threads });
@@ -184,7 +206,12 @@ export function createKokoroEngine({ mode = 'auto', dtype = null, threads = null
     setMode(newMode) {
       if (newMode === engine.mode) return;
       engine.mode = newMode;
-      startWorker();
+      if (worker) startWorker(); // not started yet: the next probe() starts it in the new mode
+    },
+
+    /** Stops the worker and frees the voice model's memory (see the list at the top). */
+    release() {
+      if (worker) stopWorker();
     },
 
     /** Phoneme strings for texts, in American ('a…' voices) or British ('b…') English. */
@@ -263,6 +290,5 @@ export function createKokoroEngine({ mode = 'auto', dtype = null, threads = null
     },
   };
 
-  startWorker();
-  return engine;
+  return engine; // the worker starts with the first probe() or load()
 }

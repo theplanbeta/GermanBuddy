@@ -110,6 +110,7 @@ export class Reader extends EventTarget {
     this.speed = 1; // the speed new clips are made at (follows the tempo, see schedule.js)
     this.expressive = true; // "Expressive reading": the director's styles and foreign sounds
     this.studioVoice = null; // the studio voice in use (src/studio/studio.js), or null: studio clips count only while it matches
+    this.studioOnly = false; // "Studio only": the device's voice makes nothing, only studio clips are heard
     this.directed = new Map(); // 'a' | 'b' + on/off -> { deliveries, sigs } per sentence
     this.sizing = 'adaptive'; // or 'ramp' (fixed 1, 2, 4, full calls; for tests)
     this.failedCount = 0;
@@ -174,7 +175,7 @@ export class Reader extends EventTarget {
   setVoice(voice) {
     if (voice === this.voice) return;
     this.voice = voice;
-    this.engine.prefetchVoice?.(voice); // start fetching its data file right away
+    if (!this.studioOnly) this.engine.prefetchVoice?.(voice); // start fetching its data file right away
     this.#emit('generated'); // "prepared" counts only clips in the new voice
     this.#pump();
   }
@@ -228,12 +229,41 @@ export class Reader extends EventTarget {
   }
 
   /**
+   * "Studio only" on or off. On: the device's voice makes nothing more (and is
+   * never asked), sentences it made are let go, and playback waits for each
+   * sentence until the studio has made it. Off: as before; the device's voice
+   * prepares again, and sentences the studio could not make are made by it.
+   */
+  setStudioOnly(on) {
+    on = Boolean(on);
+    if (on === this.studioOnly) return;
+    this.studioOnly = on;
+    this.refilling = false; // (the device's pace no longer decides when playback carries on)
+    for (let i = 0; i < this.segments.length; i++) {
+      const clip = this.segments[i]?.clip;
+      if (clip && (on ? !clip.studio : clip.skipped)) this.segments[i] = null;
+    }
+    if (on && this.loaded && !this.loaded.studio) {
+      // The device's voice is heard: stop it at once and wait for the studio's version.
+      if (this.state === 'playing' || this.state === 'waiting') this.#startAt(this.current);
+      else {
+        this.audio.pause();
+        this.loaded = null;
+      }
+    }
+    this.#emit('generated');
+    this.#pump();
+  }
+
+  /**
    * Takes one sentence made by the studio voice (16-bit samples at 24 kHz,
    * without the pause after it). Returns false when it is not wanted any more:
    * other text was loaded, the studio voice changed, or the sentence is being
-   * heard right now (it is never swapped under the listener).
+   * heard right now (it is never swapped under the listener). `skipped`
+   * ("Studio only"): the studio could not make it; it is passed over with
+   * just its pause, and counted in studioSkipped.
    */
-  adopt(index, pcm, { epoch, voice, sig }) {
+  adopt(index, pcm, { epoch, voice, sig, skipped = false }) {
     if (epoch !== this.epoch || voice !== this.studioVoice || !this.sentences[index]) return false;
     if (sig !== this.signature(index)) return false; // what is said changed meanwhile (setting, accent)
     const active = this.state === 'playing' || this.state === 'paused';
@@ -243,8 +273,15 @@ export class Reader extends EventTarget {
     const pause = Math.round(designedPause(this.sentences[index], endsParagraph) * RATE);
     const whole = new Int16Array(pcm.length + pause);
     whole.set(pcm);
-    this.#store({ pcm: whole, offsets: [0, whole.length], first: index, last: index, voice: this.voice, speed: 1, studio: voice, sigs: [sig] });
+    const clip = { pcm: whole, offsets: [0, whole.length], first: index, last: index, voice: this.voice, speed: 1, studio: voice, sigs: [sig] };
+    if (skipped) clip.skipped = true;
+    this.#store(clip);
     return true;
+  }
+
+  /** True when the sentence at the current position is in the player (heard now, or paused in it). */
+  get hearsCurrent() {
+    return this.#holdsCurrent();
   }
 
   // ---- delivery -----------------------------------------------------------
@@ -376,13 +413,21 @@ export class Reader extends EventTarget {
    * sentence to sentence, so there is no download then.
    */
   get mixedSpeeds() {
-    return this.speed !== 1 && this.studioCount > 0;
+    // ("Studio only": every sentence is a studio one, all at normal speed.)
+    return !this.studioOnly && this.speed !== 1 && this.studioCount > 0;
   }
 
   /** How many sentences the studio voice has made (in the studio voice in use). */
   get studioCount() {
     let n = 0;
-    for (let i = 0; i < this.sentences.length; i++) if (this.segments[i]?.clip.studio && this.isFresh(i)) n++;
+    for (let i = 0; i < this.sentences.length; i++) if (this.segments[i]?.clip.studio && !this.segments[i].clip.skipped && this.isFresh(i)) n++;
+    return n;
+  }
+
+  /** "Studio only": how many sentences were passed over because the studio could not make them. */
+  get studioSkipped() {
+    let n = 0;
+    for (let i = 0; i < this.sentences.length; i++) if (this.segments[i]?.clip.skipped && this.isFresh(i)) n++;
     return n;
   }
 
@@ -476,7 +521,7 @@ export class Reader extends EventTarget {
 
   /** The whole reading as one WAV file (one voice, one speed), or null if not finished. */
   toWav() {
-    if (!this.complete || this.mixedSpeeds) return null;
+    if (!this.complete || this.mixedSpeeds || this.studioSkipped) return null; // (skipped: a file with holes)
     const parts = this.segments.map(({ clip, k }) => clip.pcm.subarray(clip.offsets[k], clip.offsets[k + 1]));
     return wavBlob(parts, RATE);
   }
@@ -586,6 +631,7 @@ export class Reader extends EventTarget {
   // playback, it would now stop at every call; instead wait until a few
   // seconds are ready before carrying on, and tell the listener once.
   #ranDry() {
+    if (this.studioOnly) return; // the studio's pace is not this device's: carry on as soon as the next one is in
     const ratio = this.prepRatio;
     if (ratio === null || ratio >= 1) return; // a one-off hiccup: carry on as soon as possible
     this.refilling = true;
@@ -666,7 +712,8 @@ export class Reader extends EventTarget {
   }
 
   async #pump() {
-    if (this.busy || this.halted || !this.sentences.length) return;
+    // "Studio only": the device's voice is never asked for anything.
+    if (this.busy || this.halted || this.studioOnly || !this.sentences.length) return;
     this.busy = true;
     let again = false;
     try {
@@ -859,6 +906,7 @@ export class Reader extends EventTarget {
   // changed meanwhile only fills gaps (it is playable until its replacement
   // is ready); otherwise it replaces what was there.
   #store(clip) {
+    if (this.studioOnly && !clip.studio) return; // a device call that ended after "Studio only" went on
     const current = !this.#outdated(clip);
     for (let i = clip.first; i <= clip.last; i++) {
       // A sentence the studio voice already made stays, whatever the device's own voice makes later.

@@ -48,6 +48,9 @@ const ui = {
   studioSetup: $('studio-setup'),
   studioLink: $('studio-link'),
   studioStatus: $('studio-status'),
+  studioOnly: $('studio-only'),
+  studioOnlyField: $('studio-only-field'),
+  studioOnlyHelp: $('studio-only-help'),
 };
 
 // ---- remembered settings (quietly ignored if the browser blocks storage) ---
@@ -117,6 +120,10 @@ const engine = createKokoroEngine({
 const reader = new Reader(engine, { gpuCap: Number(params.get('gpucap')) || undefined });
 if (debug) window.listen = { reader, engine };
 
+// "Studio only" is in effect (see applyStudioOnly below): the voice on this
+// device is never started or asked for anything.
+let studioOnly = false;
+
 // ---- waiting for the sound: the ring around Play -----------------------------
 
 const WAIT_TEXT = {
@@ -124,6 +131,9 @@ const WAIT_TEXT = {
   late: 'Still preparing…',
   loading: 'Getting the voice ready…',
   downloading: 'Downloading the voice…',
+  studio: 'Waiting for the studio…',
+  studioStarting: 'The studio is starting…',
+  studioDown: 'The studio is not available',
 };
 const MODEL_START_MS = 2000; // after the download, starting the model (a guess, only for the ring)
 const ANNOUNCE_AFTER_MS = 1000; // screen readers hear about a wait only if it lasts
@@ -131,6 +141,12 @@ let download = null; // { loaded, total, at, loaded0, t0 } while the voice model
 
 /** How long the listener still waits ({ ms: null } when it cannot be told), and why. */
 function waitEstimate(now) {
+  if (studioOnly) {
+    // How long the studio takes cannot be told: the ring circles, and says what it waits for.
+    const ready = studio.state === 'ready';
+    const phase = ready && !studio.note ? 'studio' : ready ? 'studioDown' : studio.state === 'idle' || studio.state === 'starting' ? 'studioStarting' : 'studioDown';
+    return { ms: null, phase };
+  }
   const calls = reader.waitMs(now);
   if (engine.device) return { ms: calls, phase: 'preparing' };
   const d = download;
@@ -183,6 +199,10 @@ function modeName(device, dtype = engine.dtype ?? plan?.dtype) {
 
 /** "Graphics mode (WebGPU) · preparing 1.4× faster than playback" */
 function updateStatus() {
+  if (studioOnly) {
+    ui.engineStatus.textContent = 'Voice made by the studio · the voice on this device is off';
+    return;
+  }
   const device = engine.device ?? plan?.device;
   if (!device) return;
   let text = `Voice runs on this device · ${modeName(device)}`;
@@ -203,6 +223,7 @@ function updateStatus() {
 }
 
 async function checkModel({ notice, switching = false } = {}) {
+  if (studioOnly) return updateStatus(); // the voice on this device is not started at all
   const run = modelRun;
   try {
     plan = await engine.probe();
@@ -241,7 +262,7 @@ async function checkModel({ notice, switching = false } = {}) {
 }
 
 function startModel() {
-  if (modelStarted) return;
+  if (modelStarted || studioOnly) return;
   modelStarted = true;
   const run = modelRun;
   hideMessage();
@@ -521,21 +542,69 @@ const STUDIO_TEXT = {
   starting: 'The studio is starting (about two minutes). The voice on this device reads meanwhile.',
   error: 'The studio is not available. The voice on this device reads.',
 };
+// With "Studio only" nothing plays without the studio, so the line says so.
+const STUDIO_ONLY_TEXT = {
+  idle: 'The studio starts when you press Play. Nothing plays until it is ready.',
+  starting: 'The studio is starting (about 2 to 5 minutes). Nothing plays until then.',
+  error: 'The studio is not available, so nothing can play.',
+};
+const ONLY_HINT = ' Nothing plays meanwhile; switch off “Studio only” to hear the voice on this device.';
 function updateStudio() {
   const on = ui.studio.checked;
   ui.studioSetup.hidden = !on;
   ui.studioStatus.hidden = !on;
+  ui.studioOnlyField.hidden = ui.studioOnlyHelp.hidden = !on;
   const made = reader.studioCount;
+  if (studioOnly) {
+    const skipped = reader.studioSkipped;
+    const passed = skipped ? ` · ${skipped} skipped (the studio could not make ${skipped === 1 ? 'it' : 'them'})` : '';
+    const ready = `Studio voice ready · ${made} of ${reader.sentences.length} sentences acted${passed}`;
+    ui.studioStatus.textContent = studio.note ? studio.note + ONLY_HINT : studio.state === 'ready' ? ready : STUDIO_ONLY_TEXT[studio.state] ?? STUDIO_TEXT[studio.state] ?? '';
+    return;
+  }
   const ready = made ? `Studio voice ready · ${made} of ${reader.sentences.length} sentences acted` : 'Studio voice ready.';
   ui.studioStatus.textContent = studio.note || (studio.state === 'ready' ? ready : STUDIO_TEXT[studio.state] ?? '');
 }
+
+// "Studio only" (off unless switched on): the voice on this device is not used
+// at all, which saves a phone's power and memory. It counts only while the
+// studio voice is on and has a link; otherwise everything is as without it.
+function applyStudioOnly() {
+  const link = parseLink(ui.studioLink.value);
+  const on = ui.studio.checked && ui.studioOnly.checked && Boolean(link?.url && link?.key);
+  if (on === studioOnly) return;
+  studioOnly = on;
+  reader.setStudioOnly(on);
+  studio.setOnly(on);
+  if (on) {
+    // If the voice on this device was started in this visit: stop it, which frees its memory.
+    modelRun++; // answers from it are ignored from now on
+    modelStarted = false;
+    download = null;
+    engine.release();
+    ui.modelCard.hidden = true;
+    updateStatus();
+  } else {
+    // Back to the voice on this device, as when the page opens (no reload needed).
+    restartModel();
+    reader.retry();
+  }
+}
+
 function configureStudio() {
   const link = parseLink(ui.studioLink.value); // the field, so it works for this visit even when storage is blocked
   studio.configure({ on: ui.studio.checked, url: link?.url, key: link?.key });
+  applyStudioOnly();
   updateStudio();
 }
 ui.studio.checked = settings.get('studio', 'off') === 'on';
 ui.studioLink.value = settings.get('studioLink', '');
+ui.studioOnly.checked = settings.get('studioOnly', 'off') === 'on';
+ui.studioOnly.addEventListener('change', () => {
+  settings.set('studioOnly', ui.studioOnly.checked ? 'on' : 'off');
+  applyStudioOnly();
+  updateStudio();
+});
 ui.studio.addEventListener('change', () => {
   settings.set('studio', ui.studio.checked ? 'on' : 'off');
   configureStudio();
@@ -549,6 +618,7 @@ reader.addEventListener('generated', updateStudio);
 
 const savedVoice = settings.get('voice', DEFAULT_VOICE);
 ui.voice.value = ALL_VOICES.includes(savedVoice) ? savedVoice : DEFAULT_VOICE;
+applyStudioOnly(); // before the voice is set, so "Studio only" fetches nothing for the device's voice
 reader.setVoice(ui.voice.value);
 configureStudio();
 setTempo(settings.get('tempo', 1));
@@ -557,7 +627,8 @@ setTempo(settings.get('tempo', 1));
 
 /** "" at normal speed, otherwise e.g. "1.6" (the file is made at the speed it was prepared at). */
 function fileSpeed() {
-  return reader.speed === 1 ? '' : speedFactor(reader.speed).toFixed(1);
+  // ("Studio only": every sentence is made at normal speed.)
+  return reader.speed === 1 || studioOnly ? '' : speedFactor(reader.speed).toFixed(1);
 }
 
 ui.download.addEventListener('click', () => {
@@ -609,9 +680,11 @@ function updateProgress() {
     ui.preparedText.textContent = reader.complete ? 'All prepared' : `Prepared ${ready} of ${n}`;
   }
   const complete = reader.complete;
-  ui.download.disabled = !complete || reader.mixedSpeeds;
+  const skipped = studioOnly ? reader.studioSkipped : 0; // sentences the studio could not make
+  ui.download.disabled = !complete || reader.mixedSpeeds || skipped > 0;
   if (!n) ui.downloadText.textContent = '';
   else if (complete && reader.mixedSpeeds) ui.downloadText.textContent = 'No file at this tempo with the studio voice';
+  else if (complete && skipped) ui.downloadText.textContent = `No file: the studio could not make ${skipped} sentence${skipped === 1 ? '' : 's'}`;
   else if (!complete) ui.downloadText.textContent = `Preparing file: ${Math.floor((ready / n) * 100)}%`;
   else ui.downloadText.textContent = fileSpeed() ? `File plays at about ${fileSpeed()}× speed` : '';
 }
