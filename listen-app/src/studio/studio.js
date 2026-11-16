@@ -95,7 +95,8 @@ export class Studio extends EventTarget {
     else if (!this.url || !this.key) this.#set('unset');
     else {
       this.#set('idle');
-      if (this.wanted) this.#poll(true);
+      // After a Play in this visit: ask how the studio stands. Starting it stays tied to listening.
+      if (this.wanted) this.#poll(this.#listening());
     }
     this.#voice();
   }
@@ -171,6 +172,7 @@ export class Studio extends EventTarget {
         return;
       }
       const status = await response.json();
+      if (run !== this.pollRun) return; // a newer round of questions took over meanwhile
       if (status.state === 'ready') {
         this.#set('ready');
         this.#voice();

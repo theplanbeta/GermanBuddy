@@ -76,11 +76,17 @@ class Conn:
                     if line.startswith(b"HSCONN "): return json.loads(line[7:])
         return None
     def open(self):
+        """True when the connection is open. Never raises: without it, lines go the slow way."""
         with self.turn:
-            self.close()
-            p = self.p = subprocess.Popen([TOOL_PY, CONN, SESSION], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-            r = self._read(p, time.time() + 60)
-            if not (r and r["ok"]): self._drop(p); return False
+            self.close(); p = None
+            try:
+                p = self.p = subprocess.Popen([TOOL_PY, CONN, SESSION], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                r = self._read(p, time.time() + 60)
+            except Exception:
+                r = None
+            if not (r and r.get("ok")):
+                if p: self._drop(p)
+                return False
             return True
     def _drop(self, p):
         """Ends this one connection; leaves a newer one alone."""
@@ -99,9 +105,10 @@ class Conn:
                 p.stdin.write((json.dumps(dict(code=code, timeout=timeout)) + "\n").encode()); p.stdin.flush()
             except Exception:
                 self._drop(p); return False, "connection lost"
-            r = self._read(p, time.time() + timeout + 15)
+            try: r = self._read(p, time.time() + timeout + 15)
+            except Exception: r = None   # an answer that cannot be read counts as none
             if r is None: self._drop(p); return False, "timeout"
-            return r["ok"], r["out"]
+            return bool(r.get("ok")), str(r.get("out", ""))
 
 # ---------- today's use ----------
 def ledger():
@@ -118,7 +125,7 @@ class Machine:
     def __init__(self):
         self.state = "idle"; self.lock = threading.RLock(); self.line_lock = threading.Lock()
         self.started = self.last_work = self.ready_at = 0.0; self.error = None; self.lines = 0; self.stamps = {}
-        self.conn = Conn(); self.slow_path = 0
+        self.conn = Conn(); self.slow_path = 0; self.run_no = 0
     def status(self):
         d = ledger(); now = time.time()
         return dict(state=self.state, error=self.error, lines=self.lines, slow_path=self.slow_path,
@@ -132,8 +139,11 @@ class Machine:
             if self.state != "idle": return self.state
             if ledger()["minutes"] >= DAILY_MIN: self.error = "daily limit reached"; return "refused"
             self.state = "starting"; self.error = None; self.started = time.time(); self.ready_at = 0.0; self.lines = 0
-            threading.Thread(target=self._bring_up, daemon=True).start(); return "starting"
-    def _bring_up(self):
+            self.run_no += 1
+            threading.Thread(target=self._bring_up, args=(self.run_no,), daemon=True).start(); return "starting"
+    def _bring_up(self, run_no):
+        """One start. `run_no` tells it apart from a later one: after a stop, this one must not touch the next."""
+        mine = lambda: self.run_no == run_no and self.state == "starting"
         try:
             ok, out = colab("new", "-s", SESSION, "--gpu", GPU, timeout=180)
             if not ok: raise RuntimeError("new: " + out[-300:])
@@ -146,7 +156,7 @@ class Machine:
                     "import subprocess; print(subprocess.run('tail -c 300 /content/run.log', shell=True, capture_output=True, text=True).stdout[-300:])")
             t0 = time.time()
             while time.time() - t0 < 420:
-                if self.state != "starting": return
+                if not mine(): return
                 ok, out = on_machine(wait, timeout=60)
                 if ok and "HSREADY" in out: break
                 if ok and "Traceback" in out: raise RuntimeError("cell failed: " + out[-300:])
@@ -155,10 +165,11 @@ class Machine:
             # sees "ready", and that line must not meet a connection that is still being opened.
             opened = self.conn.open()
             with self.lock:
-                if self.state != "starting": self.conn.close(); return   # stopped meanwhile
+                if not mine(): self.conn.close(); return   # stopped meanwhile
                 self.state = "ready"; self.ready_at = self.last_work = time.time()
             ledger_add(starts=1); log(f"ready after {self.ready_at - self.started:.0f} s; kept-open connection: {opened}")
         except Exception as e:
+            if self.run_no != run_no: return   # a later start is under way: leave it alone
             self.error = str(e)[:300]; log(f"start failed: {self.error}"); self.stop("start failed")
     def stop(self, why="asked"):
         with self.lock:
