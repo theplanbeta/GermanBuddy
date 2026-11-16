@@ -538,13 +538,13 @@ ui.expressive.addEventListener('change', () => {
 const studio = new Studio(reader);
 const STUDIO_TEXT = {
   unset: 'Paste your studio link to use the studio voice.',
-  idle: 'The studio starts when you press Play.',
-  starting: 'The studio is starting (about two minutes). The voice on this device reads meanwhile.',
+  idle: 'The studio starts when you open the app or when you press Play.',
+  starting: 'The studio is starting (about 2 to 5 minutes). The voice on this device reads meanwhile.',
   error: 'The studio is not available. The voice on this device reads.',
 };
 // With "Studio only" nothing plays without the studio, so the line says so.
 const STUDIO_ONLY_TEXT = {
-  idle: 'The studio starts when you press Play. Nothing plays until it is ready.',
+  idle: 'The studio starts when you open the app or when you press Play. Nothing plays until it is ready.',
   starting: 'The studio is starting (about 2 to 5 minutes). Nothing plays until then.',
   error: 'The studio is not available, so nothing can play.',
 };
@@ -591,9 +591,11 @@ function applyStudioOnly() {
   }
 }
 
-function configureStudio() {
+// `warm`: start the studio now, before Play, so the wait passes while a text is pasted. Only when
+// the page opens and when the studio is switched on or given a link (the studio checks the rest).
+function configureStudio(warm = false) {
   const link = parseLink(ui.studioLink.value); // the field, so it works for this visit even when storage is blocked
-  studio.configure({ on: ui.studio.checked, url: link?.url, key: link?.key });
+  studio.configure({ on: ui.studio.checked, url: link?.url, key: link?.key, warm });
   applyStudioOnly();
   updateStudio();
 }
@@ -607,11 +609,11 @@ ui.studioOnly.addEventListener('change', () => {
 });
 ui.studio.addEventListener('change', () => {
   settings.set('studio', ui.studio.checked ? 'on' : 'off');
-  configureStudio();
+  configureStudio(true);
 });
 ui.studioLink.addEventListener('change', () => {
   settings.set('studioLink', ui.studioLink.value.trim());
-  configureStudio();
+  configureStudio(true);
 });
 studio.addEventListener('change', updateStudio);
 reader.addEventListener('generated', updateStudio);
@@ -620,7 +622,7 @@ const savedVoice = settings.get('voice', DEFAULT_VOICE);
 ui.voice.value = ALL_VOICES.includes(savedVoice) ? savedVoice : DEFAULT_VOICE;
 applyStudioOnly(); // before the voice is set, so "Studio only" fetches nothing for the device's voice
 reader.setVoice(ui.voice.value);
-configureStudio();
+configureStudio(true); // the page opened: warm the studio up if it is on and has a link
 setTempo(settings.get('tempo', 1));
 
 // ---- download --------------------------------------------------------------

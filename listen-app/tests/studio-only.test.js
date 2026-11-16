@@ -53,7 +53,8 @@ const json = (status, body) => ({ status, json: async () => body, arrayBuffer: a
 const audio = () => ({ status: 200, json: async () => ({}), arrayBuffer: async () => wav() });
 const settle = async () => { for (let i = 0; i < 30; i++) await new Promise((r) => setImmediate(r)); };
 
-// `answer(path, body, reader)`; every call is kept with the reader's state at that moment.
+// `answer(path, body, reader)`; every call is kept with the reader's state and the number of
+// warm-ups sent so far at that moment.
 function setup(texts, answer, { only = true } = {}) {
   const calls = [];
   const reader = new FakeReader(texts);
@@ -61,7 +62,7 @@ function setup(texts, answer, { only = true } = {}) {
     fetch: async (url, init) => {
       const path = new URL(url).pathname;
       const body = init.body ? JSON.parse(init.body) : null;
-      calls.push({ call: `${init.method} ${path}`, text: body?.text, state: reader.state });
+      calls.push({ call: `${init.method} ${path}`, text: body?.text, state: reader.state, warmUps: studio.warmUps });
       return answer(path, body, reader);
     },
   });
@@ -72,9 +73,15 @@ function setup(texts, answer, { only = true } = {}) {
 const lines = (calls) => calls.filter((c) => c.call === 'POST /line').map((c) => c.text);
 const ready = (path) => (path === '/start' || path === '/status' ? json(200, { state: 'ready' }) : null);
 
-// The invariant that costs money otherwise.
-function startsOnlyWhileListening(calls) {
-  for (const c of calls) if (c.call === 'POST /start') assert.ok(c.state === 'playing' || c.state === 'waiting', `POST /start while ${c.state}`);
+// The invariant that costs money otherwise: every start is either while someone listens, or a
+// warm-up (studio.js, at the top), each warm-up being one start of its own.
+function startsOnlyWhileListeningOrWarm(calls) {
+  let warmUps = 0;
+  for (const c of calls) {
+    if (c.call !== 'POST /start' || c.state === 'playing' || c.state === 'waiting') continue;
+    assert.ok(c.warmUps > warmUps, `POST /start while ${c.state}, and not a warm-up`);
+    warmUps = c.warmUps;
+  }
 }
 
 test('the sentence the reader waits for is asked for first', async () => {
@@ -83,7 +90,7 @@ test('the sentence the reader waits for is asked for first', async () => {
   await settle();
   assert.deepEqual(lines(calls), ['One.', 'Two.', 'Three.']);
   assert.deepEqual(reader.adopted.map((a) => a.index), [0, 1, 2]);
-  startsOnlyWhileListening(calls);
+  startsOnlyWhileListeningOrWarm(calls);
 });
 
 test('a sentence really being heard is not asked for; one paused before it was heard is', async () => {
@@ -158,7 +165,7 @@ test('no answer is never a reason to skip: the reader waits, the status says why
   assert.deepEqual(reader.adopted.map(({ index, skipped }) => ({ index, skipped })), [{ index: 0, skipped: false }, { index: 1, skipped: false }]);
   assert.equal(reader.studioSkipped, 0);
   assert.equal(studio.note, '', 'back to ready once a line came through');
-  startsOnlyWhileListening(calls);
+  startsOnlyWhileListeningOrWarm(calls);
 });
 
 test('no answer while nobody listens: asked again only after Play, never on its own', async (t) => {
@@ -185,7 +192,7 @@ test('no answer while nobody listens: asked again only after Play, never on its 
   assert.deepEqual(lines(calls), ['One.', 'One.', 'One.', 'Two.']);
   assert.equal(studio.note, '');
   assert.equal(calls.filter((c) => c.call === 'POST /start').length, 1);
-  startsOnlyWhileListening(calls);
+  startsOnlyWhileListeningOrWarm(calls);
 });
 
 test('a 429 with the daily limit says so, and is asked again only every 30 s while listening', async (t) => {
@@ -272,7 +279,7 @@ test('Studio only starts the studio only while someone listens', async (t) => {
   reader.go('waiting'); // Play again
   await settle();
   assert.equal(calls.filter((c) => c.call === 'POST /start').length, 2);
-  startsOnlyWhileListening(calls);
+  startsOnlyWhileListeningOrWarm(calls);
 });
 
 // ---- the real reader ----------------------------------------------------------

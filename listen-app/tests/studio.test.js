@@ -119,7 +119,7 @@ test('while the studio starts, a lost question is asked again although the text 
   assert.deepEqual(reader.adopted, [0]);
 });
 
-test('coming back into view asks how things stand, and never starts the studio', async () => {
+test('coming back into view soon after asks how things stand, and never starts the studio', async () => {
   const { reader, studio, calls } = setup(['One.'], (path) => {
     if (path === '/start') throw new TypeError('network');
     if (path === '/status') return json(200, { state: 'ready' });

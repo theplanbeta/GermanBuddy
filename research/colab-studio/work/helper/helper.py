@@ -2,15 +2,18 @@
 tapping Run in Colab. It holds no logic about voices; it only drives Google's `colab` tool.
 
     POST /start    start a Colab machine and the studio cell (returns at once; poll /status)
-    GET  /status   idle | starting | ready | stopping, and today's use
+    GET  /status   idle | starting | ready | stopping, the quiet limit in force, and today's use
     POST /line     {"id","voice","text","kind","expect","seed"} -> the audio (audio/wav),
                    or 422 with the check result when the line failed its check twice
     POST /stop     release the machine now
 
 Every request must carry "Authorization: Bearer <key>" (the key is in KEY_FILE, made on first
 start, owner-only). Limits, so that a leaked key cannot drain the compute units: one machine at
-a time, released after IDLE_MIN quiet minutes or MAX_SESSION_MIN, at most DAILY_MIN machine
-minutes a day, short texts, known voices only, a ceiling on requests per minute.
+a time, released after IDLE_MIN quiet minutes after the last line served (default 45), or
+WARM_MIN minutes after ready while no line was served at all (default 12: the app starts the
+studio when it is opened, and an app that was only opened must not hold a machine for long), or
+after MAX_SESSION_MIN; at most DAILY_MIN machine minutes a day (default 360), short texts, known
+voices only, a ceiling on requests per minute.
 
 It listens on 127.0.0.1 only. Whatever makes it reachable from outside sits in front of it.
 Run:  python3 helper.py     (settings through the environment, see below)
@@ -27,9 +30,10 @@ CONN = os.environ.get("HS_CONN", f"{DIR}/conn.py")
 PORT = int(os.environ.get("HS_PORT", "8787"))
 GPU = os.environ.get("HS_GPU", "T4")
 SESSION = "hearshot"
-IDLE_MIN = float(os.environ.get("HS_IDLE_MIN", "10"))
+IDLE_MIN = float(os.environ.get("HS_IDLE_MIN", "45"))      # quiet minutes after the last line served
+WARM_MIN = float(os.environ.get("HS_WARM_MIN", "12"))      # quiet minutes after ready while no line was served yet
 MAX_SESSION_MIN = float(os.environ.get("HS_MAX_SESSION_MIN", "90"))
-DAILY_MIN = float(os.environ.get("HS_DAILY_MIN", "180"))
+DAILY_MIN = float(os.environ.get("HS_DAILY_MIN", "360"))
 MAX_TEXT = 400
 VOICES = {"af_aoede", "am_fenrir"}          # the voice samples the cell carries
 RATE_PER_MIN = 240
@@ -131,8 +135,11 @@ class Machine:
         return dict(state=self.state, error=self.error, lines=self.lines, slow_path=self.slow_path,
                     up_s=round(now - self.started) if self.started else 0,
                     ready_after_s=round(self.ready_at - self.started) if self.ready_at else None,
-                    quiet_s=round(now - self.last_work) if self.state == "ready" else None,
+                    quiet_s=round(now - self.last_work) if self.state == "ready" else None, quiet_limit_min=self.quiet_limit() if self.state in ("starting", "ready") else None,
                     today=dict(minutes=round(d["minutes"] + self._running_min(), 1), limit=DAILY_MIN, lines=d["lines"], starts=d["starts"]))
+    def quiet_limit(self):
+        """The quiet minutes allowed now: short while no line was served in this session (the app was only opened)."""
+        return IDLE_MIN if self.lines else WARM_MIN
     def _running_min(self): return (time.time() - self.started) / 60 if self.started else 0.0
     def start(self):
         with self.lock:
@@ -213,7 +220,9 @@ class Machine:
             time.sleep(20)
             if self.state == "ready":
                 now = time.time()
-                if now - self.last_work > IDLE_MIN * 60: self.stop(f"quiet for {IDLE_MIN:g} min")
+                # No line served yet: the short warm limit, counted from ready; after one: the long one, from the last line.
+                limit = self.quiet_limit(); since = self.last_work if self.lines else self.ready_at
+                if now - since > limit * 60: self.stop(f"quiet for {limit:g} min ({'after the last line' if self.lines else 'no line served since ready'})")
                 elif now - self.started > MAX_SESSION_MIN * 60: self.stop(f"session limit {MAX_SESSION_MIN:g} min")
                 elif ledger()["minutes"] + self._running_min() >= DAILY_MIN: self.stop("daily limit")
 M = Machine()
@@ -278,5 +287,5 @@ class H(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     colab("stop", "-s", SESSION, timeout=120)   # a machine left over from a crash would keep costing
     threading.Thread(target=M.watch, daemon=True).start()
-    log(f"listening on 127.0.0.1:{PORT}; quiet {IDLE_MIN:g} min, session {MAX_SESSION_MIN:g} min, day {DAILY_MIN:g} min")
+    log(f"listening on 127.0.0.1:{PORT}; quiet {IDLE_MIN:g} min after the last line ({WARM_MIN:g} min after ready while none was served), session {MAX_SESSION_MIN:g} min, day {DAILY_MIN:g} min")
     ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()

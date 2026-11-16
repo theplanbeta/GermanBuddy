@@ -4,15 +4,25 @@
 // The page talks to a small "helper" at an address the owner pastes into the
 // settings once, together with its key. Both stay in this browser's storage;
 // they are never part of the app's code. Nothing is sent anywhere unless the
-// Studio switch is on and Play was pressed.
+// Studio switch is on and the link is set.
 //
 // How it fits the reader: the device's own voice (Kokoro) prepares and plays
 // as always. When listening starts, the helper is asked to start the studio
-// (about two minutes). Once it is ready, the sentences ahead of the listener
+// (about 2 to 5 minutes). Once it is ready, the sentences ahead of the listener
 // are asked for one at a time, and each one that comes back replaces the
 // device's version before it is heard (reader.adopt). A sentence that is late,
 // refused or lost simply stays as it was. The helper stops the machine by
-// itself after a quiet spell.
+// itself after a quiet spell (12 minutes after ready if no sentence was asked
+// for, 45 minutes after the last one).
+//
+// Warm-up: so that the wait passes while a text is pasted, the studio is also
+// started before anyone listens, in exactly these cases: when the page opens
+// (or the studio is switched on or given a link: configure with `warm`), and
+// when the page comes back into view after half an hour or more away and the
+// helper says it stopped without trouble (wake). At most one warm-up in half an
+// hour, never after the helper refused (key not accepted, daily limit, a start
+// that failed), and one that gets no answer is not tried again: Play does that.
+// Every other way to start the studio stays tied to listening.
 //
 // "Studio only" (setOnly): the device's voice is off (it lags on some phones),
 // so the reader waits for each sentence until the studio has made it. Then the
@@ -38,6 +48,7 @@ const KEEP = 600; // sentences kept in memory for this visit
 const TRIES = 2; // a line that got no answer is asked for once more, then left to the device's voice (not in "Studio only")
 const RETRY_MS = 8000; // after trouble on the way (no network, helper busy): wait, then carry on
 const MISSES = 40; // unanswered questions in a row to the helper before giving up until the next Play
+const WARM_GAP_MS = 30 * 60_000; // at most one warm-up in this long; also the time away after which coming back warms up
 
 /** 16-bit mono WAV bytes -> samples, or null when it is something else. */
 export function wavSamples(buffer) {
@@ -79,10 +90,11 @@ export function parseLink(link) {
 }
 
 export class Studio extends EventTarget {
-  constructor(reader, { fetch: fetchFn = (...a) => fetch(...a) } = {}) {
+  constructor(reader, { fetch: fetchFn = (...a) => fetch(...a), now = () => Date.now() } = {}) {
     super();
     this.reader = reader;
     this.fetch = fetchFn;
+    this.now = now; // the clock (tests pass their own)
     this.on = false;
     this.only = false; // "Studio only" (see the top): set by setOnly()
     this.url = '';
@@ -99,21 +111,32 @@ export class Studio extends EventTarget {
     this.wanted = false; // the listener pressed Play since the page opened
     this.misses = 0; // questions to the helper in a row that got no answer
     this.pollRun = 0; // only the newest round of questions to the helper carries on
+    this.warmAt = -Infinity; // when the last warm-up was sent (see the top)
+    this.warmUps = 0; // warm-ups sent in this visit
+    this.refused = false; // the helper's last answer was a refusal (key, daily limit, a failed start): no warm-up
     reader.addEventListener('sentence', () => this.#work());
     reader.addEventListener('generated', () => this.#work());
     reader.addEventListener('state', () => {
       if (reader.state === 'playing' || reader.state === 'waiting') this.listen();
     });
     // A phone stops a page's timers and requests while the screen is off or another app is in
-    // front. Back in view: pick up where it stopped.
+    // front. Back in view: pick up where it stopped (and after a long while away, warm up).
     if (typeof document !== 'undefined') {
+      let hiddenAt = null;
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') this.wake();
+        if (document.visibilityState === 'hidden') hiddenAt = this.now();
+        else if (document.visibilityState === 'visible') {
+          const away = hiddenAt === null ? 0 : this.now() - hiddenAt;
+          hiddenAt = null;
+          this.wake(away);
+        }
       });
     }
   }
 
-  configure({ on, url, key }) {
+  /** `warm`: the page just opened, or the studio was just switched on or given a link (see the top). */
+  configure({ on, url, key, warm = false }) {
+    if ((url ?? '') !== this.url || (key ?? '') !== this.key) this.refused = false; // a refusal was about the old link
     this.on = Boolean(on);
     this.url = url ?? '';
     this.key = key ?? '';
@@ -124,8 +147,10 @@ export class Studio extends EventTarget {
     else if (!this.url || !this.key) this.#set('unset');
     else {
       this.#set('idle');
-      // After a Play in this visit: ask how the studio stands. Starting it stays tied to listening.
-      if (this.wanted) this.#poll(this.#listening());
+      // Warm it up now, so the wait passes while a text is pasted. Otherwise, after a Play or a
+      // warm-up in this visit, only ask how the studio stands; starting it stays tied to listening.
+      if (warm && this.#mayWarm()) this.#warm();
+      else if (this.wanted || this.warmUps) this.#poll(this.#listening());
     }
     this.#voice();
   }
@@ -154,11 +179,16 @@ export class Studio extends EventTarget {
   }
 
   /**
-   * Carries on after a pause (the page was hidden, a request was lost): asks the helper how
-   * things stand. It never starts the studio; only Play does that.
+   * Carries on after a pause (the page was hidden for `away` ms, a request was lost): asks the
+   * helper how things stand. It never starts the studio, with one exception (the warm-up, see
+   * the top): back after half an hour or more, with nobody listening, it asks once, and if the
+   * helper stopped without trouble meanwhile, warms it up.
    */
-  wake() {
-    if (!this.on || !this.wanted || this.state === 'off' || this.state === 'unset') return;
+  wake(away = 0) {
+    if (!this.on || this.state === 'off' || this.state === 'unset') return;
+    // (While someone listens, the usual way below starts it again anyway.)
+    if (away >= WARM_GAP_MS && !this.#listening() && this.#mayWarm()) return this.#poll(false, { check: true });
+    if (!this.wanted && !this.warmUps) return;
     if (this.only && this.#listening()) this.resting = false; // its retry timer may have been held up
     if (this.state === 'ready') this.#work();
     else this.#poll();
@@ -184,6 +214,18 @@ export class Studio extends EventTarget {
 
   #listening() {
     return this.reader.state === 'playing' || this.reader.state === 'waiting';
+  }
+
+  // A warm-up is allowed: on with a link, the helper's last answer was no refusal, and none was
+  // sent in the last half hour (the page opening, switching on and coming back share this clock).
+  #mayWarm() {
+    return this.on && Boolean(this.url && this.key) && !this.refused && this.now() - this.warmAt >= WARM_GAP_MS;
+  }
+
+  #warm() {
+    this.warmAt = this.now();
+    this.warmUps++;
+    this.#poll(true, { warm: true });
   }
 
   // Trouble that may pass (no network for a moment, the helper busy): try again a little later.
@@ -215,7 +257,8 @@ export class Studio extends EventTarget {
   }
 
   // Asks the helper how things stand (and, with `start`, to start the studio), until it is ready.
-  async #poll(start = false) {
+  // `warm`: this start is a warm-up. `check`: this question may lead to one (wake).
+  async #poll(start = false, { warm = false, check = false } = {}) {
     clearTimeout(this.timer);
     const run = ++this.pollRun;
     const { url, key } = this;
@@ -223,15 +266,20 @@ export class Studio extends EventTarget {
       const response = await this.#call(start ? '/start' : '/status', { method: start ? 'POST' : 'GET' });
       if (run !== this.pollRun || url !== this.url || key !== this.key || !this.on) return;
       this.misses = 0;
-      if (response.status === 401) return this.#set('error', 'The studio key was not accepted.');
+      if (response.status === 401) {
+        this.refused = true;
+        return this.#set('error', 'The studio key was not accepted.');
+      }
       if (response.status === 429) {
         const limit = (await response.json().catch(() => ({}))).error === 'daily limit reached';
+        this.refused = limit;
         this.#set('error', limit ? 'The studio has reached its limit for today.' : 'The studio is busy.');
         if (!limit) this.#later(() => this.#poll(true), 30_000);
         return;
       }
       const status = await response.json();
       if (run !== this.pollRun) return; // a newer round of questions took over meanwhile
+      this.refused = status.state === 'idle' && Boolean(status.error); // a start that failed: no warm-up retries it
       if (status.state === 'ready') {
         this.#set('ready');
         this.#voice();
@@ -239,6 +287,8 @@ export class Studio extends EventTarget {
         return;
       }
       if (status.state === 'idle' && !start) {
+        // Back after a long while, and it stopped without trouble meanwhile: warm it up.
+        if (check && !status.error && this.#mayWarm()) return this.#warm();
         // It stopped (a quiet spell, or it failed to start): start again only when the listener plays.
         this.#set(status.error ? 'error' : 'idle', status.error ? 'The studio could not start.' : '');
         if (!status.error) this.#later(() => this.#poll(true)); // it was just stopping: start it again
@@ -248,6 +298,8 @@ export class Studio extends EventTarget {
     } catch {
       if (run !== this.pollRun || url !== this.url || !this.on) return;
       this.#set('error', 'The studio cannot be reached.');
+      // A warm-up (or the question before one) that got no answer is not tried again: Play does that.
+      if ((warm || check) && !this.wanted) return;
       // Ask again, also when the text has ended meanwhile (the studio may be starting, and
       // nobody else would notice it getting ready). Starting it stays tied to listening.
       if (++this.misses < MISSES) this.#later(() => this.#poll(this.#listening()), RETRY_MS, true);
@@ -329,9 +381,11 @@ export class Studio extends EventTarget {
           else if (response.status !== 422) {
             // Not an answer about this line (the studio stopped, the helper is busy, the key
             // changed): the line is asked for again later, a second time at most.
-            const limit = response.status === 429 && this.only && (await response.json().catch(() => ({}))).error === 'daily limit reached';
+            const daily = response.status === 429 && (await response.json().catch(() => ({}))).error === 'daily limit reached';
+            const limit = daily && this.only;
             this.busy = false;
             this.#noAnswer(id);
+            if (response.status === 401 || daily) this.refused = true; // no warm-up after this
             if (response.status === 401) this.#set('error', 'The studio key was not accepted.');
             else if (response.status === 503 && this.only) {
               // As below, but a little later, and only while someone listens (Play carries on):
