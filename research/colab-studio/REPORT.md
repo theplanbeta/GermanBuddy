@@ -53,6 +53,11 @@ carries `Authorization: Bearer <key>`. Without it: 401.
   the check. Tags and line choice: `research/dialogue-hybrid/models/hybrid/`.
 - Limits inside the helper: one machine, T4, released after 10 quiet minutes, 90 minutes a
   session, 180 machine minutes a day (about 3.5 units).
+- A `/stop` during a start: `/status` says `stopping` until the start's current step has
+  returned and the machine is really stopped (a `colab new` still running cannot be stopped from
+  outside), then `idle`. A `/start` meanwhile answers `stopping` and starts nothing; the app
+  starts again once it sees `idle`. So there is never more than one machine or one `colab new`.
+  Tests: `python3 work/helper/test_machine.py` (the tool replaced by stand-ins).
 - `/read` (the riskiest request: the server fetches an address someone typed, from inside the
   owner's network). http and https on ports 80 and 443 only, no user name or password in the
   address, no local names (`localhost`, `.local`, `.internal`, `.ts.net`, names without a dot,

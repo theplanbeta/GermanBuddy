@@ -62,6 +62,19 @@ class Far(BaseHTTPRequestHandler):
                 for i in range(100): self.wfile.write(f"X-Drip-{i}: 1\r\n".encode()); self.wfile.flush(); time.sleep(0.1)
             except OSError: pass
             return
+        if p.startswith("/cl/"):                          # HTTP/1.1 with a Content-Length, as real sites answer
+            self.protocol_version = "HTTP/1.1"; name = p[4:]; cap = H.READ_MAX_BYTES
+            size, declared, close = dict(small=(13, 13, 1), big=(600_000, 600_000, 1), cap=(cap, cap, 1), over=(cap + 1, cap + 1, 1),
+                                         short=(50, 100, 1), long=(100, 50, 1), empty=(0, 0, 1), keepalive=(600_000, 600_000, 0), slow=(1000, 1000, 1))[name]
+            self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8"); self.send_header("Content-Length", str(declared))
+            if close: self.send_header("Connection", "close")
+            self.end_headers(); body = (b"<p>" + b"a" * size)[:size]
+            try:
+                if name == "slow":
+                    for i in range(size): self.wfile.write(body[i:i + 1]); self.wfile.flush(); time.sleep(0.1)
+                else: self.wfile.write(body)
+            except OSError: pass
+            return
         if p.startswith("/chunked-"):
             self.protocol_version = "HTTP/1.1"; size = {"/chunked-big": 3 * 1024 * 1024, "/chunked-ok": 1536 * 1024}[p]
             self._go(200, [("Content-Type", "text/html; charset=utf-8"), ("Transfer-Encoding", "chunked")])
@@ -175,6 +188,32 @@ class Dns(unittest.TestCase):
         self.assertEqual(asked, [("93.184.216.34", 80)]); self.assertEqual(r["kind"], "html")
         self.assertEqual(SEEN[-1][2].get("Host"), "pin.example.com"); self.assertEqual(r["finalUrl"], "http://pin.example.com/ok")
 
+class Connect(unittest.TestCase):
+    """Which address is tried, in what order, for how long. The connector is replaced; working attempts go to the test server."""
+    def run_with(self, ips, dead, total_s=9.0):
+        real = socket.create_connection; asked = []
+        def fake(addr, timeout=None, *a, **kw):
+            asked.append((addr[0], round(timeout, 2)))
+            if addr[0] in dead: time.sleep(timeout); raise TimeoutError("timed out")
+            return real(("127.0.0.1", PORT), timeout)
+        socket.create_connection = fake; H.READ_CONNECT_S = 0.3
+        try:
+            t0 = time.monotonic()
+            try: out = fetch_page("http://two.example.com/ok", resolve=lambda h, p: ips, total_s=total_s)
+            except ReadError as e: out = e.code
+            return out, asked, time.monotonic() - t0
+        finally: socket.create_connection = real; H.READ_CONNECT_S = 3.0
+    def test_ipv4_first(self):
+        out, asked, _ = self.run_with(["2606:4700::1", "93.184.216.34"], dead=())
+        self.assertEqual(out["kind"], "html"); self.assertEqual([a for a, _ in asked], ["93.184.216.34"])
+    def test_dead_first_address_leaves_time_for_the_next(self):
+        out, asked, took = self.run_with(["2606:4700::1", "93.184.216.34"], dead=("93.184.216.34",))
+        self.assertEqual(out["kind"], "html"); self.assertEqual([a for a, _ in asked], ["93.184.216.34", "2606:4700::1"])
+        self.assertEqual(asked[0][1], 0.3); self.assertGreater(asked[1][1], 8); self.assertLess(took, 1.5)
+    def test_all_dead_ends_in_time(self):
+        out, asked, took = self.run_with(["93.184.216.34", "93.184.216.35", "2606:4700::1"], dead=("93.184.216.34", "93.184.216.35", "2606:4700::1"), total_s=1.0)
+        self.assertEqual(out, "timeout"); self.assertEqual([t for _, t in asked][:2], [0.3, 0.3]); self.assertLess(took, 1.5)
+
 class Fetch(unittest.TestCase):
     def test_html_utf8_and_headers_sent(self):
         r = T("/ok"); self.assertEqual((r["kind"], r["status"], r["redirects"]), ("html", 200, 0)); self.assertIn("héllo", r["html"])
@@ -202,6 +241,16 @@ class Fetch(unittest.TestCase):
         n = len(SEEN); self.assertEqual(code_of(T, "/big-cl"), "too_large")
         self.assertEqual(code_of(T, "/big"), "too_large")
         self.assertEqual(code_of(T, "/ok", max_bytes=10), "too_large")
+    def test_content_length_answers(self):
+        """HTTP/1.1 with Content-Length and Connection: close: the response closes the socket after the last byte."""
+        cap = H.READ_MAX_BYTES
+        for name, size in (("small", 13), ("big", 600_000), ("cap", cap), ("keepalive", 600_000), ("empty", 0), ("long", 50)):
+            r = T("/cl/" + name); self.assertEqual((r["kind"], r["bytes"], len(r["html"])), ("html", size, size), name)
+        self.assertTrue(T("/cl/small")["html"].startswith("<p>aaa"))
+        self.assertEqual(code_of(T, "/cl/over"), "too_large")                                 # refused by the header, nothing read
+        self.assertEqual(T("/cl/short")["bytes"], 50)                                          # the site sent less than it said: what came is kept
+        t0 = time.monotonic(); self.assertEqual(code_of(T, "/cl/slow", total_s=1.0), "timeout"); self.assertLess(time.monotonic() - t0, 1.6)
+        self.assertEqual(code_of(T, "/cl/big", max_bytes=500_000), "too_large")
     def test_chunked_bodies(self):
         self.assertEqual(code_of(T, "/chunked-big"), "too_large")                          # chunked, 3 MB: cut at 2 MB
         r = T("/chunked-ok"); self.assertEqual((r["kind"], r["bytes"]), ("html", 1536 * 1024)); self.assertEqual(len(r["html"]), 1536 * 1024)

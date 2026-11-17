@@ -133,11 +133,18 @@ def ledger_add(**kw):
         return d
 
 # ---------- the machine ----------
+# One rule keeps it to one machine: while a start is under way, only its own thread touches the session. A stop asked
+# meanwhile is noted (state "stopping"), and that thread stops the machine itself the moment its current step returns
+# (a `colab new` still running cannot be stopped from outside: the tool does not know the session yet). The state goes
+# back to "idle" only once the machine is gone, and a start is only possible from "idle": so never two `colab new` at once,
+# and an old start can never stop a newer machine.
+class _NotWanted(Exception): pass
 class Machine:
     def __init__(self):
         self.state = "idle"; self.lock = threading.RLock(); self.line_lock = threading.Lock()
         self.started = self.last_work = self.ready_at = 0.0; self.error = None; self.lines = 0; self.stamps = {}
         self.conn = Conn(); self.slow_path = 0; self.run_no = 0
+        self.bringing = False; self.cancel = None; self.stage = ""   # a start under way; why it is no longer wanted; what it is doing
     def status(self):
         d = ledger(); now = time.time()
         return dict(state=self.state, error=self.error, lines=self.lines, slow_path=self.slow_path,
@@ -151,49 +158,66 @@ class Machine:
     def _running_min(self): return (time.time() - self.started) / 60 if self.started else 0.0
     def start(self):
         with self.lock:
-            if self.state != "idle": return self.state
+            if self.state != "idle": return self.state   # "stopping" lasts until an earlier start has really ended
             if ledger()["minutes"] >= DAILY_MIN: self.error = "daily limit reached"; return "refused"
             self.state = "starting"; self.error = None; self.started = time.time(); self.ready_at = 0.0; self.lines = 0
-            self.run_no += 1
+            self.run_no += 1; self.bringing = True; self.cancel = None; self.stage = "making the machine"
             threading.Thread(target=self._bring_up, args=(self.run_no,), daemon=True).start(); return "starting"
+    def _step(self, stage):
+        """Between two steps of a start: on to `stage`, or out (the start is no longer wanted)."""
+        with self.lock:
+            if self.cancel: raise _NotWanted()
+            self.stage = stage
     def _bring_up(self, run_no):
-        """One start. `run_no` tells it apart from a later one: after a stop, this one must not touch the next."""
-        mine = lambda: self.run_no == run_no and self.state == "starting"
+        """One start, from `colab new` to "ready". Ends in "ready", or with the machine stopped by this thread."""
         try:
-            ok, out = colab("new", "-s", SESSION, "--gpu", GPU, timeout=180)
+            ok, out = colab("new", "-s", SESSION, "--gpu", GPU, timeout=180)   # from here on a machine may exist
+            self._step("uploading the cell")
             if not ok: raise RuntimeError("new: " + out[-300:])
             ok, out = colab("upload", "-s", SESSION, CELL, "/content/studio_helper.py", timeout=180)
+            self._step("starting the cell")
             if not ok: raise RuntimeError("upload: " + out[-300:])
             ok, out = on_machine("import subprocess\nsubprocess.Popen('nohup python /content/studio_helper.py > /content/run.log 2>&1 &', shell=True)\nprint('STARTED')")
+            self._step("waiting for the cell")
             if not ok or "STARTED" not in out: raise RuntimeError("cell: " + out[-300:])
             wait = ("import os,time\nfor _ in range(40):\n    if os.path.exists('/content/studio/status/ready.json'): break\n    time.sleep(0.5)\n"
                     "print('HSREADY' if os.path.exists('/content/studio/status/ready.json') else 'HSWAIT')\n"
                     "import subprocess; print(subprocess.run('tail -c 300 /content/run.log', shell=True, capture_output=True, text=True).stdout[-300:])")
             t0 = time.time()
             while time.time() - t0 < 420:
-                if not mine(): return
                 ok, out = on_machine(wait, timeout=60)
+                self._step("waiting for the cell")
                 if ok and "HSREADY" in out: break
                 if ok and "Traceback" in out: raise RuntimeError("cell failed: " + out[-300:])
             else: raise RuntimeError("cell not ready after 420 s")
             # The connection first, "ready" after: the app asks for its first line the moment it
             # sees "ready", and that line must not meet a connection that is still being opened.
+            self._step("opening the connection")
             opened = self.conn.open()
             with self.lock:
-                if not mine(): self.conn.close(); return   # stopped meanwhile
-                self.state = "ready"; self.ready_at = self.last_work = time.time()
+                if self.cancel: raise _NotWanted()
+                self.state = "ready"; self.ready_at = self.last_work = time.time(); self.bringing = False
             ledger_add(starts=1); log(f"ready after {self.ready_at - self.started:.0f} s; kept-open connection: {opened}")
+        except _NotWanted:
+            self._release(f"{self.cancel} during the start, while {self.stage}")
         except Exception as e:
-            if self.run_no != run_no: return   # a later start is under way: leave it alone
-            self.error = str(e)[:300]; log(f"start failed: {self.error}"); self.stop("start failed")
+            self.error = None if self.cancel else str(e)[:300]
+            if self.error: log(f"start failed: {self.error}")
+            self._release(f"{self.cancel} during the start, while {self.stage}" if self.cancel else "start failed")
     def stop(self, why="asked"):
         with self.lock:
             if self.state in ("idle", "stopping"): return
             self.state = "stopping"
+            if self.bringing: self.cancel = why; return   # the start under way stops the machine itself (see the top of the class)
+        self._release(why)
+    def _release(self, why):
+        """Stops the machine; "idle" only after the tool was told to. Asked once more if the tool failed for another reason than "not found"."""
+        with self.lock: self.state = "stopping"
         self.conn.close()
         ok, out = colab("stop", "-s", SESSION, timeout=120)
+        if not ok and "not found" not in out.lower(): ok, out = colab("stop", "-s", SESSION, timeout=120)
         mins = self._running_min()
-        with self.lock: self.state = "idle"; self.started = 0.0; self.ready_at = 0.0
+        with self.lock: self.state = "idle"; self.started = 0.0; self.ready_at = 0.0; self.bringing = False; self.cancel = None
         ledger_add(minutes=mins); log(f"stopped ({why}), {mins:.1f} min, tool said: {out.strip()[-80:]}")
     def line(self, j):
         """Hands one request to the cell and waits for its answer. One at a time."""
@@ -224,15 +248,16 @@ class Machine:
         rec["helper_s"] = round(time.time() - t, 2); self.lines += 1; ledger_add(lines=1)
         return (base64.b64decode(res["wav"]) if res["wav"] else None), rec
     def watch(self):
-        while True:
-            time.sleep(20)
-            if self.state == "ready":
-                now = time.time()
-                # No line served yet: the short warm limit, counted from ready; after one: the long one, from the last line.
-                limit = self.quiet_limit(); since = self.last_work if self.lines else self.ready_at
-                if now - since > limit * 60: self.stop(f"quiet for {limit:g} min ({'after the last line' if self.lines else 'no line served since ready'})")
-                elif now - self.started > MAX_SESSION_MIN * 60: self.stop(f"session limit {MAX_SESSION_MIN:g} min")
-                elif ledger()["minutes"] + self._running_min() >= DAILY_MIN: self.stop("daily limit")
+        while True: time.sleep(20); self.check()
+    def check(self):
+        """The limits for a ready machine (one look; watch() looks every 20 s)."""
+        if self.state == "ready":
+            now = time.time()
+            # No line served yet: the short warm limit, counted from ready; after one: the long one, from the last line.
+            limit = self.quiet_limit(); since = self.last_work if self.lines else self.ready_at
+            if now - since > limit * 60: self.stop(f"quiet for {limit:g} min ({'after the last line' if self.lines else 'no line served since ready'})")
+            elif now - self.started > MAX_SESSION_MIN * 60: self.stop(f"session limit {MAX_SESSION_MIN:g} min")
+            elif ledger()["minutes"] + self._running_min() >= DAILY_MIN: self.stop("daily limit")
 M = Machine()
 
 # ---------- reading one web page (POST /read) ----------
@@ -242,7 +267,7 @@ M = Machine()
 # (a second DNS answer cannot swap it), every redirect is checked the same way, one GET without
 # cookies or body, 9 s for the whole chain, 2 MB. Nothing is stored; the log gets the host only.
 READ_PER_MIN = int(os.environ.get("HS_READ_PER_MIN", "12")); READ_DAILY = int(os.environ.get("HS_READ_DAILY", "300"))
-READ_MAX_BYTES = 2 * 1024 * 1024; READ_TOTAL_S = 9.0; READ_HOPS = 4; READ_MAX_URL = 2048; READ_AT_ONCE = 2
+READ_MAX_BYTES = 2 * 1024 * 1024; READ_TOTAL_S = 9.0; READ_CONNECT_S = 3.0; READ_HOPS = 4; READ_MAX_URL = 2048; READ_AT_ONCE = 2
 READ_UA = "HearshotReader/1 (fetches one page for its owner to listen to)"
 READ_TYPES = {"text/html", "application/xhtml+xml", "text/plain"}
 READ_STATUS = dict(bad_request=400, bad_url=400, blocked_address=400, too_many_redirects=422, too_large=422, unsupported_type=422,
@@ -358,10 +383,11 @@ def fetch_page(raw, resolve=dns_lookup, allow_loopback=False, total_s=READ_TOTAL
     try:
         t = check_url(raw, allow_loopback)
         while True:
-            last = None
-            for ip in _addresses(t, resolve, left):
+            last = None; ips = sorted(_addresses(t, resolve, left), key=lambda a: ":" in a)   # IPv4 first
+            for k, ip in enumerate(ips):                # a dead address gets READ_CONNECT_S at most; the last one, all the time left
                 if left() <= 0: raise ReadError("timeout")
-                try: live["cur"] = socket.create_connection((ip, t["port"]), timeout=max(0.01, left())); break
+                wait = left() if k == len(ips) - 1 else min(READ_CONNECT_S, left())
+                try: live["cur"] = socket.create_connection((ip, t["port"]), timeout=max(0.01, wait)); break
                 except OSError as e: last = e
             else: raise ReadError("timeout" if left() <= 0 else "unreachable", type(last).__name__)
             live["sock"] = live["cur"].dup()      # a second handle for kill(): still valid after the TLS wrap takes the first
@@ -386,7 +412,9 @@ def fetch_page(raw, resolve=dns_lookup, allow_loopback=False, total_s=READ_TOTAL
             if mime not in READ_TYPES or hdr("Content-Encoding").lower() not in ("", "identity"): raise ReadError("unsupported_type", mime)
             if hdr("Content-Length").isdigit() and int(hdr("Content-Length")) > max_bytes: raise ReadError("too_large")
             body = bytearray()
-            while True:
+            # With "Connection: close" in the answer, the response owns the socket and closes it (fd -1) the moment the
+            # declared Content-Length has been read: so stop there, before the socket is touched again.
+            while not resp.isclosed():
                 if left() <= 0 or expired.is_set(): raise ReadError("timeout")
                 sock.settimeout(max(0.01, left())); chunk = resp.read1(65536)
                 if not chunk: break
