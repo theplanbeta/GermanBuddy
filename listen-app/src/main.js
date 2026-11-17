@@ -429,6 +429,287 @@ ui.reading.addEventListener('click', (event) => {
   if (span) reader.jumpTo(Number(span.dataset.index), { play: true });
 });
 
+// ==== Sources: text from elsewhere into the text box ========================
+
+/**
+ * Puts text from a source (a PDF or a link) into the text box and takes
+ * exactly the path of a paste: word count, splitter and reader all update.
+ */
+function putSourceText(text) {
+  if (!ui.reading.hidden) {
+    // Back to the text box, as "Edit text" does, but without focusing it (that would open a phone's keyboard).
+    reader.pause();
+    ui.reading.hidden = true;
+    ui.text.hidden = false;
+    ui.editButton.hidden = true;
+  }
+  ui.text.value = text;
+  ui.text.scrollTop = 0;
+  ui.text.dispatchEvent(new InputEvent('input', { inputType: 'insertFromPaste' }));
+}
+
+/**
+ * The text box already holds text: ask first, in the message area, with two
+ * buttons. One question for every source, so they all ask the same way.
+ * `what`: e.g. "the text of “report.pdf”".
+ */
+function askToReplace(what, { onReplace, onKeep }) {
+  showMessage(`Replace the text in the box with ${what}?`, { info: true, action: 'Replace', onAction: onReplace });
+  const keep = document.createElement('button');
+  keep.type = 'button';
+  keep.className = 'button';
+  keep.textContent = 'Keep my text';
+  keep.addEventListener('click', () => {
+    onKeep?.();
+    hideMessage();
+  });
+  ui.message.append(' ', keep);
+  ui.message.querySelector('button')?.focus();
+}
+
+// One line for whichever source is at work, with its Cancel button. Only one
+// source works at a time: each new one gets the next number, and older ones stop.
+const sourceUi = { status: $('source-status'), statusText: $('source-status-text'), cancel: $('source-cancel') };
+let sourceRun = 0;
+
+// ---- Open PDF (src/pdf/) ----
+// The PDF code and its 5 MB reader are fetched only when a PDF is opened.
+const pdfUi = { button: $('pdf-button'), file: $('pdf-file') };
+const pdfDeps = {
+  status: sourceUi.status,
+  statusText: sourceUi.statusText,
+  focusAfter: pdfUi.button,
+  showMessage,
+  hideMessage,
+  askToReplace,
+  hasText: () => ui.text.value.trim() !== '',
+  putText: putSourceText,
+};
+let pdfCode = null;
+async function openPdfFile(file) {
+  const run = ++sourceRun;
+  cancelLink(); // only one source at a time
+  let code;
+  try {
+    code = await (pdfCode ??= import('./pdf/open-pdf.js'));
+  } catch {
+    pdfCode = null; // try loading again next time
+    if (run === sourceRun) showMessage('The PDF reader could not be loaded. Please check the internet connection and try again.');
+    return;
+  }
+  if (run === sourceRun) code.openPdf(file, pdfDeps); // (unless a link was asked for meanwhile)
+}
+pdfUi.button.addEventListener('click', () => pdfUi.file.click());
+pdfUi.file.addEventListener('change', () => {
+  const file = pdfUi.file.files[0];
+  pdfUi.file.value = ''; // so the same file can be chosen again
+  if (file) openPdfFile(file);
+});
+/** A link is starting: a PDF being read (or its pending question) is dropped without a word. */
+async function stopPdfQuietly() {
+  try {
+    (await pdfCode)?.stopPdfQuietly(pdfDeps);
+  } catch {
+    /* the PDF code never loaded, so no PDF is being read */
+  }
+}
+sourceUi.cancel.addEventListener('click', async () => {
+  if (linkRun !== null) stopLink();
+  else (await pdfCode)?.stopPdf(pdfDeps);
+});
+// A file dropped onto the text box is opened (otherwise the browser would leave the page to show it).
+const dragsFiles = (event) => Array.from(event.dataTransfer?.types ?? []).includes('Files');
+ui.text.addEventListener('dragover', (event) => {
+  if (!dragsFiles(event)) return;
+  event.preventDefault();
+  ui.text.classList.add('drop-target');
+});
+ui.text.addEventListener('dragleave', () => ui.text.classList.remove('drop-target'));
+ui.text.addEventListener('drop', (event) => {
+  ui.text.classList.remove('drop-target');
+  if (!dragsFiles(event)) return;
+  event.preventDefault();
+  const file = event.dataTransfer.files[0];
+  if (file) openPdfFile(file);
+});
+// ---- end of Open PDF ----
+
+// ---- Read a link (src/link/) ----
+// Your own helper server (the address and key in the studio link, Settings)
+// fetches the page; the article is picked out on this device. Works with the
+// "Studio voice" switch on or off. The link code and its article finder are
+// fetched only when the form opens or a link is read, so a normal visit
+// downloads none of it.
+const linkUi = { button: $('link-button'), form: $('link-form'), url: $('link-url'), close: $('link-close'), privacy: $('link-privacy') };
+const LINK_TEXT = {
+  fetching: 'Fetching the page…',
+  finding: 'Finding the article…',
+  stopped: 'Stopped reading the link. The text box was not changed.',
+  noCode: 'The link reader could not be loaded. Please check the internet connection and try again.',
+  offer: 'That looks like a link. Read the page?',
+  // Said instead of the link code's own words for these two, which do not name the setting.
+  no_helper: 'Reading a link needs your studio link in Settings.',
+  key: 'Reading a link needs your studio link in Settings, and the one there was not accepted; please paste it again.',
+};
+let linkCode = null;
+function loadLinkCode() {
+  if (!linkCode) {
+    linkCode = import('./link/index.js');
+    linkCode.catch(() => (linkCode = null)); // try loading again next time
+  }
+  return linkCode;
+}
+let linkRun = null; // the number (from sourceRun) of the link being read or waiting for its question
+let linkFieldWanted = false; // the studio link field is shown even with the studio voice off (see updateStudio)
+
+function showLinkStatus(text) {
+  sourceUi.status.hidden = false; // shown first, so screen readers announce the text that follows
+  sourceUi.statusText.textContent = text;
+}
+function hideLinkStatus() {
+  // Keep keyboard users in place when the Cancel button they are on disappears.
+  const hadFocus = sourceUi.status.contains(document.activeElement);
+  sourceUi.status.hidden = true;
+  sourceUi.statusText.textContent = '';
+  if (hadFocus) linkUi.button.focus();
+}
+/** Drops the link being read (its answer is ignored when it comes), without a word. */
+function cancelLink() {
+  if (linkRun === null) return;
+  linkRun = null;
+  hideLinkStatus();
+}
+/** The Cancel button next to "Fetching the page…". */
+function stopLink() {
+  cancelLink();
+  showMessage(LINK_TEXT.stopped, { info: true });
+}
+
+async function readLinkFrom(input) {
+  const run = ++sourceRun;
+  linkRun = run;
+  const current = () => linkRun === run;
+  hideMessage();
+  await stopPdfQuietly(); // only one source at a time
+  if (!current()) return;
+  showLinkStatus(LINK_TEXT.fetching);
+  let code;
+  try {
+    code = await loadLinkCode();
+  } catch {
+    if (current()) {
+      cancelLink();
+      showMessage(LINK_TEXT.noCode);
+    }
+    return;
+  }
+  linkUi.privacy.textContent = code.PRIVACY_NOTE; // (in case it could not be loaded when the form opened)
+  if (!current()) return;
+  const result = await code.readLink(input, {
+    helper: parseLink(ui.studioLink.value), // the field, as for the studio; null when it is empty
+    // Once the helper has answered, the rest happens on this device.
+    fetch: async (...args) => {
+      const response = await fetch(...args);
+      if (current()) showLinkStatus(LINK_TEXT.finding);
+      return response;
+    },
+  });
+  if (!current()) return; // cancelled, or another source started meanwhile: the answer is ignored
+  hideLinkStatus();
+  if (!result.ok) {
+    linkRun = null;
+    showLinkFailure(result);
+    return;
+  }
+  // No question when the box holds nothing but this same link (it was just pasted there).
+  const boxText = ui.text.value.trim();
+  if (boxText && boxText !== String(input).trim()) {
+    askToReplace(`the text of ${result.title ? `“${result.title}”` : 'the page'}`, {
+      onReplace: () => placeLink(result, run),
+      onKeep: () => {
+        if (linkRun === run) linkRun = null;
+      },
+    });
+  } else placeLink(result, run);
+}
+
+function placeLink(result, run) {
+  if (linkRun !== run) return;
+  linkRun = null;
+  linkUi.url.value = '';
+  closeLinkForm();
+  putSourceText(result.text);
+  showMessage(linkSummary(result), { info: true });
+}
+
+/** "“Quiet Streets” · townpost.example.com · about 2 minutes of listening. Press Play to listen." plus any warnings. */
+function linkSummary({ title, site, minutes, warnings = [] }) {
+  const about = `about ${minutes} minute${minutes === 1 ? '' : 's'} of listening`;
+  const line = [title && `“${title}”`, site, about].filter(Boolean).join(' · ');
+  return [`${line}. Press Play to listen.`, ...warnings].join(' ');
+}
+
+// The link code's message is shown as it is (for a PDF it already says to
+// download it and use Open PDF); a missing or refused studio link gets a way to Settings.
+function showLinkFailure({ kind, message }) {
+  if (kind === 'no_helper' || kind === 'key') showMessage(LINK_TEXT[kind], { action: 'Open Settings', onAction: showStudioLinkField });
+  else showMessage(message);
+}
+/** Opens Settings at the studio link field (shown even when the studio voice is off). */
+function showStudioLinkField() {
+  hideMessage();
+  linkFieldWanted = true;
+  ui.studioSetup.hidden = false;
+  document.querySelector('details.prefs').open = true;
+  ui.studioLink.focus();
+}
+
+function openLinkForm({ focus = true } = {}) {
+  linkUi.form.hidden = false;
+  linkUi.button.setAttribute('aria-expanded', 'true');
+  if (focus) linkUi.url.focus();
+  // Fetch the link code now: it holds the privacy note, and it is usually here by the time a link is pasted.
+  loadLinkCode().then(
+    (code) => (linkUi.privacy.textContent = code.PRIVACY_NOTE),
+    () => {}, // said when a link is read
+  );
+}
+function closeLinkForm() {
+  const hadFocus = linkUi.form.contains(document.activeElement);
+  linkUi.form.hidden = true;
+  linkUi.button.setAttribute('aria-expanded', 'false');
+  if (hadFocus) linkUi.button.focus();
+}
+linkUi.button.addEventListener('click', () => (linkUi.form.hidden ? openLinkForm() : closeLinkForm()));
+linkUi.close.addEventListener('click', closeLinkForm);
+linkUi.form.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  event.preventDefault();
+  closeLinkForm();
+});
+linkUi.form.addEventListener('submit', (event) => {
+  event.preventDefault(); // Enter or "Read": the page stays where it is
+  readLinkFrom(linkUi.url.value.trim());
+});
+// A paste of nothing but a web address goes into the box as usual; Hearshot
+// only offers to read the page (with the form and its privacy note in view).
+ui.text.addEventListener('paste', (event) => {
+  const pasted = (event.clipboardData?.getData('text/plain') ?? '').trim();
+  if (!/^https?:\/\/\S+$/i.test(pasted)) return;
+  showMessage(LINK_TEXT.offer, {
+    info: true,
+    action: 'Read the page',
+    onAction: () => {
+      linkUi.url.value = pasted;
+      openLinkForm({ focus: false }); // (no focus: it would open a phone's keyboard)
+      readLinkFrom(pasted);
+    },
+  });
+});
+// ---- end of Read a link ----
+
+// ==== end of sources ========================================================
+
 // ---- transport -------------------------------------------------------------
 
 function play() {
@@ -551,7 +832,8 @@ const STUDIO_ONLY_TEXT = {
 const ONLY_HINT = ' Nothing plays meanwhile; switch off “Studio only” to hear the voice on this device.';
 function updateStudio() {
   const on = ui.studio.checked;
-  ui.studioSetup.hidden = !on;
+  ui.studioSetup.hidden = !on && !linkFieldWanted; // "Read a link" may ask for the field with the studio off
+
   ui.studioStatus.hidden = !on;
   ui.studioOnlyField.hidden = ui.studioOnlyHelp.hidden = !on;
   const made = reader.studioCount;

@@ -227,6 +227,61 @@ textarea {
   justify-content: flex-end;
 }
 
+/* ---- sources: Open PDF and Read a link above the text box ---- */
+
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.source-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.source-status .button {
+  min-height: 36px;
+  padding: 4px 12px;
+}
+textarea.drop-target {
+  outline: 3px dashed var(--accent);
+  outline-offset: -3px;
+}
+/* The link form takes a row of its own under the buttons; on a phone its buttons wrap under the field. */
+.link-form {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  min-width: 0;
+}
+.link-form label {
+  color: var(--muted);
+}
+.link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.link-row input {
+  flex: 1 1 14rem;
+  min-width: 0;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem; /* 16 px or more, or phones zoom in when it is tapped */
+}
+.link-form p {
+  margin: 0;
+}
+
 /* ---- buttons ---- */
 
 .button {

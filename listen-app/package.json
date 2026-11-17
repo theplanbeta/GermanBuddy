@@ -12,11 +12,14 @@
   },
   "dependencies": {
     "@huggingface/transformers": "3.8.1",
+    "@llamaindex/liteparse-wasm": "2.18.0",
+    "@mozilla/readability": "0.6.0",
     "kokoro-js": "1.2.1",
     "phonemizer": "1.2.1"
   },
   "devDependencies": {
     "coi-serviceworker": "^0.1.7",
+    "linkedom": "0.18.15",
     "vite": "7.3.8"
   }
 }
