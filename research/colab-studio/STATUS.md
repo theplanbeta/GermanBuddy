@@ -11,7 +11,7 @@ Branch `feature/colab-studio`. Pull request #2 is open and **not merged**, so he
 | **Open PDF** (read on the device) | In pull request #2 (commit `6fdf225`); works in a real browser on the Mac |
 | **Read a link** (helper fetches, device extracts) | In pull request #2; works for real through the helper |
 | Helper: pages with a stated length load | On the server; committed locally (`6107bbe`), not pushed |
-| Helper: a stop during a start leaves no machine behind | Committed locally (`6107bbe`); **not on the server yet** |
+| Helper: a stop during a start leaves no machine behind | Live on the server since 2026-11-17 13:24 UTC; tested for real (stop 15 s in, stop at once, normal start to ready): no machine left |
 
 ## Tests (run on 2026-11-17)
 
@@ -20,15 +20,13 @@ Branch `feature/colab-studio`. Pull request #2 is open and **not merged**, so he
 - Helper machine start and stop: 16 of 16 pass (`python3 test_machine.py`).
 - Live on the server: every forbidden address refused (own addresses, private ranges, the Tailscale network, the cloud's internal address, disguised addresses, the helper's own public name); bad certificates, too many redirects, pictures and payment pages refused; a PDF link recognised; the per-minute limit works; the log holds site names only.
 
-## Waiting for the owner's yes
+## Waiting for the owner
 
-1. Put commit `6107bbe`'s `helper.py` on the server (changes how the studio starts and stops).
-2. One real Colab test of it: start, stop after about 15 seconds, confirm with Colab's own list that no machine is left; then one normal start and stop. About 8 machine minutes, about 0.15 units.
-3. Merge pull request #2 (publishes everything to hearshot.app). Recommended only after 1 and 2.
+1. Merge pull request #2 (publishes everything to hearshot.app).
 
 ## Known problems and open checks
 
-- **Until step 1 is done:** switching the studio off within the first minute after it starts can leave a Colab machine running. Found live on 2026-11-17; the machine was stopped by hand (about 2 minutes, about 0.04 units).
+- A stop during a start now waits for the current step to end before the machine goes: up to about 3 minutes in the worst case (seen live: 2.8 minutes while Colab was still making the machine). Those minutes are counted.
 - A German news page (tagesschau.de) was refused as "a file, not a web page". Cause unknown.
 - A Rust blog post gave "no article text found"; the helper received only 460 bytes, probably a redirect page. Not confirmed.
 - One plain-http site (neverssl.com) could not be reached by the helper although the server can reach it. Cause unknown.
