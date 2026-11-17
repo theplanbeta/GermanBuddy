@@ -31,6 +31,11 @@ export function moodFor(text) {
 }
 
 export const MAX_LINE = 400; // the helper takes no longer text
+const ROOM = MAX_LINE - 10; // the words of one line; the rest is room for the mood in front
+
+// A dash inside a sentence is read as a short break.
+const bare = (spoken) => spoken.replace(/\s*[—–]\s*/g, ', ').replace(/\s+/g, ' ').trim();
+const hasWords = (text) => /[\p{L}\p{N}]/u.test(text);
 
 /**
  * What to ask the studio voice for one sentence: { text, expect } (text with
@@ -39,11 +44,35 @@ export const MAX_LINE = 400; // the helper takes no longer text
  * or too long).
  */
 export function studioLine(spoken) {
-  // A dash inside a sentence is read as a short break.
-  const expect = spoken.replace(/\s*[—–]\s*/g, ', ').replace(/\s+/g, ' ').trim();
-  if (!/[\p{L}\p{N}]/u.test(expect) || expect.length > MAX_LINE - 10) return null;
+  const expect = bare(spoken);
+  if (!hasWords(expect) || expect.length > ROOM) return null;
   const mood = moodFor(expect);
   return { text: mood ? `[${mood}] ${expect}` : expect, expect, mood };
+}
+
+/**
+ * For "Studio only", where a sentence has no device voice to fall back on: the
+ * lines to ask the studio for, one sentence. A sentence too long for one line
+ * is cut at clause breaks (after a comma, semicolon or colon; between words
+ * if a clause is itself too long) into lines that fit, each with the mood of
+ * the whole sentence, so the parts sound alike. null: nothing to say.
+ */
+export function studioLines(spoken, room = ROOM) {
+  const expect = bare(spoken);
+  if (!hasWords(expect)) return null;
+  const mood = moodFor(expect);
+  const pieces = [];
+  let rest = expect;
+  while (rest.length > room) {
+    const head = rest.slice(0, room + 1);
+    let cut = Math.max(head.lastIndexOf(', '), head.lastIndexOf('; '), head.lastIndexOf(': ')) + 1;
+    if (cut < room / 3) cut = head.lastIndexOf(' '); // no clause break worth it: between words
+    if (cut <= 0) cut = room; // one very long "word"
+    pieces.push(rest.slice(0, cut).trim());
+    rest = rest.slice(cut).trim();
+  }
+  pieces.push(rest);
+  return pieces.filter(hasWords).map((piece) => ({ text: mood ? `[${mood}] ${piece}` : piece, expect: piece, mood }));
 }
 
 /** The studio has two voices so far: a woman's and a man's. */

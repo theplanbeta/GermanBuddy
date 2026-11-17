@@ -32,6 +32,32 @@
           <label id="text-label" for="text">Text to read</label>
           <span id="word-count" class="muted"></span>
         </div>
+        <!-- ==== Sources: other ways to fill the text box (each needs only to produce text). ==== -->
+        <div id="sources" class="sources">
+          <!-- Open PDF (src/pdf/): read on this device; the file never leaves it. -->
+          <button id="pdf-button" class="button" type="button" aria-describedby="pdf-help">Open PDF</button>
+          <input id="pdf-file" class="visually-hidden" type="file" accept=".pdf,application/pdf" tabindex="-1" aria-hidden="true" />
+          <span id="pdf-help" class="visually-hidden">Reads the text of a PDF into the text box. The file stays on this device.</span>
+          <!-- Read a link (src/link/): your own helper server fetches the page; the article is picked out on this device. -->
+          <button id="link-button" class="button" type="button" aria-expanded="false" aria-controls="link-form">Read a link</button>
+          <!-- One line for whichever source is at work (a PDF or a link), with its Cancel. -->
+          <div id="source-status" class="source-status" hidden>
+            <span id="source-status-text" class="muted small" role="status" aria-live="polite"></span>
+            <button id="source-cancel" class="button" type="button">Cancel</button>
+          </div>
+          <!-- novalidate: "example.com/story" is fine too; the link code adds the https:// itself. -->
+          <form id="link-form" class="link-form" hidden novalidate>
+            <label for="link-url">Address of the web page</label>
+            <div class="link-row">
+              <input id="link-url" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…" aria-describedby="link-privacy" />
+              <button class="button primary" type="submit">Read</button>
+              <button id="link-close" class="button" type="button">Cancel</button>
+            </div>
+            <!-- Filled in from PRIVACY_NOTE (src/link/fetch-page.js) as the form opens, so the text lives in one place. -->
+            <p id="link-privacy" class="muted small"></p>
+          </form>
+        </div>
+        <!-- ==== end of sources ==== -->
         <textarea id="text" spellcheck="false" placeholder="Paste or type anything here, then press Play."></textarea>
         <div id="reading" class="reading" hidden aria-labelledby="text-label"></div>
         <div class="doc-actions">
@@ -62,9 +88,19 @@
         <p id="studio-status" class="muted small" role="status" hidden></p>
         <p id="studio-help" class="muted small">
           An acted voice (frightened, delighted, urgent) made on your own cloud machine instead of on this
-          device. Needs your private studio link, which stays in this browser only. The studio takes about
-          two minutes to start after you press Play; until then, and whenever a sentence is late, the voice
-          on this device reads. With the switch off, nothing ever leaves this device.
+          device. Needs your private studio link, which stays in this browser only. The studio starts when
+          you open the app (about 2 to 5 minutes), so it is usually ready by the time you press Play; until
+          then, and whenever a sentence is late, the voice on this device reads. It stays ready for 45 minutes
+          after the last sentence. Opening the app uses a little of the owner’s Colab units, even if you do not
+          listen. With the switch off, nothing leaves this device, except a link you ask Hearshot to read.
+        </p>
+        <div id="studio-only-field" class="field check" hidden>
+          <input id="studio-only" type="checkbox" aria-describedby="studio-only-help" />
+          <label for="studio-only">Studio only</label>
+        </div>
+        <p id="studio-only-help" class="muted small" hidden>
+          Saves this device’s power and memory by not using its own voice at all; nothing plays until the
+          studio is ready (about 2 to 5 minutes after you open the app), and it needs a connection.
         </p>
         <div class="field">
           <label for="mode">Voice engine</label>

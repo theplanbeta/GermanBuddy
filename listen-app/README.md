@@ -3,7 +3,8 @@
 Hearshot reads text aloud. Paste anything into the box, press Play, and a natural
 voice reads it to you. The voice (Kokoro, an open-source model) runs entirely
 inside your browser: your text never leaves your device, and nothing needs a
-server or an account.
+server or an account. (The exception is "Read a link", below: your own helper
+server fetches the page for you.)
 
 ## What it does
 
@@ -111,6 +112,61 @@ server or an account.
 - On phones the player is a single row; "Heart · 1.00×" opens voice, tempo and
   download.
 
+## Opening a PDF
+
+"Open PDF" above the text box (or dropping a PDF onto the text box) puts the
+PDF's readable text into the text box, where it can still be edited before
+pressing Play. The PDF is read on the device and never leaves it.
+
+- What is read: headings, paragraphs and list items. Tables and equations are
+  announced with one word ("Table omitted.", "Equation."). Left out: running
+  heads, page numbers, footnotes, captions, references and contents pages.
+- Progress shows as "Reading PDF: page N of M" with a Cancel button. Opening
+  another PDF cancels the one being read. The text box is filled once the
+  whole PDF has been read; if it already holds text, Hearshot asks first.
+- Pages that are pictures of text (scans) cannot be read yet and are skipped,
+  and Hearshot says how many; blank pages are left out without a word. It also says when the reading order of some pages
+  may be wrong. Password-locked PDFs and other files are refused with a plain
+  message. Above 50 MB Hearshot warns that a phone may struggle, but still
+  tries.
+- The PDF reader (LiteParse, Apache 2.0, about 5.8 MB, or 2.7 MB compressed)
+  and Hearshot's PDF code are downloaded only the first time a PDF is opened.
+- `src/pdf/` holds copies of `research/pdf-pipeline/lib/` (`hearshot-doc.js`,
+  `pdf-layer.js`, `geometry.js`, `listen.js`); change them there first, then
+  copy them again. The research layer's clean-up ("Fig. 4" as "Figure 4",
+  "link to example.org" for a web address, citation markers removed) is what
+  the text box shows; money, times, dates and units are still turned into
+  spoken words only on the way to the voice, as for pasted text
+  (`src/pdf/handoff.js` explains the split).
+
+## Reading a link
+
+"Read a link" above the text box opens a small field: paste the address of a
+web page (an article, a blog post) and press Read or Enter. Pasting nothing but
+a web address into the text box itself also offers "Read the page". The
+article's text goes into the text box, where it can still be edited; if the
+box already holds text, Hearshot asks first, as for a PDF. A line then says the
+title, the site and about how many minutes it takes to listen to.
+
+- How it works: a browser may not fetch other websites itself, so your own
+  helper server (the one in your studio link) fetches the page, and Hearshot
+  picks the article out of it on this device: no menus, adverts, captions,
+  footnotes or "read more" links. The helper and the website both see that
+  request; the helper keeps no copy of the page.
+- It needs the studio link in Settings (with or without the "Studio voice"
+  switch on). Without one, Hearshot says so and offers to open Settings.
+- What fails: pages behind a paywall or a login (and posts on sites such as X,
+  Facebook or Instagram), pages that are built by scripts after they load,
+  videos and podcasts, Google Docs. A link to a PDF is not read: download the
+  PDF and use Open PDF. When only a little text is found, Hearshot says so.
+- The fallback always works: open the page in your browser, select the text,
+  copy it and paste it into the box.
+- Progress shows as "Fetching the page…", then "Finding the article…", with a
+  Cancel button. Only one source works at a time: reading a link stops a PDF
+  being read, and the other way round.
+- The link code and its article finder (Readability, Apache 2.0) are
+  downloaded only when the field is first opened or a link is read.
+
 ## Running it on your computer
 
 You need [Node.js](https://nodejs.org) 20 or newer.
@@ -180,6 +236,9 @@ GitHub Pages can serve ("Deploy from a branch", `/docs` folder).
 No analytics, no tracking. The only network requests are the one-time model and
 voice downloads from Hugging Face (huggingface.co and its file servers).
 Everything else, including the speech engine itself, is served by the app.
+Reading a link is the one choice that sends something out: the link's address
+goes to your own helper server, which fetches the page from the website (see
+"Reading a link").
 
 ## Known limits
 
@@ -282,11 +341,13 @@ Everything else, including the speech engine itself, is served by the app.
 | `src/ui/wait.js` | How the waiting ring moves (never backwards, never full before the sound) and the rule for repeated taps. |
 | `src/ui/ring.js` | Draws the waiting ring around the Play button. |
 | `src/voices.js` | The list of voices and their plain-English names. |
+| `src/pdf/` | "Open PDF": the button's logic (`open-pdf.js`, loaded only when used), the background thread (`pdf.worker.js`), text for the text box (`handoff.js`), the messages (`messages.js`), and the copied research layer. |
+| `src/link/` | "Read a link" (loaded only when used): sorting the address (`classify.js`), asking the helper to fetch the page (`fetch-page.js`), picking out the article (`extract.js`), all three in one call (`index.js`). The field and its messages are in `main.js`. |
 | `tests/` | Tests for the splitter, spoken forms, the director (on the stress paragraph and on plain prose), the call planning and cutting, the speed rules, the broken-audio check and the waiting ring. |
 | `vercel.json` | Build settings and headers for Vercel. |
 
-Planned additions slot in without touching the reader: new **sources** (PDF or
-file import, web links, a saved library) only need to
+Planned additions slot in without touching the reader: new **sources** (PDFs
+in `src/pdf/` and web links in `src/link/` are the first two; then a saved library) only need to
 produce text and call `splitText` and `reader.load`; a second **voice engine**
 (for example a server-hosted one) only needs the same `probe / load / generate`
 functions described at the top of `kokoro-engine.js`.

@@ -44,6 +44,7 @@ carries `Authorization: Bearer <key>`. Without it: 401.
 | `GET /status` | | `{"state": "idle" \| "starting" \| "ready" \| "stopping", "error", "today": {...}}` |
 | `POST /line` | body `{"id","voice","text","kind","expect","seed"}` | 200 `audio/wav` (24 kHz mono); 422 JSON when the line failed its check twice; 503 when not ready |
 | `POST /stop` | releases the machine now | JSON |
+| `POST /read` | body `{"url"}`: fetches one public web page for "paste a link" (the browser cannot fetch other sites) | 200 `{"kind":"html","type","finalUrl","status","bytes","redirects","html"}` or `{"kind":"pdf","finalUrl"}`; errors `{"error","message"}`: 400 bad input or a private address, 422 a page that cannot be used, 429 a limit, 502 or 504 the far site failing or slow |
 
 - `voice`: `af_aoede` or `am_fenrir` (the two voice samples the machine carries; more voices
   mean more samples in `work/out/refs/` and in `VOICES` in `helper.py`).
@@ -52,6 +53,24 @@ carries `Authorization: Bearer <key>`. Without it: 401.
   the check. Tags and line choice: `research/dialogue-hybrid/models/hybrid/`.
 - Limits inside the helper: one machine, T4, released after 10 quiet minutes, 90 minutes a
   session, 180 machine minutes a day (about 3.5 units).
+- A `/stop` during a start: `/status` says `stopping` until the start's current step has
+  returned and the machine is really stopped (a `colab new` still running cannot be stopped from
+  outside), then `idle`. A `/start` meanwhile answers `stopping` and starts nothing; the app
+  starts again once it sees `idle`. So there is never more than one machine or one `colab new`.
+  Tests: `python3 work/helper/test_machine.py` (the tool replaced by stand-ins).
+- `/read` (the riskiest request: the server fetches an address someone typed, from inside the
+  owner's network). http and https on ports 80 and 443 only, no user name or password in the
+  address, no local names (`localhost`, `.local`, `.internal`, `.ts.net`, names without a dot,
+  numbers dressed up as names). Every address the name resolves to must be on the open
+  internet (not loopback, private, link-local with the cloud metadata address, the Tailscale
+  range 100.64.0.0/10, multicast, reserved, or IPv4 wrapped in IPv6); the connection then goes
+  to that checked address itself, with the certificate checked against the name. At most 4
+  redirects, each checked like the first. GET only, no cookies, no compression, a fixed
+  `HearshotReader/1` user agent. 9 s for the whole chain, 2 MB, HTML, XHTML and plain text only
+  (a PDF is reported, not downloaded). Its own budget: `HS_READ_PER_MIN` (12) and
+  `HS_READ_DAILY` (300, counted as `reads` in `usage.json`), at most 2 at once. The log gets
+  the host name, the result, the bytes and the time; nothing else is kept. Tests:
+  `python3 work/helper/test_read.py` (no network).
 
 Measured over the internet: ready 123 to 145 s after `/start`; a line takes 5 to 13 s from
 request to audio (render about 1 s; the rest is the Colab tool reconnecting for each line).

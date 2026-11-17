@@ -15,6 +15,7 @@ export default defineConfig({
   preview: { headers: isolation },
   worker: { format: 'es' },
   build: { target: 'es2022' },
-  // Vite's dependency pre-bundling breaks onnxruntime-web's own worker setup.
-  optimizeDeps: { exclude: ['kokoro-js', '@huggingface/transformers', 'onnxruntime-web'] },
+  // Vite's dependency pre-bundling breaks onnxruntime-web's own worker setup,
+  // and the PDF reader's way of finding its .wasm file (src/pdf/pdf.worker.js).
+  optimizeDeps: { exclude: ['kokoro-js', '@huggingface/transformers', 'onnxruntime-web', '@llamaindex/liteparse-wasm'] },
 });

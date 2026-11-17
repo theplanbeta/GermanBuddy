@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { moodFor, studioLine, studioVoiceFor, lineId } from '../src/studio/moods.js';
-import { wavSamples, parseLink } from '../src/studio/studio.js';
+import { moodFor, studioLine, studioLines, studioVoiceFor, lineId, MAX_LINE } from '../src/studio/moods.js';
+import { wavSamples, parseLink, joined } from '../src/studio/studio.js';
 
 test('the paragraph the owner judged by ear gets the moods chosen then', () => {
   assert.equal(moodFor("Honestly, I never thought we'd actually pull this off—can you believe how incredible the view is from up here?!"), 'happy');
@@ -30,6 +30,36 @@ test('a line carries its mood in front, and the bare words for the check', () =>
   assert.deepEqual(studioLine('The meeting ended at noon.'), { text: 'The meeting ended at noon.', expect: 'The meeting ended at noon.', mood: '' });
   assert.equal(studioLine('…'), null);
   assert.equal(studioLine('word '.repeat(100)), null);
+});
+
+test('"Studio only": a sentence that fits is one line, the same as studioLine', () => {
+  assert.deepEqual(studioLines('Run for the cabin—now!'), [studioLine('Run for the cabin—now!')]);
+  assert.equal(studioLines('…'), null);
+});
+
+test('"Studio only": a sentence too long for one line is cut at clause breaks, then between words', () => {
+  const clause = 'the river rose slowly over the old stone bank';
+  const long = `${Array.from({ length: 12 }, () => clause).join(', ')}, and nobody noticed!`;
+  const lines = studioLines(long);
+  assert.ok(lines.length > 1);
+  for (const line of lines) assert.ok(line.text.length <= MAX_LINE, line.text);
+  assert.equal(lines.map((l) => l.expect).join(' '), long, 'no word lost or doubled');
+  assert.ok(lines.slice(0, -1).every((l) => l.expect.endsWith(',')), 'cut after a comma');
+  // No clause breaks at all: between words.
+  const words = studioLines('word '.repeat(100));
+  assert.ok(words.length === 2 && words.every((l) => l.expect.length <= MAX_LINE - 10 && !l.expect.includes('  ')));
+  assert.equal(words.map((l) => l.expect).join(' '), 'word '.repeat(100).trim());
+  // The whole sentence's mood on every part, so the parts sound alike.
+  const scared = studioLines(`Oh no, ${'the water is coming up the stairs and into the hall, '.repeat(8)}help!`);
+  assert.ok(scared.length > 1 && scared.every((l) => l.mood === 'fear' && l.text.startsWith('[fear] ')));
+});
+
+test('the parts of one sentence are joined with a short quiet between them', () => {
+  const a = new Int16Array([1, 2]);
+  assert.equal(joined([a]), a);
+  const out = joined([a, new Int16Array([3])], 100); // 0.12 s at 100 samples a second: 12 samples
+  assert.equal(out.length, 2 + 12 + 1);
+  assert.deepEqual([out[0], out[1], out[2], out[13], out[14]], [1, 2, 0, 0, 3]);
 });
 
 test('voices and ids', () => {
